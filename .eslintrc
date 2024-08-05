@@ -6,7 +6,7 @@
   "parser": "babel-eslint",
   "globals": {
     "chrome": true,
-    "ga": true
+    "ga": false
   },
   "extends": [
     "airbnb",

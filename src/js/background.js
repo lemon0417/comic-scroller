@@ -11,7 +11,7 @@ const sfRegex = /http\:\/\/comic\.sfacg\.com\/(HTML\/[^\/]+\/.+)$/;
 const comicbusRegex = /http\:\/\/(www|v)\.comicbus.com\/online\/(comic-\d+\.html\?ch=.*$)/;
 
 declare var chrome: any;
-declare var ga: any;
+// declare var ga: any;
 
 const fetchChapterPage$ = {
   sf: fetchChapterPage$Sf,
@@ -181,7 +181,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
           'app.html',
         )}?site=comicbus&chapter=${chapter}`,
       });
-      ga('send', 'event', 'comicbus view');
+      // ga('send', 'event', 'comicbus view');
     } else if (sfRegex.test(details.url)) {
       console.log('sf fired');
       const chapter = sfRegex.exec(details.url)[1];
@@ -190,7 +190,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
           'app.html',
         )}?site=sf&chapter=${chapter}`,
       });
-      ga('send', 'event', 'sf view');
+      // ga('send', 'event', 'sf view');
     } else if (dm5Regex.test(details.url)) {
       console.log('dm5 fired');
       let chapter = '';
@@ -200,7 +200,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
           'app.html',
         )}?site=dm5&chapter=${chapter}`,
       });
-      ga('send', 'event', 'dm5 view');
+      // ga('send', 'event', 'dm5 view');
     }
   },
   {
@@ -225,11 +225,11 @@ chrome.alarms.onAlarm.addListener(alarm => {
 
 /* eslint-disable */
 // prettier-ignore
-(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-// $FlowFixMe
-m=s.getElementsByTagName(o)[0];a.alocal=1;a.src=g;m.parentNode.insertBefore(a,m)
-})(window,document,'script','https://ssl.google-analytics.com/analytics.js','ga');
-ga('create', 'UA-59728771-1', 'auto');
-ga('set', 'checkProtocolTask', null);
-ga('send', 'pageview');
+// (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+// (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+// // $FlowFixMe
+// m=s.getElementsByTagName(o)[0];a.alocal=1;a.src=g;m.parentNode.insertBefore(a,m)
+// })(window,document,'script','https://ssl.google-analytics.com/analytics.js','ga');
+// ga('create', 'UA-59728771-1', 'auto');
+// ga('set', 'checkProtocolTask', null);
+// ga('send', 'pageview');
