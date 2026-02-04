@@ -1,7 +1,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import renderer from 'react-test-renderer';
-import { ComicImage } from './';
+import { ComicImage } from '.';
 
 describe('ComicImage type className check', () => {
   it('ComicImage type = undefined => className = ComicImageInit', () => {

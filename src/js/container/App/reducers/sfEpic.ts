@@ -35,29 +35,29 @@ const FETCH_IMG_LIST = 'FETCH_IMG_LIST';
 const UPDATE_READ = 'UPDATE_READ';
 declare var chrome: any;
 
-function fetchImgs$(chapter) {
+function fetchImgs$(chapter: any) {
   return Observable.ajax({
     url: `${baseURL}/${chapter}`,
     responseType: 'document',
   }).mergeMap(function fetchImgPageHandler({ response }) {
     const comicsID = /\.sfacg\.com\/(.*\/)$/.exec(
       response.querySelector('.AD_D2 > a:nth-child(1)').href,
-    )[1];
+    )![1];
     const scriptURL = /src=\"\/(Utility\/\d+.*\.js)\">/.exec(
       response.head.innerHTML,
-    )[1];
+    )![1];
     return Observable.of({ chapter, scriptURL, comicsID });
   });
 }
 
-function fetchScript$(scriptURL, chapter) {
+function fetchScript$(scriptURL: any, chapter: any) {
   return Observable.ajax({
     url: `${baseURL}/${scriptURL}`,
     responseType: 'text',
   }).mergeMap(function scriptURLHandler({ response }) {
     let picCount;
-    let hosts;
-    let picAy;
+    let hosts: any;
+    let picAy: any;
     eval(response); // eslint-disable-line
     // $FlowFixMe
     const imgList = Array.from({ length: picCount }, (v, k) => ({
@@ -69,10 +69,10 @@ function fetchScript$(scriptURL, chapter) {
 }
 
 export function fetchImgSrcEpic(action$: any, store: { getState: Function }) {
-  return action$.ofType(FETCH_IMAGE_SRC).mergeMap(action => {
+  return action$.ofType(FETCH_IMAGE_SRC).mergeMap((action: { begin: number; end: number; }) => {
     const { result, entity } = store.getState().comics.imageList;
     return Observable.from(result)
-      .filter(item => {
+      .filter((item: any) => {
         return (
           item >= action.begin &&
           item <= action.end &&
@@ -80,7 +80,7 @@ export function fetchImgSrcEpic(action$: any, store: { getState: Function }) {
           entity[item].type !== 'end'
         );
       })
-      .map(id => {
+      .map((id: any) => {
         return loadImgSrc(entity[id].src, id);
       });
   });
@@ -121,7 +121,7 @@ export function fetchChapterPage$(url: string) {
 }
 
 export function fetchImgListEpic(action$: any, store: { getState: Function }) {
-  return action$.ofType(FETCH_IMG_LIST).mergeMap(action => {
+  return action$.ofType(FETCH_IMG_LIST).mergeMap((action: { index: string | number; }) => {
     const { chapterList } = store.getState().comics;
     const chapter = chapterList[action.index];
     return fetchImgs$(chapter).mergeMap(({ scriptURL }) => {
@@ -146,7 +146,7 @@ export function fetchImgList(index: number) {
 }
 
 export function fetchChapterEpic(action$: any) {
-  return action$.ofType(FETCH_CHAPTER).mergeMap(action =>
+  return action$.ofType(FETCH_CHAPTER).mergeMap((action: { chapter: any; }) =>
     fetchImgs$(action.chapter).mergeMap(({ chapter, scriptURL, comicsID }) => {
       return Observable.merge(
         Observable.of(updateComicsID(comicsID)),
@@ -163,7 +163,7 @@ export function fetchChapterEpic(action$: any) {
               item => item === chapter,
             );
             return Observable.bindCallback(chrome.storage.local.get)().mergeMap(
-              item => {
+              (item: any) => {
                 const newItem = {
                   ...item,
                   update: filter(
@@ -253,8 +253,8 @@ export function fetchChapter(chapter: string) {
 }
 
 export function updateReadEpic(action$: any, store: { getState: Function }) {
-  return action$.ofType(UPDATE_READ).mergeMap(action =>
-    Observable.bindCallback(chrome.storage.local.get)().mergeMap(item => {
+  return action$.ofType(UPDATE_READ).mergeMap((action: { index: number; }) =>
+    Observable.bindCallback(chrome.storage.local.get)().mergeMap((item: any) => {
       const { comicsID, chapterList } = store.getState().comics;
       const chapterID = chapterList[action.index];
       const newItem = {

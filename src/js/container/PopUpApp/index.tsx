@@ -12,7 +12,7 @@ import filter from 'lodash/filter';
 
 declare var chrome: any;
 
-function stopImmediatePropagation(e) {
+function stopImmediatePropagation(e: any) {
   e.stopPropagation();
   e.nativeEvent.stopImmediatePropagation();
 }
@@ -132,9 +132,9 @@ const RippleMenu = ripple(MenuButton);
 
 class PopUpApp extends Component {
   props: {
-    update: Array<*>,
-    subscribe: Array<*>,
-    history: Array<*>,
+    update: Array<any>,
+    subscribe: Array<any>,
+    history: Array<any>,
     updatePopupData: Function,
     shiftCards: Function,
   };
@@ -337,7 +337,7 @@ class PopUpApp extends Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
   return {
     update: filter(
       state.popup.update,

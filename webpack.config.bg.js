@@ -3,7 +3,7 @@ var webpack = require('webpack');
 const MinifyPlugin = require("babel-minify-webpack-plugin");
 
 module.exports = {
-  entry: ['./src/js/background.js'],
+  entry: ['./src/js/background.ts'],
   output: {
     path: path.join(__dirname, 'ComicsScroller/js'),
     filename: 'background.js',
@@ -18,6 +18,11 @@ module.exports = {
         exclude: path.join(__dirname, 'node_modules'),
       },
       {
+        test: /\.(ts|tsx)$/,
+        use: 'ts-loader',
+        exclude: /node_modules/
+      },
+      {
         test: /\.json$/,
         loader: 'json',
       },
@@ -28,6 +33,6 @@ module.exports = {
       css: path.join(__dirname, 'src/css'),
       imgs: path.join(__dirname, 'src/imgs'),
     },
-    extensions: ['.js', '.jsx', '.json', '.css'],
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.css'],
   },
 };

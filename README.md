@@ -32,10 +32,7 @@ use webpack and flowtype and react to build
 ```
 npm install
 ```
-or
-```
-yarn
-```
+
 ## Run dev server
 ```
 npm start
@@ -44,7 +41,7 @@ And then you can go to chrome://extensions add your-project-path/ComicsScroller 
 
 ## Build extension  
 ```
-npm run product
+npm run build
 ```
 
 ## Test

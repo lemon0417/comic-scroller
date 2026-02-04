@@ -7,9 +7,9 @@ import pickBy from 'lodash/pickBy';
 type Action = {
   type: string,
   data: {
-    update: Array<*>,
-    subscribe: Array<*>,
-    history: Array<*>,
+    update: Array<any>,
+    subscribe: Array<any>,
+    history: Array<any>,
     dm5: any,
     sf: any,
     comicbus: any,
@@ -19,17 +19,17 @@ type Action = {
 };
 
 type State = {
-  update: Array<*>,
-  subscribe: Array<*>,
-  history: Array<*>,
+  update: Array<any>,
+  subscribe: Array<any>,
+  history: Array<any>,
   dm5: {
-    baseURL: 'https://www.dm5.com',
+    baseURL: string,
   },
   sf: {
-    baseURL: 'http://comic.sfacg.com',
+    baseURL: string,
   },
   comicbus: {
-    baseURL: 'http://www.comicbus.com',
+    baseURL: string,
   },
 };
 
@@ -128,9 +128,9 @@ export default function popup(state: State = initialState, action: Action) {
 }
 
 export function updatePopupData(data: {
-  subscribe: Array<*>,
-  history: Array<*>,
-  update: Array<*>,
+  subscribe: Array<any>,
+  history: Array<any>,
+  update: Array<any>,
 }) {
   return { type: UPDATE_POPUP_DATA, data };
 }

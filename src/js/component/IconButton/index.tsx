@@ -5,7 +5,7 @@ import ripple from '../Ripple';
 
 class IconButton extends Component {
   props: {
-    children?: React$Element<*>,
+    children?: React$Element<any>,
     onClickHandler: Function,
     onMouseDownHandler: Function,
   };

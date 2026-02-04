@@ -4,10 +4,10 @@ import { connect } from 'react-redux';
 import { hot } from 'react-hot-loader';
 import some from 'lodash/some';
 import filter from 'lodash/filter';
-import MenuIcon from 'imgs/menu.svg';
-import NextIcon from 'imgs/circle-right.svg';
-import PrevIcon from 'imgs/circle-left.svg';
-import TagIcon from 'imgs/tag.svg';
+import MenuIcon from '@imgs/menu.svg';
+import NextIcon from '@imgs/circle-right.svg';
+import PrevIcon from '@imgs/circle-left.svg';
+import TagIcon from '@imgs/tag.svg';
 import IconButton from '../../component/IconButton';
 import cn from './App.css';
 import ImgContainer from '../ImgContainer';
@@ -23,7 +23,7 @@ import { startResize } from './reducers/resizeEpic';
 
 declare var chrome: any;
 
-function getTagIconClass(chapterTitle, subscribe) {
+function getTagIconClass(chapterTitle: any, subscribe: any) {
   if (chapterTitle === '') return cn.icon_deactive;
   if (subscribe) return cn.icon_subscribe;
   return cn.icon;
@@ -35,7 +35,7 @@ class App extends Component {
     comicsID: string,
     chapter: string,
     chapterTitle: string,
-    chapterList: Array<*>,
+    chapterList: Array<any>,
     site: string,
     chapterNowIndex: number,
     prevable: boolean,
@@ -58,10 +58,10 @@ class App extends Component {
   componentDidMount() {
     this.props.startResize();
     chrome.runtime.onMessage.addListener(() => {
-      chrome.storage.local.get(item => {
+      chrome.storage.local.get((item: any) => {
         const { subscribe, site, comicsID } = this.props;
         if (!item[this.props.site][comicsID]) {
-          chrome.tabs.getCurrent(tab => {
+          chrome.tabs.getCurrent((tab: { id: any; }) => {
             chrome.tabs.remove(tab.id);
           });
         }
@@ -113,7 +113,7 @@ class App extends Component {
 
   subscribeHandler = () => {
     const { chapter, site, comicsID } = this.props;
-    chrome.storage.local.get(item => {
+    chrome.storage.local.get((item: any) => {
       if (item.subscribe) {
         let newItem = {};
         if (
@@ -201,7 +201,7 @@ class App extends Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
   const {
     title,
     chapterNowIndex,

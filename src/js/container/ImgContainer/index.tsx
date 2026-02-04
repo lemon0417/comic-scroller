@@ -47,10 +47,10 @@ const getRenderResult = createSelector(
 const margin = 20;
 
 const getPaddingTop = createSelector(
-  comics => comics.imageList.result,
-  comics => comics.imageList.entity,
-  comics => comics.renderBeginIndex,
-  comics => comics.innerHeight,
+  (comics: any) => comics.imageList.result,
+  (comics: any) => comics.imageList.entity,
+  (comics: any) => comics.renderBeginIndex,
+  (comics: any) => comics.innerHeight,
   (result, entity, begin, innerHeight) =>
     reduce(
       filter(result, item => item < begin),
@@ -64,10 +64,10 @@ const getPaddingTop = createSelector(
 );
 
 const getPaddingBottom = createSelector(
-  comics => comics.imageList.result,
-  comics => comics.imageList.entity,
-  comics => comics.renderEndIndex,
-  comics => comics.innerHeight,
+  (comics: any) => comics.imageList.result,
+  (comics: any) => comics.imageList.entity,
+  (comics: any) => comics.renderEndIndex,
+  (comics: any) => comics.innerHeight,
   (result, entity, end, innerHeight) =>
     reduce(
       filter(result, item => item > end),
@@ -80,7 +80,7 @@ const getPaddingBottom = createSelector(
     ),
 );
 
-function mapStateToProps({ comics }) {
+function mapStateToProps({ comics }: { comics: any }) {
   return {
     paddingTop: getPaddingTop(comics),
     paddingBottom: getPaddingBottom(comics),

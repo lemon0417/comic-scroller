@@ -11,14 +11,14 @@ type State = {
   chapterNowIndex: number,
   baseURL: string,
   subscribe: boolean,
-  chapters: {},
-  chapterList: Array<*>,
+  chapters: Record<number, any>,
+  chapterList: Array<any>,
   read: [],
   renderBeginIndex: number,
   renderEndIndex: number,
   imageList: {
-    result: Array<*>,
-    entity: {},
+    result: Array<any>,
+    entity: Record<number, any>,
   },
 };
 
@@ -31,16 +31,17 @@ type Action = {
   end: number,
   height: number,
   innerHeight: number,
+  imgType: any,
 };
 
-const initialState = {
+const initialState: State = {
   innerHeight: window.innerHeight,
-  site,
+  site: '',
   comicsID: '',
   title: '',
   chapterLatestIndex: 0,
   chapterNowIndex: 0,
-  baseURL,
+  baseURL: '',
   subscribe: false,
   chapters: {},
   chapterList: [],
@@ -227,7 +228,7 @@ export function updateComicsID(data: string) {
   return { type: UPDATE_COMICS_ID, data };
 }
 
-export function updateSubscribe(data: Array<*>) {
+export function updateSubscribe(data: Array<any>) {
   return { type: UPDATE_SUBSCRIBE, data };
 }
 
@@ -239,7 +240,7 @@ export function updateChapters(data: {}) {
   return { type: UPDATE_CHAPTERS, data };
 }
 
-export function updateChapterList(data: Array<*>) {
+export function updateChapterList(data: Array<any>) {
   return { type: UPDATE_CHAPTER_LIST, data };
 }
 
@@ -255,7 +256,7 @@ export function updateRenderIndex(begin: number, end: number) {
   return { type: UPDATE_RENDER_INDEX, begin, end };
 }
 
-export function concatImageList(data: Array<*>) {
+export function concatImageList(data: Array<any>) {
   return { type: CONCAT_IMAGE_LIST, data };
 }
 

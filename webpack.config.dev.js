@@ -19,7 +19,7 @@ module.exports = {
   },
   output: {
     publicPath: 'http://localhost:8000/',
-    path: path.join(__dirname, 'ComicsSroller'),
+    path: path.join(__dirname, 'ComicsScroller'),
     filename: '[name].js',
   },
   plugins: [
@@ -31,51 +31,63 @@ module.exports = {
     }),
   ],
   module: {
-    rules: [{
-      test: /\.jsx?$/,
-      loader: 'babel-loader',
-      exclude: path.join(__dirname, 'node_modules'),
-      query: {
-        cacheDirectory: true
-      }
-    },{
-      test: /\.json$/,
-      loader: 'json-loader'
-    },{
-      test: /\.css$/,
-      use: [
-        {
-          loader: 'style-loader',
-          options: {
-            singleton: true
-          }
-        }, {
-          loader: 'css-loader',
-          options: {
-            autoprefixer: false,
-            sourceMap: true,
-            modules: true,
-            importLoaders: 1,
-            localIdentName: '[name]__[local]__[hash:base64:5]'
-          }
-        }, {
-          loader: 'postcss-loader',
+    rules: [
+      {
+        test: /\.jsx?$/,
+        loader: 'babel-loader',
+        exclude: path.join(__dirname, 'node_modules'),
+        query: {
+          cacheDirectory: true
         }
-      ]
-    }, {
-      test: /\.svg$/,
-      use: [
-        'babel-loader',
-        'react-svg-loader'
-      ]
-    }]
+      },
+      {
+        test: /\.(ts|tsx)$/,
+        use: 'ts-loader',
+        exclude: /node_modules/
+      },
+      {
+        test: /\.json$/,
+        loader: 'json-loader'
+      },
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'style-loader',
+            options: {
+              singleton: true
+            }
+          },
+          {
+            loader: 'css-loader',
+            options: {
+              autoprefixer: false,
+              sourceMap: true,
+              modules: true,
+              importLoaders: 1,
+              localIdentName: '[name]__[local]__[hash:base64:5]'
+            }
+          },
+          {
+            loader: 'postcss-loader',
+          }
+        ]
+      },
+      {
+        test: /\.svg$/,
+        use: [
+          'babel-loader',
+          'react-svg-loader'
+        ]
+      }
+    ]
   },
   resolve: {
-    alias:{
+    alias: {
       css: path.join(__dirname, 'src/css'),
       imgs: path.join(__dirname, 'src/imgs'),
       cmp: path.join(__dirname, 'src/js/component')
     },
-    extensions: ['.js', '.jsx', '.json', '.css']
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.css']
   }
 };

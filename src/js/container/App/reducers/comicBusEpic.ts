@@ -48,9 +48,9 @@ function fetchImgs$(chapter: string) {
     eval(
       /(var chs.*var cs=\'[^']+\';)/.exec(
         response.querySelector('#Form1 > script').textContent,
-      )[1],
+      )![1],
     );
-    let ch = /.*ch\=(.*)/.exec(chapter)[1];
+    let ch = /.*ch\=(.*)/.exec(chapter)![1];
     if (ch.indexOf('#') > 0) {
       ch = ch.split('#')[0];
     }
@@ -152,11 +152,11 @@ export function fetchChapterPage$(url: string, comicsID: string) {
     const chapterList = [
       ...map(chapterNodes, n => {
         const arr = /\'(.*)-(.*)\.html/.exec(n.getAttribute('onclick'));
-        return `comic-${arr[1]}.html?ch=${arr[2]}`;
+        return `comic-${arr![1]}.html?ch=${arr![2]}`;
       }).reverse(),
       ...map(volNodes, n => {
         const arr = /\'(.*)-(.*)\.html/.exec(n.getAttribute('onclick'));
-        return `comic-${arr[1]}.html?ch=${arr[2]}`;
+        return `comic-${arr![1]}.html?ch=${arr![2]}`;
       }).reverse(),
     ];
     const chapters = {
@@ -166,12 +166,12 @@ export function fetchChapterPage$(url: string, comicsID: string) {
           const arr = /\'(.*)-(.*)\.html/.exec(n.getAttribute('onclick'));
           return {
             ...acc,
-            [`comic-${arr[1]}.html?ch=${arr[2]}`]: {
+            [`comic-${arr![1]}.html?ch=${arr![2]}`]: {
               title:
                 n.children.length > 0
                   ? n.children[0].textContent
                   : n.textContent,
-              href: `${baseURL}/online/comic-${arr[1]}.html?ch=${arr[2]}`,
+              href: `${baseURL}/online/comic-${arr![1]}.html?ch=${arr![2]}`,
             },
           };
         },
@@ -183,12 +183,12 @@ export function fetchChapterPage$(url: string, comicsID: string) {
           const arr = /\'(.*)-(.*)\.html/.exec(n.getAttribute('onclick'));
           return {
             ...acc,
-            [`comic-${arr[1]}.html?ch=${arr[2]}`]: {
+            [`comic-${arr![1]}.html?ch=${arr![2]}`]: {
               title:
                 n.children.length > 0
                   ? n.children[0].textContent
                   : n.textContent,
-              href: `${baseURL}/online/comic-${arr[1]}.html?ch=${arr[2]}`,
+              href: `${baseURL}/online/comic-${arr![1]}.html?ch=${arr![2]}`,
             },
           };
         },
@@ -200,7 +200,7 @@ export function fetchChapterPage$(url: string, comicsID: string) {
 }
 
 export function fetchImgListEpic(action$: any, store: Store) {
-  return action$.ofType(FETCH_IMG_LIST).mergeMap(action => {
+  return action$.ofType(FETCH_IMG_LIST).mergeMap((action: { index: string | number; }) => {
     const { chapterList } = store.getState().comics;
     const chapter = chapterList[action.index];
     return fetchImgs$(chapter).mergeMap(({ imgList }) => {
@@ -223,7 +223,7 @@ export function fetchImgList(index: number) {
 }
 
 export function fetchChapterEpic(action$: any) {
-  return action$.ofType(FETCH_CHAPTER).mergeMap(action =>
+  return action$.ofType(FETCH_CHAPTER).mergeMap((action: { chapter: string; }) =>
     fetchImgs$(action.chapter).mergeMap(({ imgList, comicsID }) => {
       return Observable.merge(
         Observable.of(updateComicsID(comicsID)),
@@ -240,7 +240,7 @@ export function fetchChapterEpic(action$: any) {
             item => item === action.chapter,
           );
           return Observable.bindCallback(chrome.storage.local.get)().mergeMap(
-            item => {
+            (item: any) => {
               const newItem = {
                 ...item,
                 update: filter(
@@ -332,8 +332,8 @@ export function fetchChapter(chapter: string) {
 }
 
 export function updateReadEpic(action$: any, store: { getState: Function }) {
-  return action$.ofType(UPDATE_READ).mergeMap(action =>
-    Observable.bindCallback(chrome.storage.local.get)().mergeMap(item => {
+  return action$.ofType(UPDATE_READ).mergeMap((action: { index: number; }) =>
+    Observable.bindCallback(chrome.storage.local.get)().mergeMap((item: any) => {
       const { comicsID, chapterList } = store.getState().comics;
       const chapterID = chapterList[action.index];
       const newItem = {

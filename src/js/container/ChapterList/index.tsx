@@ -13,9 +13,9 @@ import { stopScroll } from '../App/reducers/scrollEpic';
 import cn from './ChapterList.css';
 
 class ChapterList extends Component {
-  props: {
+  props!: {
     show: boolean,
-    chapterList: Array<*>,
+    chapterList: Array<any>,
     showChapterListHandler: Function,
     stopScroll: Function,
     resetImg: Function,
@@ -25,18 +25,18 @@ class ChapterList extends Component {
     fetchImgList: Function,
   };
 
-  node: HTMLBaseElement;
+  node!: HTMLBaseElement;
 
   onClickHandler = () => {
     this.node.scrollTop = 0;
     this.props.showChapterListHandler();
   };
 
-  refHandler = node => {
+  refHandler = (node: HTMLBaseElement) => {
     this.node = node;
   };
 
-  chapterClickHandler = e => {
+  chapterClickHandler = (e: any) => {
     if (e.target.matches(`.${cn.content} > div`)) {
       const index = parseInt(e.target.dataset.index, 10);
       this.props.stopScroll();
@@ -77,7 +77,7 @@ class ChapterList extends Component {
   }
 }
 
-function mapStateToProps(state) {
+function mapStateToProps(state: any) {
   const { read, chapterList, chapters } = state.comics;
   return {
     chapterList: map(chapterList, item => ({

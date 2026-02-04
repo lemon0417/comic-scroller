@@ -32,7 +32,7 @@ import {
   updateRead as updateReadComicbus,
 } from './comicBusEpic';
 
-function getInfor(site) {
+function getInfor(site: any) {
   switch (site) {
     case 'dm5':
       return {
@@ -54,7 +54,7 @@ function getInfor(site) {
   }
 }
 
-function getAction(site) {
+function getAction(site: any) {
   switch (site) {
     case 'dm5':
       return {
@@ -82,7 +82,7 @@ function getAction(site) {
   }
 }
 
-function getEpic(site) {
+function getEpic(site: any) {
   switch (site) {
     case 'dm5':
       return {
@@ -111,7 +111,7 @@ function getEpic(site) {
 }
 
 const _site = /site=(.*)&/.test(document.URL)
-  ? /site=(.*)&/.exec(document.URL)[1]
+  ? /site=(.*)&/.exec(document.URL)![1]
   : ''; //eslint-disable-line
 
 export const { site, baseURL } = getInfor(_site);

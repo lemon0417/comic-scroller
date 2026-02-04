@@ -33,7 +33,7 @@ const FETCH_IMAGE_SRC = 'FETCH_IMAGE_SRC';
 const FETCH_IMG_LIST = 'FETCH_IMG_LIST';
 const UPDATE_READ = 'UPDATE_READ';
 
-function fetchImgs$(chapter) {
+function fetchImgs$(chapter: any) {
   return Observable.ajax({
     url: `${baseURL}/${chapter}/`,
     responseType: 'document',
@@ -41,12 +41,12 @@ function fetchImgs$(chapter) {
     const node = response.querySelector('div.title > span:nth-child(2) > a');
     const script = response.querySelector('head')
       .textContent;
-    const DM5_IMAGE_COUNT = /DM5_IMAGE_COUNT=(\d+);/.exec(script)[1];
-    const DM5_CID = /DM5_CID=(\d+);/.exec(script)[1];
-    const DM5_CURL = /DM5_CURL\s*=\s*\"\/(m\d+\/)\"/.exec(script)[1];
-    const DM5_MID = /DM5_MID\s*=\s*(\d+);/.exec(script)[1];
-    const DM5_VIEWSIGN_DT = /DM5_VIEWSIGN_DT\s*=\s*"(.*)";/.exec(script)[1];
-    const DM5_VIEWSIGN = /DM5_VIEWSIGN="([^"]*)";/.exec(script)[1];
+    const DM5_IMAGE_COUNT = /DM5_IMAGE_COUNT=(\d+);/.exec(script)![1];
+    const DM5_CID = /DM5_CID=(\d+);/.exec(script)![1];
+    const DM5_CURL = /DM5_CURL\s*=\s*\"\/(m\d+\/)\"/.exec(script)![1];
+    const DM5_MID = /DM5_MID\s*=\s*(\d+);/.exec(script)![1];
+    const DM5_VIEWSIGN_DT = /DM5_VIEWSIGN_DT\s*=\s*"(.*)";/.exec(script)![1];
+    const DM5_VIEWSIGN = /DM5_VIEWSIGN="([^"]*)";/.exec(script)![1];
     const imgList = Array.from({ length: DM5_IMAGE_COUNT }, (v, k) => ({
       src:
         `${baseURL}/${DM5_CURL}chapterfun.ashx?` +
@@ -69,11 +69,11 @@ function fetchImgs$(chapter) {
   });
 }
 
-export function fetchImgSrcEpic(action$, store) {
-  return action$.ofType(FETCH_IMAGE_SRC).mergeMap(action => {
+export function fetchImgSrcEpic(action$: any, store: any) {
+  return action$.ofType(FETCH_IMAGE_SRC).mergeMap((action: { begin: number; end: number; }) => {
     const { result, entity } = store.getState().comics.imageList;
     return Observable.from(result)
-      .filter(item => {
+      .filter((item: any) => {
         return (
           item >= action.begin &&
           item <= action.end &&
@@ -81,14 +81,16 @@ export function fetchImgSrcEpic(action$, store) {
           entity[item].type !== 'end'
         );
       })
-      .mergeMap(id => {
+      .mergeMap((id: any) => {
         return Observable.ajax({
           url: entity[id].src,
           responseType: 'text',
-          contentType: 'text/html; charset=utf-8',
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8'
+          },
         }).map(function fetchImgSrcHandler({ response }) {
           /* eslint-disable */
-          let src, d, isrevtt, hd_c;
+          let src, d, isrevtt, hd_c: any;
           // $FlowFixMe
           const arr = eval(response);
           if (hd_c && hd_c.length > 0 && isrevtt) {
@@ -105,11 +107,11 @@ export function fetchImgSrcEpic(action$, store) {
   });
 }
 
-export function fetchImgSrc(begin, end) {
+export function fetchImgSrc(begin: any, end: any) {
   return { type: FETCH_IMAGE_SRC, begin, end };
 }
 
-export function fetchChapterPage$(url) {
+export function fetchChapterPage$(url: string) {
   return Observable.ajax({
     url,
     responseType: 'document',
@@ -138,9 +140,9 @@ export function fetchChapterPage$(url) {
   });
 }
 
-export function fetchImgListEpic(action$, store) {
+export function fetchImgListEpic(action$: any, store: any) {
   console.log('fetchImgs$')
-  return action$.ofType(FETCH_IMG_LIST).mergeMap(action => {
+  return action$.ofType(FETCH_IMG_LIST).mergeMap((action: { index: string | number; }) => {
     const { chapterList } = store.getState().comics;
     return fetchImgs$(chapterList[action.index]).mergeMap(({ imgList }) => {
       const nowImgList = store.getState().comics.imageList.result;
@@ -157,12 +159,12 @@ export function fetchImgListEpic(action$, store) {
   });
 }
 
-export function fetchImgList(index) {
+export function fetchImgList(index: any) {
   return { type: FETCH_IMG_LIST, index };
 }
 
-export function fetchChapterEpic(action$, store) {
-  return action$.ofType(FETCH_CHAPTER).mergeMap(action =>
+export function fetchChapterEpic(action$: any, store: any) {
+  return action$.ofType(FETCH_CHAPTER).mergeMap((action: { chapter: any; }) =>
     fetchImgs$(action.chapter).mergeMap(({ chapter, imgList, comicsID }) => {
       const comicUrl = `${baseURL}/${comicsID}/`;
 
@@ -179,7 +181,7 @@ export function fetchChapterEpic(action$, store) {
               item => item === chapter,
             );
             console.log(chapterIndex)
-            chrome.storage.local.get(null, item => {
+            chrome.storage.local.get(null, (item: any) => {
               const newItem = {
                 ...item,
                 update: filter(
@@ -222,7 +224,7 @@ export function fetchChapterEpic(action$, store) {
                 item.subscribe,
                 citem => citem.site === 'dm5' && citem.comicsID === comicsID,
               );
-              store.dispatch(updateSubscribe(subscribe))
+              store.dispatch(updateSubscribe(subscribe));
               chrome.storage.local.set(newItem, () => {
                 chrome.browserAction.setBadgeText({
                   text: `${
@@ -252,12 +254,12 @@ export function fetchChapterEpic(action$, store) {
   );
 }
 
-export function fetchChapter(chapter) {
+export function fetchChapter(chapter: any) {
   return { type: FETCH_CHAPTER, chapter };
 }
 
-export function updateReadEpic(action$, store) {
-  return action$.ofType(UPDATE_READ).mergeMap(action => {
+export function updateReadEpic(action$: any, store: any) {
+  return action$.ofType(UPDATE_READ).mergeMap((action: { index: number; }) => {
     chrome.storage.local.get(null, item => {
       const { comicsID, chapterList } = store.getState().comics;
       const chapterID = chapterList[action.index];
@@ -291,6 +293,6 @@ export function updateReadEpic(action$, store) {
   });
 }
 
-export function updateRead(index) {
+export function updateRead(index: any) {
   return { type: UPDATE_READ, index };
 }

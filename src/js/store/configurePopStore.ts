@@ -9,7 +9,7 @@ if (process.env.NODE_ENV === 'production') {
   createStoreWithMiddleware = createStore;
 }
 
-export default function configureStore(initialState) {
+export default function configureStore(initialState: any) {
   const store = createStoreWithMiddleware(rootReducer, initialState);
   // sagaMiddleware.run(sagas);
   if (module.hot) {

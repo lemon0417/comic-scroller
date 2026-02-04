@@ -46,39 +46,48 @@ module.exports = {
     new webpack.NoEmitOnErrorsPlugin(),
   ],
   module: {
-    rules: [{
-      test: /\.jsx?$/,
-      loader: 'babel-loader',
-      exclude: path.join(__dirname, 'node_modules'),
-    }, {
-      test: /\.css$/,
-      use: ExtractTextPlugin.extract([
-        {
-          loader: 'css-loader',
-          options: {
-            modules: true,
-            importLoaders: 1,
-            localIdentName: '[name]__[local]__[hash:base64:5]',
-            sourceMap: true,
-            minimize: true,
-          },
-        }, {
-          loader: 'postcss-loader',
-          // options: {
-          //   ident: 'postcss',
-          //   plugins: () => [
-          //     postcssNested(),
-          //   ]
-          // }
-        }
-      ]),
-    }, {
-      test: /\.svg$/,
-      use: [
-        'babel-loader',
-        'react-svg-loader'
-      ],
-    }],
+    rules: [
+      {
+        test: /\.jsx?$/,
+        loader: 'babel-loader',
+        exclude: path.join(__dirname, 'node_modules'),
+      },
+      {
+        test: /\.(ts|tsx)$/,
+        use: 'ts-loader',
+        exclude: /node_modules/
+      },
+      {
+        test: /\.css$/,
+        use: ExtractTextPlugin.extract([
+          {
+            loader: 'css-loader',
+            options: {
+              modules: true,
+              importLoaders: 1,
+              localIdentName: '[name]__[local]__[hash:base64:5]',
+              sourceMap: true,
+              minimize: true,
+            },
+          }, {
+            loader: 'postcss-loader',
+            // options: {
+            //   ident: 'postcss',
+            //   plugins: () => [
+            //     postcssNested(),
+            //   ]
+            // }
+          }
+        ]),
+      },
+      {
+        test: /\.svg$/,
+        use: [
+          'babel-loader',
+          'react-svg-loader'
+        ],
+      }
+    ],
   },
   resolve: {
     alias: {
@@ -86,6 +95,6 @@ module.exports = {
       imgs: path.join(__dirname, 'src/imgs'),
       cmp: path.join(__dirname, 'src/js/component'),
     },
-    extensions: ['.js', '.jsx', '.json', '.css'],
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.css'],
   },
 };
