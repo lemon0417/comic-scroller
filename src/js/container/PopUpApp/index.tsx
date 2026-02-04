@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import map from 'lodash/map';
@@ -59,9 +58,9 @@ const Tab = ({
   onMouseDownHandler,
 }: {
   className: string,
-  children: any,
+  children?: any,
   type: string,
-  onMouseDownHandler: Function,
+  onMouseDownHandler?: React.MouseEventHandler<HTMLSpanElement>,
 }) => (
   <span className={className} onMouseDown={onMouseDownHandler}>
     <div data-type={type}>{type}</div>
@@ -83,16 +82,16 @@ const MenuButton = ({
   inputRefHandler,
   fileOnChangeHandler,
 }: {
-  children: any,
+  children?: any,
   showMenu: boolean,
-  showMenuHandler: Function,
-  onMouseDownHandler: Function,
-  downloadHandler: Function,
-  uploadHandler: Function,
-  resetHandler: Function,
-  aRefHandler: Function,
-  inputRefHandler: Function,
-  fileOnChangeHandler: Function,
+  showMenuHandler: React.MouseEventHandler<HTMLSpanElement>,
+  onMouseDownHandler?: React.MouseEventHandler<HTMLSpanElement>,
+  downloadHandler: React.MouseEventHandler<HTMLDivElement>,
+  uploadHandler: React.MouseEventHandler<HTMLDivElement>,
+  resetHandler: React.MouseEventHandler<HTMLDivElement>,
+  aRefHandler: React.Ref<HTMLAnchorElement>,
+  inputRefHandler: React.Ref<HTMLInputElement>,
+  fileOnChangeHandler: React.ChangeEventHandler<HTMLInputElement>,
 }) => (
   <span
     className={cn.button}
@@ -131,34 +130,37 @@ const MenuButton = ({
 
 const RippleMenu = ripple(MenuButton);
 
-class PopUpApp extends Component {
-  props: {
-    update: Array<any>,
-    subscribe: Array<any>,
-    history: Array<any>,
-    updatePopupData: Function,
-    shiftCards: Function,
-  };
-  fileInput: HTMLInputElement;
-  aRef: HTMLAnchorElement;
+type SelectedType = 'update' | 'subscribe' | 'history';
+type PopUpState = {
+  selectedType: SelectedType,
+  showMenu: boolean,
+};
 
-  state = {
+class PopUpApp extends Component<any, PopUpState> {
+  fileInput: HTMLInputElement | null = null;
+  aRef: HTMLAnchorElement | null = null;
+
+  state: PopUpState = {
     selectedType: 'update',
     showMenu: false,
   };
 
   componentDidMount() {
-    storageGet(item => {
+    storageGet((item: any) => {
       this.props.updatePopupData(item);
     });
   }
 
-  tabOnClickHandler = e => {
-    const selectedType = e.target.getAttribute('data-type');
-    this.setState({ selectedType });
+  tabOnClickHandler = (e: any) => {
+    const selectedType = e.target.getAttribute('data-type') as
+      | SelectedType
+      | null;
+    if (selectedType) {
+      this.setState({ selectedType });
+    }
   };
 
-  transitionEndHandler = e => {
+  transitionEndHandler = (e: any) => {
     const index = parseInt(e.target.getAttribute('data-index'), 10);
     const move = e.target.getAttribute('data-move');
     const shift = e.target.getAttribute('data-shift');
@@ -168,12 +170,12 @@ class PopUpApp extends Component {
       if (len > 1) {
         this.props.shiftCards(category, index);
       } else {
-        storageGet(item => {
+        storageGet((item: any) => {
           this.props.updatePopupData(item);
         });
       }
     } else if (shift === 'true' && index === len - 1) {
-      storageGet(item => {
+      storageGet((item: any) => {
         this.props.updatePopupData(item);
       });
     }
@@ -188,7 +190,7 @@ class PopUpApp extends Component {
     this.setState(prevState => ({ showMenu: !prevState.showMenu }));
   };
 
-  inputRefHandler = node => {
+  inputRefHandler = (node: HTMLInputElement | null) => {
     this.fileInput = node;
   };
 
@@ -199,12 +201,14 @@ class PopUpApp extends Component {
   };
 
   fileOnChangeHandler = () => {
+    if (!this.fileInput || !this.fileInput.files) return;
     const fr = new FileReader();
     fr.onload = e => {
-      const result = JSON.parse(e.target.result);
+      const raw = e.target && (e.target as FileReader).result;
+      const result = JSON.parse(String(raw || '{}'));
       storageSet(result, err => {
         if (!err) {
-          storageGet(item => {
+          storageGet((item: { update: string | any[]; }) => {
             this.props.updatePopupData(item);
             chrome.browserAction.setBadgeText({
               text: `${item.update.length === 0 ? '' : item.update.length}`,
@@ -214,15 +218,16 @@ class PopUpApp extends Component {
         }
       });
     };
-    fr.readAsText(this.fileInput.files.item(0));
+    const file = this.fileInput.files.item(0);
+    if (file) fr.readAsText(file);
   };
 
-  aRefHandler = node => {
+  aRefHandler = (node: HTMLAnchorElement | null) => {
     this.aRef = node;
   };
 
   downloadHandler = () => {
-    storageGet(item => {
+    storageGet((item: any) => {
       const json = JSON.stringify(item);
       const blob = new Blob([json], { type: 'octet/stream' });
       const url = window.URL.createObjectURL(blob);
@@ -238,7 +243,7 @@ class PopUpApp extends Component {
   resetHandler = () => {
     storageClear();
     storageSet(initObject, () => {
-      storageGet(item => {
+      storageGet((item: { update: string | any[]; }) => {
         this.props.updatePopupData(item);
         chrome.browserAction.setBadgeText({
           text: `${item.update.length === 0 ? '' : item.update.length}`,

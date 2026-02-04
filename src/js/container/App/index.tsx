@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import some from 'lodash/some';
@@ -22,6 +21,9 @@ import { startResize } from '../../epics/resizeEpic';
 import { storageGet, storageSet } from '../../services/storage';
 
 declare var chrome: any;
+
+const ImgContainerAny: any = ImgContainer;
+const ChapterListAny: any = ChapterList;
 
 function getTagIconClass(chapterTitle: any, subscribe: any) {
   if (chapterTitle === '') return cn.icon_deactive;
@@ -92,7 +94,7 @@ class App extends Component<any, any> {
   };
 
   subscribeHandler = () => {
-    const { chapter, site, comicsID } = this.props;
+    const { site, comicsID } = this.props;
     storageGet((item: any) => {
       if (item.subscribe) {
         let newItem = {};
@@ -171,8 +173,8 @@ class App extends Component<any, any> {
             </IconButton>
           </span>
         </header>
-        <ImgContainer />
-        <ChapterList
+        <ImgContainerAny />
+        <ChapterListAny
           show={this.state.showChapterList}
           showChapterListHandler={this.showChapterListHandler}
         />
@@ -227,6 +229,6 @@ const connectedApp = connect(mapStateToProps, {
 
 const hotExport = module.hot
   ? require('react-hot-loader').hot // eslint-disable-line global-require
-  : Component => Component;
+  : (Component: any) => Component;
 
 export default hotExport(module)(connectedApp as any);
