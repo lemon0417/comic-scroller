@@ -33,7 +33,7 @@
       "^undici$": "<rootDir>/node_modules/empty/index.js",
       "^parse5-parser-stream$": "<rootDir>/node_modules/empty/index.js",
       "^node:(.*)$": "$1",
-      "\\.(svg)$": "<rootDir>/src/js/__mocks__/svgMock.jsx",
+      "\\.(svg)$": "<rootDir>/src/js/__mocks__/svgMock.tsx",
       "\\.(css)$": "identity-obj-proxy",
       "^css/(.*)$": "<rootDir>/src/css/$1",
       "^imgs/(.*)$": "<rootDir>/src/imgs/$1",
@@ -51,9 +51,22 @@
       "json",
       "node"
     ],
-    "setupFiles": [
-      "<rootDir>/src/js/setupTests.js"
+    "testMatch": [
+      "**/__tests__/**/*.(js|jsx|ts|tsx)",
+      "**/?(*.)+(spec|test).(js|jsx|ts|tsx)"
     ],
+    "setupFiles": [
+      "<rootDir>/src/js/setupTests.ts"
+    ],
+    "globals": {
+      "ts-jest": {
+        "diagnostics": false,
+        "isolatedModules": true,
+        "tsconfig": {
+          "jsx": "react"
+        }
+      }
+    },
     "verbose": true
   },
   "dependencies": {
