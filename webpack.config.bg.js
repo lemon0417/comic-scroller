@@ -1,6 +1,5 @@
 var path = require('path');
 var webpack = require('webpack');
-const MinifyPlugin = require("babel-minify-webpack-plugin");
 
 module.exports = {
   entry: ['./src/js/background.ts'],
@@ -8,7 +7,7 @@ module.exports = {
     path: path.join(__dirname, 'ComicsScroller/js'),
     filename: 'background.js',
   },
-  plugins: process.env.NODE_ENV === 'production' ? [new MinifyPlugin({})] : [],
+  plugins: [],
   module: {
     loaders: [
       {
@@ -21,10 +20,6 @@ module.exports = {
         test: /\.(ts|tsx)$/,
         use: 'ts-loader',
         exclude: /node_modules/
-      },
-      {
-        test: /\.json$/,
-        loader: 'json',
       },
     ],
   },

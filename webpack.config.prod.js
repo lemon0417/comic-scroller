@@ -3,7 +3,6 @@ const webpack = require('webpack');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const LodashModuleReplacementPlugin = require('lodash-webpack-plugin');
 const postcssNested = require('postcss-nested');
-const BabiliPlugin = require('babel-minify-webpack-plugin');
 
 module.exports = {
   entry: {
@@ -39,9 +38,6 @@ module.exports = {
         NODE_ENV: JSON.stringify(process.env.NODE_ENV || 'production'),
         BABEL_ENV: JSON.stringify(process.env.BABEL_ENV || 'production'),
       },
-    }),
-    new BabiliPlugin({
-      mangle: false,
     }),
     new webpack.NoEmitOnErrorsPlugin(),
   ],

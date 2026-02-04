@@ -1,13 +1,17 @@
 import { createStore, applyMiddleware } from 'redux';
-import { createLogger } from 'redux-logger';
 import rootReducer from '../reducers/popup';
 
-const logger = createLogger();
-let createStoreWithMiddleware = applyMiddleware(logger)(createStore);
-
-if (process.env.NODE_ENV === 'production') {
-  createStoreWithMiddleware = createStore;
+const middlewares = [];
+if (process.env.NODE_ENV !== 'production') {
+  // Lazy-load dev-only logger to avoid bundling in production.
+  const { createLogger } = require('redux-logger'); // eslint-disable-line global-require
+  middlewares.push(createLogger());
 }
+
+const createStoreWithMiddleware =
+  middlewares.length > 0
+    ? applyMiddleware(...middlewares)(createStore)
+    : createStore;
 
 export default function configureStore(initialState: any) {
   const store = createStoreWithMiddleware(rootReducer, initialState);

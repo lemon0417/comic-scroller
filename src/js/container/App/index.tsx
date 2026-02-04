@@ -1,7 +1,6 @@
 // @flow
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { hot } from 'react-hot-loader';
 import some from 'lodash/some';
 import filter from 'lodash/filter';
 import MenuIcon from '@imgs/menu.svg';
@@ -246,4 +245,8 @@ const connectedApp = connect(mapStateToProps, {
   fetchImgList,
 })(App);
 
-export default hot(module)(connectedApp);
+const hotExport = module.hot
+  ? require('react-hot-loader').hot // eslint-disable-line global-require
+  : Component => Component;
+
+export default hotExport(module)(connectedApp);

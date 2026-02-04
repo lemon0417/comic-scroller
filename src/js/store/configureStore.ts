@@ -1,19 +1,18 @@
 import { createStore, applyMiddleware } from 'redux';
-import { createLogger } from 'redux-logger';
 import { createEpicMiddleware } from 'redux-observable';
 import rootReducer from '../reducers';
 import rootEpic from '../epics';
 
-const logger = createLogger();
 const epicMiddleware = createEpicMiddleware(rootEpic);
 
-let createStoreWithMiddleware = applyMiddleware(epicMiddleware, logger)(
-  createStore,
-);
-
-if (process.env.NODE_ENV === 'production') {
-  createStoreWithMiddleware = applyMiddleware(epicMiddleware)(createStore);
+const middlewares = [epicMiddleware];
+if (process.env.NODE_ENV !== 'production') {
+  // Lazy-load dev-only logger to avoid bundling in production.
+  const { createLogger } = require('redux-logger'); // eslint-disable-line global-require
+  middlewares.push(createLogger());
 }
+
+const createStoreWithMiddleware = applyMiddleware(...middlewares)(createStore);
 
 export default function configureStore(initialState) {
   const store = createStoreWithMiddleware(rootReducer, initialState);
