@@ -2,9 +2,9 @@
 import map from 'lodash/map';
 import forEach from 'lodash/forEach';
 import initObject from './util/initObject';
-import { fetchChapterPage$ as fetchChapterPage$Dm5 } from './container/App/reducers/dm5Epic';
-import { fetchChapterPage$ as fetchChapterPage$Sf } from './container/App/reducers/sfEpic';
-import { fetchChapterPage$ as fetchChapterPage$comicbus } from './container/App/reducers/comicBusEpic';
+import { fetchChapterPage$ as fetchChapterPage$Dm5 } from './epics/dm5Epic';
+import { fetchChapterPage$ as fetchChapterPage$Sf } from './epics/sfEpic';
+import { fetchChapterPage$ as fetchChapterPage$comicbus } from './epics/comicBusEpic';
 
 const dm5Regex = /https\:\/\/(tel||www)\.dm5\.com\/(m\d+)\//;
 const sfRegex = /http\:\/\/comic\.sfacg\.com\/(HTML\/[^\/]+\/.+)$/;

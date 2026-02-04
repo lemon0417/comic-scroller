@@ -4,7 +4,7 @@ import 'rxjs/add/observable/fromEvent';
 import 'rxjs/add/operator/throttleTime';
 import 'rxjs/add/operator/mapTo';
 import 'rxjs/add/operator/mergeMap';
-import { updateInnerHeight } from './comics';
+import { updateInnerHeight } from '../container/App/reducers/comics';
 
 const START_RESIZE_EPIC = 'START_RESIZE_EPIC';
 

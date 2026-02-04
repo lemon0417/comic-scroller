@@ -25,7 +25,7 @@ import {
   updateRenderIndex,
   updateReadChapters,
   updateSubscribe,
-} from './comics';
+} from '../container/App/reducers/comics';
 import { startScroll } from './scrollEpic';
 
 const baseURL = 'http://comic.sfacg.com';

@@ -1,6 +1,6 @@
 // @flow
 import reduce from 'lodash/reduce';
-import { site, baseURL } from './getAction';
+import { site, baseURL } from '../../../epics/getAction';
 
 type State = {
   innerHeight: number,

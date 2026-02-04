@@ -8,8 +8,8 @@ import {
   updateChapterLatestIndex,
   updateRenderIndex,
 } from '../App/reducers/comics';
-import { fetchImgList, updateRead } from '../App/reducers/dm5Epic';
-import { stopScroll } from '../App/reducers/scrollEpic';
+import { fetchImgList, updateRead } from '../../epics/dm5Epic';
+import { stopScroll } from '../../epics/scrollEpic';
 import cn from './ChapterList.css';
 
 class ChapterList extends Component {

@@ -17,9 +17,9 @@ import {
   updateChapterLatestIndex,
   updateSubscribe,
 } from './reducers/comics';
-import { fetchImgList, fetchChapter, updateRead } from './reducers/getAction';
-import { stopScroll } from './reducers/scrollEpic';
-import { startResize } from './reducers/resizeEpic';
+import { fetchImgList, fetchChapter, updateRead } from '../../epics/getAction';
+import { stopScroll } from '../../epics/scrollEpic';
+import { startResize } from '../../epics/resizeEpic';
 
 declare var chrome: any;
 
