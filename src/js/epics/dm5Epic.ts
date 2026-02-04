@@ -26,6 +26,7 @@ import {
   updateSubscribe,
 } from '../container/App/reducers/comics';
 import { startScroll } from './scrollEpic';
+import { storageGetAll, storageSet } from '../services/storage';
 
 const baseURL = 'https://www.dm5.com';
 const FETCH_CHAPTER = 'FETCH_CHAPTER';
@@ -181,7 +182,7 @@ export function fetchChapterEpic(action$: any, store: any) {
               item => item === chapter,
             );
             console.log(chapterIndex)
-            chrome.storage.local.get(null, (item: any) => {
+            storageGetAll((item: any) => {
               const newItem = {
                 ...item,
                 update: filter(
@@ -225,7 +226,7 @@ export function fetchChapterEpic(action$: any, store: any) {
                 citem => citem.site === 'dm5' && citem.comicsID === comicsID,
               );
               store.dispatch(updateSubscribe(subscribe));
-              chrome.storage.local.set(newItem, () => {
+              storageSet(newItem, () => {
                 chrome.browserAction.setBadgeText({
                   text: `${
                     newItem.update.length === 0 ? '' : newItem.update.length
@@ -260,7 +261,7 @@ export function fetchChapter(chapter: any) {
 
 export function updateReadEpic(action$: any, store: any) {
   return action$.ofType(UPDATE_READ).mergeMap((action: { index: number; }) => {
-    chrome.storage.local.get(null, item => {
+    storageGetAll(item => {
       const { comicsID, chapterList } = store.getState().comics;
       const chapterID = chapterList[action.index];
       const newItem = {
@@ -281,7 +282,7 @@ export function updateReadEpic(action$: any, store: any) {
           },
         },
       };
-      chrome.storage.local.set(newItem, () => {
+      storageSet(newItem, () => {
         chrome.browserAction.setBadgeText({
           text: `${newItem.update.length === 0 ? '' : newItem.update.length}`,
         });

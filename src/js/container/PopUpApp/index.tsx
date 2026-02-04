@@ -9,6 +9,7 @@ import { updatePopupData, shiftCards } from './reducers/popup';
 import cn from './PopUpApp.css';
 import initObject from '../../util/initObject';
 import filter from 'lodash/filter';
+import { storageGet, storageSet, storageClear } from '../../services/storage';
 
 declare var chrome: any;
 
@@ -147,7 +148,7 @@ class PopUpApp extends Component {
   };
 
   componentDidMount() {
-    chrome.storage.local.get(item => {
+    storageGet(item => {
       this.props.updatePopupData(item);
     });
   }
@@ -167,12 +168,12 @@ class PopUpApp extends Component {
       if (len > 1) {
         this.props.shiftCards(category, index);
       } else {
-        chrome.storage.local.get(item => {
+        storageGet(item => {
           this.props.updatePopupData(item);
         });
       }
     } else if (shift === 'true' && index === len - 1) {
-      chrome.storage.local.get(item => {
+      storageGet(item => {
         this.props.updatePopupData(item);
       });
     }
@@ -201,9 +202,9 @@ class PopUpApp extends Component {
     const fr = new FileReader();
     fr.onload = e => {
       const result = JSON.parse(e.target.result);
-      chrome.storage.local.set(result, err => {
+      storageSet(result, err => {
         if (!err) {
-          chrome.storage.local.get(item => {
+          storageGet(item => {
             this.props.updatePopupData(item);
             chrome.browserAction.setBadgeText({
               text: `${item.update.length === 0 ? '' : item.update.length}`,
@@ -221,7 +222,7 @@ class PopUpApp extends Component {
   };
 
   downloadHandler = () => {
-    chrome.storage.local.get(item => {
+    storageGet(item => {
       const json = JSON.stringify(item);
       const blob = new Blob([json], { type: 'octet/stream' });
       const url = window.URL.createObjectURL(blob);
@@ -235,9 +236,9 @@ class PopUpApp extends Component {
   };
 
   resetHandler = () => {
-    chrome.storage.local.clear();
-    chrome.storage.local.set(initObject, () => {
-      chrome.storage.local.get(item => {
+    storageClear();
+    storageSet(initObject, () => {
+      storageGet(item => {
         this.props.updatePopupData(item);
         chrome.browserAction.setBadgeText({
           text: `${item.update.length === 0 ? '' : item.update.length}`,

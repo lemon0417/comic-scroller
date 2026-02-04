@@ -5,6 +5,7 @@ import filter from 'lodash/filter';
 import pickBy from 'lodash/pickBy';
 import TrashTopIcon from 'imgs/bin_top.svg';
 import TrashBodyIcon from 'imgs/bin_body.svg';
+import { storageGet, storageSet } from '../../services/storage';
 import {
   moveCard,
   removeCard,
@@ -64,7 +65,7 @@ class ComicCard extends Component {
   };
 
   removeHandler = () => {
-    chrome.storage.local.get((store: any) => {
+    storageGet((store: any) => {
       let newStore = {};
       if (this.props.category === 'history') {
         newStore = {
@@ -106,7 +107,7 @@ class ComicCard extends Component {
           ),
         };
       }
-      chrome.storage.local.set(newStore, (err: any) => {
+      storageSet(newStore, (err: any) => {
         if (!err) {
           chrome.browserAction.setBadgeText({
             text: `${

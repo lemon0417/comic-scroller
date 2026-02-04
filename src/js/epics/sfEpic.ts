@@ -27,6 +27,7 @@ import {
   updateSubscribe,
 } from '../container/App/reducers/comics';
 import { startScroll } from './scrollEpic';
+import { storageGet, storageSet } from '../services/storage';
 
 const baseURL = 'http://comic.sfacg.com';
 const FETCH_CHAPTER = 'FETCH_CHAPTER';
@@ -162,7 +163,7 @@ export function fetchChapterEpic(action$: any) {
               chapterList,
               item => item === chapter,
             );
-            return Observable.bindCallback(chrome.storage.local.get)().mergeMap(
+            return Observable.bindCallback(storageGet)().mergeMap(
               (item: any) => {
                 const newItem = {
                   ...item,
@@ -213,7 +214,7 @@ export function fetchChapterEpic(action$: any) {
                 });
                 return Observable.merge(
                   Observable.of(updateSubscribe(subscribe)),
-                  Observable.bindCallback(chrome.storage.local.set)(
+                  Observable.bindCallback(storageSet)(
                     newItem,
                   ).mergeMap(() => {
                     chrome.browserAction.setBadgeText({
@@ -254,7 +255,7 @@ export function fetchChapter(chapter: string) {
 
 export function updateReadEpic(action$: any, store: { getState: Function }) {
   return action$.ofType(UPDATE_READ).mergeMap((action: { index: number; }) =>
-    Observable.bindCallback(chrome.storage.local.get)().mergeMap((item: any) => {
+    Observable.bindCallback(storageGet)().mergeMap((item: any) => {
       const { comicsID, chapterList } = store.getState().comics;
       const chapterID = chapterList[action.index];
       const newItem = {
@@ -275,7 +276,7 @@ export function updateReadEpic(action$: any, store: { getState: Function }) {
           },
         },
       };
-      return Observable.bindCallback(chrome.storage.local.set)(
+      return Observable.bindCallback(storageSet)(
         newItem,
       ).mergeMap(() => {
         chrome.browserAction.setBadgeText({

@@ -5,6 +5,7 @@ import initObject from './util/initObject';
 import { fetchChapterPage$ as fetchChapterPage$Dm5 } from './epics/dm5Epic';
 import { fetchChapterPage$ as fetchChapterPage$Sf } from './epics/sfEpic';
 import { fetchChapterPage$ as fetchChapterPage$comicbus } from './epics/comicBusEpic';
+import { storageGet, storageSet, storageClear } from './services/storage';
 
 const dm5Regex = /https\:\/\/(tel||www)\.dm5\.com\/(m\d+)\//;
 const sfRegex = /http\:\/\/comic\.sfacg\.com\/(HTML\/[^\/]+\/.+)$/;
@@ -85,7 +86,7 @@ chrome.notifications.onClicked.addListener(id => {
 });
 
 function comicsQuery() {
-  chrome.storage.local.get(item => {
+storageGet(item => {
     if (typeof item !== 'undefined' && typeof item.subscribe !== 'undefined') {
       chrome.browserAction.setBadgeText({
         text: `${item.update.length > 0 ? item.update.length : ''}`,
@@ -102,8 +103,8 @@ function comicsQuery() {
             const comic = item[site][comicsID];
             forEach(chapterList, chapterID => {
               if (!comic.chapters[chapterID]) {
-                chrome.storage.local.get(oldStore =>
-                  chrome.storage.local.set(
+                storageGet(oldStore =>
+                  storageSet(
                     {
                       ...oldStore,
                       [site]: {
@@ -130,7 +131,7 @@ function comicsQuery() {
                       ],
                     },
                     () => {
-                      chrome.storage.local.get(store =>
+                      storageGet(store =>
                         chrome.browserAction.setBadgeText({
                           text: `${store.update.length}`,
                         }),
@@ -149,14 +150,14 @@ function comicsQuery() {
 
 chrome.runtime.onInstalled.addListener(details => {
   if (details.reason === 'update') {
-    chrome.storage.local.get(item => {
+  storageGet(item => {
       const { version } = chrome.runtime.getManifest();
       delete item.udpate;
       if (!item.version) {
-        chrome.storage.local.clear();
-        chrome.storage.local.set(initObject);
+        storageClear();
+        storageSet(initObject);
       } else {
-        chrome.storage.local.set({ ...initObject, ...item });
+        storageSet({ ...initObject, ...item });
       }
       chrome.notifications.create('Comics Scroller Update', {
         type: 'basic',
@@ -166,8 +167,8 @@ chrome.runtime.onInstalled.addListener(details => {
       });
     });
   } else if (details.reason === 'install') {
-    chrome.storage.local.clear();
-    chrome.storage.local.set(initObject);
+    storageClear();
+    storageSet(initObject);
   }
 });
 

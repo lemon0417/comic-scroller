@@ -20,6 +20,7 @@ import {
 import { fetchImgList, fetchChapter, updateRead } from '../../epics/getAction';
 import { stopScroll } from '../../epics/scrollEpic';
 import { startResize } from '../../epics/resizeEpic';
+import { storageGet, storageSet } from '../../services/storage';
 
 declare var chrome: any;
 
@@ -58,7 +59,7 @@ class App extends Component {
   componentDidMount() {
     this.props.startResize();
     chrome.runtime.onMessage.addListener(() => {
-      chrome.storage.local.get((item: any) => {
+      storageGet((item: any) => {
         const { subscribe, site, comicsID } = this.props;
         if (!item[this.props.site][comicsID]) {
           chrome.tabs.getCurrent((tab: { id: any; }) => {
@@ -113,7 +114,7 @@ class App extends Component {
 
   subscribeHandler = () => {
     const { chapter, site, comicsID } = this.props;
-    chrome.storage.local.get((item: any) => {
+    storageGet((item: any) => {
       if (item.subscribe) {
         let newItem = {};
         if (
@@ -129,7 +130,7 @@ class App extends Component {
               citem => citem.site !== site || citem.comicsID !== comicsID,
             ),
           };
-          chrome.storage.local.set(newItem, () =>
+          storageSet(newItem, () =>
             this.props.updateSubscribe(false),
           );
         } else {
@@ -143,7 +144,7 @@ class App extends Component {
               ...item.subscribe,
             ],
           };
-          chrome.storage.local.set(newItem, () =>
+          storageSet(newItem, () =>
             this.props.updateSubscribe(true),
           );
         }
