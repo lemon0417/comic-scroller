@@ -1,4 +1,3 @@
-// @flow
 import map from 'lodash/map';
 import forEach from 'lodash/forEach';
 import initObject from './util/initObject';

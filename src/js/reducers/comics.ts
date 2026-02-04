@@ -1,4 +1,3 @@
-// @flow
 import reduce from 'lodash/reduce';
 import { site, baseURL } from '../epics/getAction';
 

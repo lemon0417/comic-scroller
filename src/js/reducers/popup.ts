@@ -1,4 +1,3 @@
-// @flow
 import { combineReducers } from 'redux';
 import popup from '../container/PopUpApp/reducers/popup';
 

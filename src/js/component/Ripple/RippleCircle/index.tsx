@@ -1,6 +1,18 @@
-// @flow
 import React, { PureComponent } from 'react';
 import cn from './RippleCircle.css';
+
+type Props = {
+  removeRippleHandler: Function,
+  radius: number,
+  id: string,
+  left: string,
+  top: string,
+};
+
+type State = {
+  active: boolean,
+  opacity: boolean,
+};
 
 function getRippleClass(active: boolean, opacity: boolean): string {
   if (active) {
@@ -10,15 +22,7 @@ function getRippleClass(active: boolean, opacity: boolean): string {
   return cn.RippleCircle;
 }
 
-class RippleCircle extends PureComponent {
-  props: {
-    removeRippleHandler: Function,
-    radius: number,
-    id: string,
-    left: string,
-    top: string,
-  };
-
+class RippleCircle extends PureComponent<Props, State> {
   readyOpacity: boolean;
 
   state = {

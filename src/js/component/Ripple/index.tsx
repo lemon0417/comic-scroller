@@ -1,15 +1,27 @@
-// @flow
 import React, { PureComponent } from 'react';
 import { map, filter } from 'lodash';
 import RippleCircle from './RippleCircle';
 
-const ripple = (WrapComponent: Class<React.Component<*, *, *>> | Function) => {
-  class RippleComponent extends PureComponent {
-    counter: number;
+type RippleItem = {
+  left: number,
+  top: number,
+  radius: number,
+  id: string,
+};
 
-    props: {
-      children?: any,
-    };
+type Props = {
+  children?: React.ReactNode,
+  onMouseDownHandler?: Function,
+  [key: string]: any,
+};
+
+type State = {
+  ripples: Array<RippleItem>,
+};
+
+const ripple = <T: {}>(WrapComponent: React.ComponentType<T>) => {
+  class RippleComponent extends PureComponent<Props & T, State> {
+    counter: number;
 
     state = {
       ripples: [],
@@ -58,7 +70,7 @@ const ripple = (WrapComponent: Class<React.Component<*, *, *>> | Function) => {
     render() {
       const { ...others } = this.props;
       return (
-        <WrapComponent {...others} onMouseDownHandler={this.onMouseDownHandler}>
+        <WrapComponent {...(others as T)} onMouseDownHandler={this.onMouseDownHandler}>
           {map(this.state.ripples, item => (
             <RippleCircle
               key={item.id}

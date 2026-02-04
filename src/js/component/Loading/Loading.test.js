@@ -1,7 +1,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import renderer from 'react-test-renderer';
-import Loading from './';
+import Loading from './index';
 
 test('Loading contains circle svg', () => {
   const Cmp = shallow(<Loading />);

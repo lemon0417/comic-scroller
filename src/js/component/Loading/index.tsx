@@ -1,4 +1,3 @@
-// @flow
 import React, { Component } from 'react';
 import cn from './Loading.css';
 

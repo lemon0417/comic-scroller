@@ -1,4 +1,3 @@
-// @flow
 import React, { Component } from 'react';
 import cn from './IconButton.css';
 import ripple from '../Ripple';

@@ -1,4 +1,3 @@
-// @flow
 import { dm5, sf, comicbus } from './sites';
 
 function getInfor(site: any) {
