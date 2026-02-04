@@ -1,6 +1,6 @@
 import { ActionsObservable } from 'redux-observable';
 import resizeEpic, { startResize } from './resizeEpic';
-import { updateInnerHeight } from '../container/App/reducers/comics';
+import { updateInnerHeight } from '../reducers/comics';
 
 describe('resizeEpic', () => {
   it('emits updateInnerHeight on window resize after start', () => {

@@ -7,7 +7,7 @@ import {
   resetImg,
   updateChapterLatestIndex,
   updateRenderIndex,
-} from '../App/reducers/comics';
+} from '../../reducers/comics';
 import { dm5 } from '../../epics/sites';
 import { stopScroll } from '../../epics/scrollEpic';
 import cn from './ChapterList.css';

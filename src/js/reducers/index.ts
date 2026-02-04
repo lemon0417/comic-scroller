@@ -1,6 +1,6 @@
 // @flow
 import { combineReducers } from 'redux';
-import comics from '../container/App/reducers/comics';
+import comics from './comics';
 
 const rootReducer = combineReducers({
   comics: comics as any,

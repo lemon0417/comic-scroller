@@ -11,7 +11,7 @@ function setup() {
   });
 
   const { default: scrollEpic, startScroll } = require('./scrollEpic');
-  const { updateRenderIndex } = require('../container/App/reducers/comics');
+  const { updateRenderIndex } = require('../reducers/comics');
   const { fetchImgSrc, updateRead } = require('./getAction');
 
   return { scrollEpic, startScroll, updateRenderIndex, fetchImgSrc, updateRead };

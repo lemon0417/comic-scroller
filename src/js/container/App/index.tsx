@@ -16,7 +16,7 @@ import {
   resetImg,
   updateChapterLatestIndex,
   updateSubscribe,
-} from './reducers/comics';
+} from '../../reducers/comics';
 import { fetchImgList, fetchChapter, updateRead } from '../../epics/getAction';
 import { stopScroll } from '../../epics/scrollEpic';
 import { startResize } from '../../epics/resizeEpic';

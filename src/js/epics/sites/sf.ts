@@ -25,7 +25,7 @@ import {
   updateRenderIndex,
   updateReadChapters,
   updateSubscribe,
-} from '../../container/App/reducers/comics';
+} from '../../reducers/comics';
 import { startScroll } from '../scrollEpic';
 import { storageGet, storageSet } from '../../services/storage';
 
