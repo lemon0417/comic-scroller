@@ -1,36 +1,5 @@
 // @flow
-import {
-  fetchChapterEpic as fetchChapterEpicDM5,
-  fetchChapter as fetchChapterDM5,
-  fetchImgSrcEpic as fetchImgSrcEpicDM5,
-  fetchImgSrc as fetchImgSrcDM5,
-  fetchImgListEpic as fetchImgListEpicDM5,
-  fetchImgList as fetchImgListDM5,
-  updateReadEpic as updateReadEpicDM5,
-  updateRead as updateReadDM5,
-} from './dm5Epic';
-
-import {
-  fetchChapterEpic as fetchChapterEpicSF,
-  fetchChapter as fetchChapterSF,
-  fetchImgSrcEpic as fetchImgSrcEpicSF,
-  fetchImgSrc as fetchImgSrcSF,
-  fetchImgListEpic as fetchImgListEpicSF,
-  fetchImgList as fetchImgListSF,
-  updateReadEpic as updateReadEpicSF,
-  updateRead as updateReadSF,
-} from './sfEpic';
-
-import {
-  fetchChapterEpic as fetchChapterEpicComicbus,
-  fetchChapter as fetchChapterComicbus,
-  fetchImgSrcEpic as fetchImgSrcEpicComicbus,
-  fetchImgSrc as fetchImgSrcComicbus,
-  fetchImgListEpic as fetchImgListEpicComicbus,
-  fetchImgList as fetchImgListComicbus,
-  updateReadEpic as updateReadEpicComicbus,
-  updateRead as updateReadComicbus,
-} from './comicBusEpic';
+import { dm5, sf, comicbus } from './sites';
 
 function getInfor(site: any) {
   switch (site) {
@@ -58,24 +27,24 @@ function getAction(site: any) {
   switch (site) {
     case 'dm5':
       return {
-        fetchChapter: fetchChapterDM5,
-        fetchImgSrc: fetchImgSrcDM5,
-        fetchImgList: fetchImgListDM5,
-        updateRead: updateReadDM5,
+        fetchChapter: dm5.fetchChapter,
+        fetchImgSrc: dm5.fetchImgSrc,
+        fetchImgList: dm5.fetchImgList,
+        updateRead: dm5.updateRead,
       };
     case 'sf':
       return {
-        fetchChapter: fetchChapterSF,
-        fetchImgSrc: fetchImgSrcSF,
-        fetchImgList: fetchImgListSF,
-        updateRead: updateReadSF,
+        fetchChapter: sf.fetchChapter,
+        fetchImgSrc: sf.fetchImgSrc,
+        fetchImgList: sf.fetchImgList,
+        updateRead: sf.updateRead,
       };
     case 'comicbus':
       return {
-        fetchChapter: fetchChapterComicbus,
-        fetchImgSrc: fetchImgSrcComicbus,
-        fetchImgList: fetchImgListComicbus,
-        updateRead: updateReadComicbus,
+        fetchChapter: comicbus.fetchChapter,
+        fetchImgSrc: comicbus.fetchImgSrc,
+        fetchImgList: comicbus.fetchImgList,
+        updateRead: comicbus.updateRead,
       };
     default:
       return {};
@@ -86,24 +55,24 @@ function getEpic(site: any) {
   switch (site) {
     case 'dm5':
       return {
-        fetchChapterEpic: fetchChapterEpicDM5,
-        fetchImgSrcEpic: fetchImgSrcEpicDM5,
-        fetchImgListEpic: fetchImgListEpicDM5,
-        updateReadEpic: updateReadEpicDM5,
+        fetchChapterEpic: dm5.fetchChapterEpic,
+        fetchImgSrcEpic: dm5.fetchImgSrcEpic,
+        fetchImgListEpic: dm5.fetchImgListEpic,
+        updateReadEpic: dm5.updateReadEpic,
       };
     case 'sf':
       return {
-        fetchChapterEpic: fetchChapterEpicSF,
-        fetchImgSrcEpic: fetchImgSrcEpicSF,
-        fetchImgListEpic: fetchImgListEpicSF,
-        updateReadEpic: updateReadEpicSF,
+        fetchChapterEpic: sf.fetchChapterEpic,
+        fetchImgSrcEpic: sf.fetchImgSrcEpic,
+        fetchImgListEpic: sf.fetchImgListEpic,
+        updateReadEpic: sf.updateReadEpic,
       };
     case 'comicbus':
       return {
-        fetchChapterEpic: fetchChapterEpicComicbus,
-        fetchImgSrcEpic: fetchImgSrcEpicComicbus,
-        fetchImgListEpic: fetchImgListEpicComicbus,
-        updateReadEpic: updateReadEpicComicbus,
+        fetchChapterEpic: comicbus.fetchChapterEpic,
+        fetchImgSrcEpic: comicbus.fetchImgSrcEpic,
+        fetchImgListEpic: comicbus.fetchImgListEpic,
+        updateReadEpic: comicbus.updateReadEpic,
       };
     default:
       return {};

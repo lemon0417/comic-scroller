@@ -2,9 +2,7 @@
 import map from 'lodash/map';
 import forEach from 'lodash/forEach';
 import initObject from './util/initObject';
-import { fetchChapterPage$ as fetchChapterPage$Dm5 } from './epics/dm5Epic';
-import { fetchChapterPage$ as fetchChapterPage$Sf } from './epics/sfEpic';
-import { fetchChapterPage$ as fetchChapterPage$comicbus } from './epics/comicBusEpic';
+import { dm5, sf, comicbus } from './epics/sites';
 import { storageGet, storageSet, storageClear } from './services/storage';
 
 const dm5Regex = /https\:\/\/(tel||www)\.dm5\.com\/(m\d+)\//;
@@ -15,9 +13,9 @@ declare var chrome: any;
 // declare var ga: any;
 
 const fetchChapterPage$ = {
-  sf: fetchChapterPage$Sf,
-  dm5: fetchChapterPage$Dm5,
-  comicbus: fetchChapterPage$comicbus,
+  sf: sf.fetchChapterPage$,
+  dm5: dm5.fetchChapterPage$,
+  comicbus: comicbus.fetchChapterPage$,
 };
 
 function dm5RefererHandler(details) {

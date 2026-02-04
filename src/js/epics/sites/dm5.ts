@@ -24,9 +24,9 @@ import {
   updateRenderIndex,
   updateReadChapters,
   updateSubscribe,
-} from '../container/App/reducers/comics';
-import { startScroll } from './scrollEpic';
-import { storageGetAll, storageSet } from '../services/storage';
+} from '../../container/App/reducers/comics';
+import { startScroll } from '../scrollEpic';
+import { storageGetAll, storageSet } from '../../services/storage';
 
 const baseURL = 'https://www.dm5.com';
 const FETCH_CHAPTER = 'FETCH_CHAPTER';

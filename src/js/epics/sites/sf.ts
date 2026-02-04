@@ -25,9 +25,9 @@ import {
   updateRenderIndex,
   updateReadChapters,
   updateSubscribe,
-} from '../container/App/reducers/comics';
-import { startScroll } from './scrollEpic';
-import { storageGet, storageSet } from '../services/storage';
+} from '../../container/App/reducers/comics';
+import { startScroll } from '../scrollEpic';
+import { storageGet, storageSet } from '../../services/storage';
 
 const baseURL = 'http://comic.sfacg.com';
 const FETCH_CHAPTER = 'FETCH_CHAPTER';
