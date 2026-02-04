@@ -18,15 +18,42 @@
   },
   "jest": {
     "moduleNameMapper": {
+      "^node:stream$": "<rootDir>/node_modules/stream-browserify/index.js",
+      "^stream$": "<rootDir>/node_modules/stream-browserify/index.js",
+      "^node:http$": "<rootDir>/node_modules/empty/index.js",
+      "^http$": "<rootDir>/node_modules/empty/index.js",
+      "^node:https$": "<rootDir>/node_modules/empty/index.js",
+      "^https$": "<rootDir>/node_modules/empty/index.js",
+      "^node:net$": "<rootDir>/node_modules/empty/index.js",
+      "^net$": "<rootDir>/node_modules/empty/index.js",
+      "^node:tls$": "<rootDir>/node_modules/empty/index.js",
+      "^tls$": "<rootDir>/node_modules/empty/index.js",
+      "^node:zlib$": "<rootDir>/node_modules/empty/index.js",
+      "^zlib$": "<rootDir>/node_modules/empty/index.js",
+      "^undici$": "<rootDir>/node_modules/empty/index.js",
+      "^parse5-parser-stream$": "<rootDir>/node_modules/empty/index.js",
+      "^node:(.*)$": "$1",
       "\\.(svg)$": "<rootDir>/src/js/__mocks__/svgMock.jsx",
       "\\.(css)$": "identity-obj-proxy",
-      "^css(.*)$": "<rootDir>/src/css$1",
-      "^imgs(.*)$": "<rootDir>/src/imgs$1",
-      "^cmp(.*)$": "<rootDir>/src/js/compoenent$1"
+      "^css/(.*)$": "<rootDir>/src/css/$1",
+      "^imgs/(.*)$": "<rootDir>/src/imgs/$1",
+      "^cmp/(.*)$": "<rootDir>/src/js/component/$1"
     },
     "transform": {
-      "^.+\\.jsx?$": "babel-jest"
+      "^.+\\.jsx?$": "babel-jest",
+      "^.+\\.tsx?$": "ts-jest"
     },
+    "moduleFileExtensions": [
+      "js",
+      "jsx",
+      "ts",
+      "tsx",
+      "json",
+      "node"
+    ],
+    "setupFiles": [
+      "<rootDir>/src/js/setupTests.js"
+    ],
     "verbose": true
   },
   "dependencies": {
@@ -98,6 +125,10 @@
     "@types/lodash": "^4.17.5",
     "@types/react-redux": "^5.0.7",
     "@types/react-test-renderer": "^18.3.0",
-    "@types/redux-logger": "^3.0.0"
+    "@types/redux-logger": "^3.0.0",
+    "cheerio": "0.22.0",
+    "enzyme-adapter-react-16": "^1.15.7",
+    "stream-browserify": "^3.0.0",
+    "ts-jest": "^22.4.6"
   }
 }

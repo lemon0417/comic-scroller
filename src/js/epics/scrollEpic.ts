@@ -4,6 +4,7 @@ import 'rxjs/add/observable/fromEvent';
 import 'rxjs/add/operator/throttleTime';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/mergeMap';
+import 'rxjs/add/operator/takeUntil';
 import findIndex from 'lodash/findIndex';
 import { fetchImgSrc, fetchImgList, updateRead } from './getAction';
 import { updateChapterLatestIndex, updateRenderIndex } from '../container/App/reducers/comics';

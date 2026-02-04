@@ -66,8 +66,8 @@ describe('ComicImage shows End', () => {
 });
 
 describe('ComicImage shows Image', () => {
-  it('contains image when props { loading = true }', () => {
-    const Cmp = shallow(<ComicImage loading={true} />);
+  it('contains image when props { loading = false }', () => {
+    const Cmp = shallow(<ComicImage loading={false} />);
     expect(Cmp.find('img').length).toBe(1);
   });
 });
