@@ -60,7 +60,7 @@ function fetchScript$(scriptURL: any, chapter: any) {
     let picAy: any;
     eval(response); // eslint-disable-line
     // $FlowFixMe
-    const imgList = Array.from({ length: picCount }, (v, k) => ({
+    const imgList = Array.from({ length: Number(picCount) || 0 }, (_v, k) => ({
       src: `${hosts[1]}${picAy[k]}`,
       chapter,
     }));
@@ -211,17 +211,18 @@ export function fetchChapterEpic(action$: any) {
                     newItem.update.length === 0 ? '' : newItem.update.length
                   }`,
                 });
+                const save$ = Observable.bindCallback(
+                  (items: any, cb: any) => storageSet(items, cb),
+                )(newItem);
                 return Observable.merge(
                   Observable.of(updateSubscribe(subscribe)),
-                  Observable.bindCallback(storageSet)(
-                    newItem,
-                  ).mergeMap(() => {
+                  save$.mergeMap(() => {
                     chrome.browserAction.setBadgeText({
                       text: `${
                         newItem.update.length === 0 ? '' : newItem.update.length
                       }`,
                     });
-                    const result$ = [
+                    const result$: any[] = [
                       updateTitle(title),
                       updateReadChapters(newItem.sf[comicsID].read),
                       updateChapters(chapters),
@@ -275,9 +276,9 @@ export function updateReadEpic(action$: any, store: { getState: Function }) {
           },
         },
       };
-      return Observable.bindCallback(storageSet)(
-        newItem,
-      ).mergeMap(() => {
+      return Observable.bindCallback(
+        (items: any, cb: any) => storageSet(items, cb),
+      )(newItem).mergeMap(() => {
         chrome.browserAction.setBadgeText({
           text: `${newItem.update.length === 0 ? '' : newItem.update.length}`,
         });

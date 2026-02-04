@@ -3,7 +3,7 @@ import { createEpicMiddleware } from 'redux-observable';
 import rootReducer from '../reducers';
 import rootEpic from '../epics';
 
-const epicMiddleware = createEpicMiddleware(rootEpic);
+const epicMiddleware = createEpicMiddleware(rootEpic as any);
 
 const middlewares = [epicMiddleware];
 if (process.env.NODE_ENV !== 'production') {
@@ -14,7 +14,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 const createStoreWithMiddleware = applyMiddleware(...middlewares)(createStore);
 
-export default function configureStore(initialState) {
+export default function configureStore(initialState?: any) {
   const store = createStoreWithMiddleware(rootReducer, initialState);
   // sagaMiddleware.run(sagas);
   if (module.hot) {

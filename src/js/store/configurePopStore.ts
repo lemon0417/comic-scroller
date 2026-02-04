@@ -13,7 +13,7 @@ const createStoreWithMiddleware =
     ? applyMiddleware(...middlewares)(createStore)
     : createStore;
 
-export default function configureStore(initialState: any) {
+export default function configureStore(initialState?: any) {
   const store = createStoreWithMiddleware(rootReducer, initialState);
   // sagaMiddleware.run(sagas);
   if (module.hot) {

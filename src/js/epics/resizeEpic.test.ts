@@ -9,8 +9,8 @@ describe('resizeEpic', () => {
     const action$ = ActionsObservable.of(startResize());
     const output$ = resizeEpic(action$);
 
-    const actions = [];
-    const subscription = output$.subscribe(action => actions.push(action));
+    const actions: any[] = [];
+    const subscription = output$.subscribe((action: any) => actions.push(action));
 
     Object.defineProperty(window, 'innerHeight', {
       value: 777,

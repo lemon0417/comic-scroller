@@ -5,8 +5,8 @@ type Props = {
   removeRippleHandler: Function,
   radius: number,
   id: string,
-  left: string,
-  top: string,
+  left: number,
+  top: number,
 };
 
 type State = {
@@ -23,7 +23,7 @@ function getRippleClass(active: boolean, opacity: boolean): string {
 }
 
 class RippleCircle extends PureComponent<Props, State> {
-  readyOpacity: boolean;
+  readyOpacity = false;
 
   state = {
     active: false,

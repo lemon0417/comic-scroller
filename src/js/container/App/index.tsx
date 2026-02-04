@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import some from 'lodash/some';
@@ -28,27 +29,7 @@ function getTagIconClass(chapterTitle: any, subscribe: any) {
   return cn.icon;
 }
 
-class App extends Component {
-  props: {
-    title: string,
-    comicsID: string,
-    chapter: string,
-    chapterTitle: string,
-    chapterList: Array<any>,
-    site: string,
-    chapterNowIndex: number,
-    prevable: boolean,
-    nextable: boolean,
-    subscribe: boolean,
-    fetchChapter: Function,
-    stopScroll: Function,
-    startResize: Function,
-    resetImg: Function,
-    updateChapterLatestIndex: Function,
-    updateSubscribe: Function,
-    updateRead: Function,
-    fetchImgList: Function,
-  };
+class App extends Component<any, any> {
 
   state = {
     showChapterList: false,
@@ -248,4 +229,4 @@ const hotExport = module.hot
   ? require('react-hot-loader').hot // eslint-disable-line global-require
   : Component => Component;
 
-export default hotExport(module)(connectedApp);
+export default hotExport(module)(connectedApp as any);

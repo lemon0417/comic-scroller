@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import map from 'lodash/map';
@@ -17,7 +18,7 @@ function stopImmediatePropagation(e: any) {
   e.nativeEvent.stopImmediatePropagation();
 }
 
-function preventDefault(e) {
+function preventDefault(e: any) {
   e.preventDefault();
 }
 

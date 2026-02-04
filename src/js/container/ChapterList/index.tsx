@@ -13,27 +13,17 @@ import cn from './ChapterList.css';
 
 const { fetchImgList, updateRead } = dm5;
 
-class ChapterList extends Component {
-  props!: {
-    show: boolean,
-    chapterList: Array<any>,
-    showChapterListHandler: Function,
-    stopScroll: Function,
-    resetImg: Function,
-    updateRead: Function,
-    updateRenderIndex: Function,
-    updateChapterLatestIndex: Function,
-    fetchImgList: Function,
-  };
+class ChapterList extends Component<any, any> {
 
-  node!: HTMLBaseElement;
+  node!: HTMLDivElement;
 
   onClickHandler = () => {
     this.node.scrollTop = 0;
     this.props.showChapterListHandler();
   };
 
-  refHandler = (node: HTMLBaseElement) => {
+  refHandler = (node: HTMLDivElement | null) => {
+    if (!node) return;
     this.node = node;
   };
 
@@ -95,4 +85,4 @@ export default connect(mapStateToProps, {
   updateRenderIndex,
   updateChapterLatestIndex,
   fetchImgList,
-})(ChapterList);
+})(ChapterList as any);

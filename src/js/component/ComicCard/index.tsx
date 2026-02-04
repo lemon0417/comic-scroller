@@ -20,32 +20,33 @@ function getComicCardClass(shift: boolean, move: boolean) {
   return cn.ComicCard;
 }
 
-class ComicCard extends Component {
-  props: {
-    url: string,
-    category: string,
-    comicsID: string,
-    chapterID: string,
+type Props = {
+  url: string,
+  category: string,
+  comicsID: string,
+  chapterID: string,
     cover: string,
+  title: string,
+  site: string,
+    index: number | string,
+  move: boolean,
+  shift: boolean,
+  moveCard: Function,
+  lastRead: {
+    href: string,
     title: string,
-    site: string,
-    index: number,
-    move: boolean,
-    shift: boolean,
-    moveCard: Function,
-    lastRead: {
-      href: string,
-      title: string,
-    },
-    lastChapter: {
-      href: string,
-      title: string,
-    },
-    updateChapter: {
-      href: string,
-      title: string,
-    },
-  };
+  },
+  lastChapter: {
+    href: string,
+    title: string,
+  },
+  updateChapter: {
+    href: string,
+    title: string,
+  },
+};
+
+class ComicCard extends Component<Props> {
 
   pageClickHandler = () => {
     chrome.tabs.create({ url: this.props.url });
@@ -65,7 +66,7 @@ class ComicCard extends Component {
 
   removeHandler = () => {
     storageGet((store: any) => {
-      let newStore = {};
+      let newStore: any = { update: [] };
       if (this.props.category === 'history') {
         newStore = {
           history: filter(
@@ -82,14 +83,14 @@ class ComicCard extends Component {
           ),
           [this.props.site]: pickBy(
             store[this.props.site],
-            (item, key) => key !== this.props.comicsID,
+            (_item, key) => key !== this.props.comicsID,
           ),
         };
       } else if (this.props.category === 'subscribe') {
         newStore = {
           subscribe: filter(
             store.subscribe,
-            (item, i) => i !== this.props.index,
+            (_item, i) => String(i) !== String(this.props.index),
           ),
           update: filter(
             store.update,
@@ -128,7 +129,7 @@ class ComicCard extends Component {
         data-move={this.props.move}
         data-shift={this.props.shift}
       >
-        <img src={this.props.cover} loading="lazy" alt={'cover'} />
+        <img src={this.props.cover} alt={'cover'} />
         <div className={cn.trash} onClick={this.removeHandler}>
           <TrashTopIcon className={cn.trashTop} />
           <TrashBodyIcon className={cn.trashBody} />

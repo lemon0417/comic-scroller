@@ -7,11 +7,12 @@
     "mkdir": "shx mkdir -p ./ComicsScroller/{js,css}",
     "copy:dev": "shx cp -r ./src/extensions/* ./ComicsScroller/ && shx rm -rf ./ComicsScroller/{app,popup}.html && shx mv ./ComicsScroller/app_dev.html ./ComicsScroller/app.html && shx mv ./ComicsScroller/popup_dev.html ./ComicsScroller/popup.html",
     "set:dev": "npm run clean && npm run mkdir && npm run copy:dev ",
-    "compile:background": "webpack --config webpack.config.bg.js",
-    "start": "npm run set:dev && npm run compile:background && node server.js",
+    "compile:background": "NODE_OPTIONS=--openssl-legacy-provider webpack --config webpack.config.bg.js",
+    "start": "tsc -p tsconfig.build.json && npm run build:assets && npm run set:dev && npm run compile:background && NODE_OPTIONS=--openssl-legacy-provider node server.js",
     "set:prod": "npm run clean && npm run mkdir && npm run copy:prod",
     "copy:prod": "shx cp -r ./src/extensions/* ./ComicsScroller/ && shx rm -rf ./ComicsScroller/{app,popup}_dev.html",
-    "build": "tsc && npm run set:prod && npm run compile:background && webpack --config webpack.config.prod.js",
+    "build": "tsc -p tsconfig.build.json && npm run build:assets && npm run set:prod && npm run compile:background && NODE_OPTIONS=--openssl-legacy-provider webpack --config webpack.config.prod.js",
+    "build:assets": "node scripts/copy-css-to-build.js",
     "zip": "shx rm -rf *.zip && bestzip ComicsScroller.zip ./ComicsScroller",
     "format": "prettier --trailing-comma=all --write 'src/js/**/*.{js,jsx}'",
     "test": "jest"
@@ -120,12 +121,14 @@
     "webpack-dev-server": "^2.11.2"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
+    "@types/react": "16.9.0",
+    "@types/react-dom": "16.9.25",
     "@types/enzyme": "^3.1.0",
+    "@types/jest": "^29.5.12",
     "@types/lodash": "^4.17.5",
+    "@types/node": "^18.19.41",
     "@types/react-redux": "^5.0.7",
-    "@types/react-test-renderer": "^18.3.0",
+    "@types/react-test-renderer": "^16.0.0",
     "@types/redux-logger": "^3.0.0",
     "cheerio": "0.22.0",
     "enzyme": "^3.1.0",
@@ -135,5 +138,9 @@
     "redux-logger": "^3.0.0",
     "stream-browserify": "^3.0.0",
     "ts-jest": "^22.4.6"
+  },
+  "resolutions": {
+    "@types/react": "16.9.0",
+    "@types/react-dom": "16.9.25"
   }
 }

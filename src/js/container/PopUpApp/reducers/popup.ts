@@ -5,7 +5,7 @@ import pickBy from 'lodash/pickBy';
 
 type Action = {
   type: string,
-  data: {
+  data?: {
     update: Array<any>,
     subscribe: Array<any>,
     history: Array<any>,
@@ -13,8 +13,8 @@ type Action = {
     sf: any,
     comicbus: any,
   },
-  category: string,
-  index: number,
+  category?: string,
+  index?: number,
 };
 
 type State = {

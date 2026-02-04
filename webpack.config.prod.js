@@ -7,10 +7,10 @@ const postcssNested = require('postcss-nested');
 module.exports = {
   entry: {
     app: [
-      './src/js/index',
+      './build/js/index',
     ],
     popup: [
-      './src/js/popup',
+      './build/js/popup',
     ],
   },
   output: {
@@ -49,11 +49,6 @@ module.exports = {
         exclude: path.join(__dirname, 'node_modules'),
       },
       {
-        test: /\.(ts|tsx)$/,
-        use: 'ts-loader',
-        exclude: /node_modules/
-      },
-      {
         test: /\.css$/,
         use: ExtractTextPlugin.extract([
           {
@@ -88,8 +83,10 @@ module.exports = {
   resolve: {
     alias: {
       css: path.join(__dirname, 'src/css'),
+      '@css': path.join(__dirname, 'src/css'),
       imgs: path.join(__dirname, 'src/imgs'),
-      cmp: path.join(__dirname, 'src/js/component'),
+      '@imgs': path.join(__dirname, 'src/imgs'),
+      cmp: path.join(__dirname, 'build/js/component'),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.css'],
   },

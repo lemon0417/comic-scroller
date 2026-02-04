@@ -42,13 +42,13 @@ function fetchImgs$(chapter: any) {
     const node = response.querySelector('div.title > span:nth-child(2) > a');
     const script = response.querySelector('head')
       .textContent;
-    const DM5_IMAGE_COUNT = /DM5_IMAGE_COUNT=(\d+);/.exec(script)![1];
+    const DM5_IMAGE_COUNT = parseInt(/DM5_IMAGE_COUNT=(\d+);/.exec(script)![1], 10);
     const DM5_CID = /DM5_CID=(\d+);/.exec(script)![1];
     const DM5_CURL = /DM5_CURL\s*=\s*\"\/(m\d+\/)\"/.exec(script)![1];
     const DM5_MID = /DM5_MID\s*=\s*(\d+);/.exec(script)![1];
     const DM5_VIEWSIGN_DT = /DM5_VIEWSIGN_DT\s*=\s*"(.*)";/.exec(script)![1];
     const DM5_VIEWSIGN = /DM5_VIEWSIGN="([^"]*)";/.exec(script)![1];
-    const imgList = Array.from({ length: DM5_IMAGE_COUNT }, (v, k) => ({
+    const imgList = Array.from({ length: DM5_IMAGE_COUNT }, (_v, k) => ({
       src:
         `${baseURL}/${DM5_CURL}chapterfun.ashx?` +
         `cid=${DM5_CID}` +

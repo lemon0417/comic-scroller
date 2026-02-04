@@ -38,7 +38,7 @@ declare var document: Document;
 
 const margin = 20;
 
-function fromScrollEvent(store: { getState: Function }, cancelType: string) {
+function fromScrollEvent(store: { getState: Function }, cancel$: any) {
   return Observable.fromEvent(document, 'scroll')
     .throttleTime(100)
     .mergeMap(() => {
@@ -68,10 +68,13 @@ function fromScrollEvent(store: { getState: Function }, cancelType: string) {
         }
       }
       const result$ = [];
+      const fetchImgSrcSafe = fetchImgSrc as any;
+      const fetchImgListSafe = fetchImgList as any;
+      const updateReadSafe = updateRead as any;
       if ((renderBeginIndex + renderEndIndex) / 2 !== viewIndex) {
         result$.push(
           updateRenderIndex(viewIndex - 6, viewIndex + 6),
-          fetchImgSrc(viewIndex - 6, viewIndex + 6),
+          fetchImgSrcSafe(viewIndex - 6, viewIndex + 6),
         );
       }
       if (chapterList.length > 0) {
@@ -82,17 +85,17 @@ function fromScrollEvent(store: { getState: Function }, cancelType: string) {
         );
         if (chapterLatestIndex === imgChapterIndex && chapterLatestIndex > 0) {
           result$.push(
-            fetchImgList(chapterLatestIndex - 1),
+            fetchImgListSafe(chapterLatestIndex - 1),
             updateChapterLatestIndex(chapterLatestIndex - 1),
           );
         }
         if (chapterNowIndex !== imgChapterIndex) {
-          result$.push(updateRead(imgChapterIndex));
+          result$.push(updateReadSafe(imgChapterIndex));
         }
       }
       return result$;
     })
-    .takeUntil(cancelType);
+    .takeUntil(cancel$);
 }
 
 export default function scrollEpic(

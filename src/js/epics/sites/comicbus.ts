@@ -45,12 +45,15 @@ function fetchImgs$(chapter: string) {
     responseType: 'document',
   }).mergeMap(function fetchImgPageHandler({ response }) {
     /* eslint-disable */
+    let chs: any;
+    let cs: any;
+    let ti: any;
     eval(
       /(var chs.*var cs=\'[^']+\';)/.exec(
         response.querySelector('#Form1 > script').textContent,
       )![1],
     );
-    let ch = /.*ch\=(.*)/.exec(chapter)![1];
+    let ch: any = /.*ch\=(.*)/.exec(chapter)![1];
     if (ch.indexOf('#') > 0) {
       ch = ch.split('#')[0];
     }
@@ -63,12 +66,12 @@ function fetchImgs$(chapter: string) {
     } else {
       ch = parseInt(ch, 10);
     }
-    const ss = (a, b, c, d) => {
+    const ss = (a: string, b: number, c: number, d?: number) => {
       const e = a.substring(b, b + c);
       return d == null ? e.replace(/[a-z]*/gi, '') : e;
     };
-    const nn = n => (n < 10 ? '00' + n : n < 100 ? '0' + n : n);
-    const mm = p => parseInt((p - 1) / 10, 10) % 10 + ((p - 1) % 10) * 3;
+    const nn = (n: number) => (n < 10 ? '00' + n : n < 100 ? '0' + n : n);
+    const mm = (p: number) => parseInt(String((p - 1) / 10), 10) % 10 + ((p - 1) % 10) * 3;
     let c = '';
     // $FlowFixMe
     const cc = cs.length;
@@ -83,7 +86,7 @@ function fetchImgs$(chapter: string) {
       c = ss(cs, cc - f, f);
       ch = c;
     }
-    const ps = ss(c, 7, 3);
+    const ps = parseInt(ss(c, 7, 3), 10);
     const imgList = [];
     // $FlowFixMe
     for (let i = 0; i < ps; i += 1) {
@@ -119,10 +122,10 @@ function fetchImgs$(chapter: string) {
 }
 
 export function fetchImgSrcEpic(action$: any, store: Store) {
-  return action$.ofType(FETCH_IMAGE_SRC).mergeMap(action => {
+  return action$.ofType(FETCH_IMAGE_SRC).mergeMap((action: any) => {
     const { result, entity } = store.getState().comics.imageList;
-    return Observable.from(result)
-      .filter(item => {
+    return Observable.from(result as any[])
+      .filter((item: any) => {
         return (
           item >= action.begin &&
           item <= action.end &&
@@ -130,8 +133,8 @@ export function fetchImgSrcEpic(action$: any, store: Store) {
           entity[item].type !== 'end'
         );
       })
-      .map(id => {
-        return loadImgSrc(entity[id].src, id);
+      .map((id: any) => {
+        return loadImgSrc(entity[id].src, id as any);
       });
   });
 }
@@ -289,17 +292,18 @@ export function fetchChapterEpic(action$: any) {
                 citem =>
                   citem.site === 'comicbus' && citem.comicsID === comicsID,
               );
+              const save$ = Observable.bindCallback(
+                (items: any, cb: any) => storageSet(items, cb),
+              )(newItem);
               return Observable.merge(
                 Observable.of(updateSubscribe(subscribe)),
-                Observable.bindCallback(storageSet)(
-                  newItem,
-                ).mergeMap(() => {
+                save$.mergeMap(() => {
                   chrome.browserAction.setBadgeText({
                     text: `${
                       newItem.update.length === 0 ? '' : newItem.update.length
                     }`,
                   });
-                  const result$ = [
+                  const result$: any[] = [
                     updateTitle(title),
                     updateReadChapters(
                       newItem.comicbus[comicsID].read,
@@ -354,9 +358,9 @@ export function updateReadEpic(action$: any, store: { getState: Function }) {
           },
         },
       };
-      return Observable.bindCallback(storageSet)(
-        newItem,
-      ).mergeMap(() => {
+      return Observable.bindCallback(
+        (items: any, cb: any) => storageSet(items, cb),
+      )(newItem).mergeMap(() => {
         chrome.browserAction.setBadgeText({
           text: `${newItem.update.length === 0 ? '' : newItem.update.length}`,
         });

@@ -60,8 +60,8 @@ describe('scrollEpic', () => {
     const action$ = ActionsObservable.of(startScroll());
     const output$ = scrollEpic(action$, store);
 
-    const actions = [];
-    const subscription = output$.subscribe(action => actions.push(action));
+    const actions: any[] = [];
+    const subscription = output$.subscribe((action: any) => actions.push(action));
 
     document.dispatchEvent(new Event('scroll'));
     jest.runAllTimers();

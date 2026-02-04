@@ -2,15 +2,15 @@ import comics, { resetImg, updateInnerHeight } from './comics';
 
 describe('comics reducer', () => {
   it('updates innerHeight', () => {
-    const prevState = comics(undefined, { type: '@@INIT' });
-    const nextState = comics(prevState, updateInnerHeight(720));
+    const prevState = comics(undefined, { type: '@@INIT' } as any) as any;
+    const nextState = comics(prevState, updateInnerHeight(720) as any);
 
     expect(nextState.innerHeight).toBe(720);
   });
 
   it('resets imageList on resetImg', () => {
     const seededState = {
-      ...comics(undefined, { type: '@@INIT' }),
+      ...((comics(undefined, { type: '@@INIT' } as any) as any)),
       imageList: {
         result: [0, 1],
         entity: {
@@ -20,7 +20,7 @@ describe('comics reducer', () => {
       },
     };
 
-    const nextState = comics(seededState, resetImg());
+    const nextState = comics(seededState as any, resetImg() as any);
 
     expect(nextState.imageList).toEqual({ result: [], entity: {} });
   });

@@ -19,11 +19,9 @@ type State = {
   ripples: Array<RippleItem>,
 };
 
-const ripple = <T: {}>(WrapComponent: React.ComponentType<T>) => {
+const ripple = <T extends {}>(WrapComponent: React.ComponentType<T>) => {
   class RippleComponent extends PureComponent<Props & T, State> {
-    counter: number;
-
-    state = {
+    state: State = {
       ripples: [],
     };
 

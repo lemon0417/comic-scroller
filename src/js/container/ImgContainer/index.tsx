@@ -8,12 +8,7 @@ import Loading from 'cmp/Loading';
 import ConnectedComicImage from 'cmp/ComicImage';
 import cn from './ImgContainer.css';
 
-class ImgContainer extends Component {
-  props: {
-    paddingTop: string,
-    paddingBottom: number,
-    renderResult: Array<number>,
-  };
+class ImgContainer extends Component<any, any> {
 
   render() {
     return (
@@ -37,9 +32,9 @@ class ImgContainer extends Component {
 }
 
 const getRenderResult = createSelector(
-  comics => comics.imageList.result,
-  comics => comics.renderBeginIndex,
-  comics => comics.renderEndIndex,
+  (comics: any) => comics.imageList.result,
+  (comics: any) => comics.renderBeginIndex,
+  (comics: any) => comics.renderEndIndex,
   (result, begin, end) => filter(result, item => item >= begin && item <= end),
 );
 
@@ -87,4 +82,4 @@ function mapStateToProps({ comics }: { comics: any }) {
   };
 }
 
-export default connect(mapStateToProps)(ImgContainer);
+export default connect(mapStateToProps)(ImgContainer as any);

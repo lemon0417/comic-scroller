@@ -9,12 +9,12 @@ module.exports = {
     app: [
       'webpack-dev-server/client?http://localhost:8000',
       'webpack/hot/only-dev-server',
-      './src/js/index'
+      './build/js/index'
     ],
     popup: [
       'webpack-dev-server/client?http://localhost:8000',
       'webpack/hot/only-dev-server',
-      './src/js/popup'
+      './build/js/popup'
     ]
   },
   output: {
@@ -39,11 +39,6 @@ module.exports = {
         query: {
           cacheDirectory: true
         }
-      },
-      {
-        test: /\.(ts|tsx)$/,
-        use: 'ts-loader',
-        exclude: /node_modules/
       },
       {
         test: /\.css$/,
@@ -81,8 +76,10 @@ module.exports = {
   resolve: {
     alias: {
       css: path.join(__dirname, 'src/css'),
+      '@css': path.join(__dirname, 'src/css'),
       imgs: path.join(__dirname, 'src/imgs'),
-      cmp: path.join(__dirname, 'src/js/component')
+      '@imgs': path.join(__dirname, 'src/imgs'),
+      cmp: path.join(__dirname, 'build/js/component')
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.css']
   }

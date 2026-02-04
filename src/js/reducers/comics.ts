@@ -1,5 +1,4 @@
 import reduce from 'lodash/reduce';
-import { site, baseURL } from '../epics/getAction';
 
 type State = {
   innerHeight: number,
@@ -23,14 +22,15 @@ type State = {
 
 type Action = {
   type: string,
-  src: string,
-  data: any,
-  index: number,
-  begin: number,
-  end: number,
-  height: number,
-  innerHeight: number,
-  imgType: any,
+  src?: string,
+  data?: any,
+  index?: number,
+  begin?: number,
+  end?: number,
+  height?: number,
+  innerHeight?: number,
+  imgType?: any,
+  [key: string]: any,
 };
 
 const initialState: State = {
@@ -68,10 +68,10 @@ const UPDATE_IMAGE_TYPE = 'UPDATE_IMAGE_TYPE';
 const UPDATE_INNER_HEIGHT = 'UPDATE_INNER_HEIGHT';
 const RESET_IMAGE = 'RESET_IMAGE';
 
-export default function comics(state: State = initialState, action: Action) {
+export default function comics(state: State = initialState, action: Action): State {
   switch (action.type) {
     case LOAD_IMAGE_SRC:
-      if (action.index >= 0) {
+      if (typeof action.index === 'number' && action.index >= 0) {
         return {
           ...state,
           imageList: {
@@ -89,7 +89,7 @@ export default function comics(state: State = initialState, action: Action) {
       }
       return state;
     case UPDATE_IMAGE_TYPE:
-      if (action.index >= 0) {
+      if (typeof action.index === 'number' && action.index >= 0) {
         return {
           ...state,
           imageList: {
@@ -117,7 +117,7 @@ export default function comics(state: State = initialState, action: Action) {
               ...state.imageList.result,
               ...Array.from(
                 { length: data.length },
-                (v, k) => k + state.imageList.result.length,
+                (_v, k) => k + state.imageList.result.length,
               ),
               data.length + state.imageList.result.length,
             ],
@@ -168,8 +168,10 @@ export default function comics(state: State = initialState, action: Action) {
     case UPDATE_RENDER_INDEX:
       return {
         ...state,
-        renderBeginIndex: action.begin,
-        renderEndIndex: action.end,
+        renderBeginIndex:
+          typeof action.begin === 'number' ? action.begin : state.renderBeginIndex,
+        renderEndIndex:
+          typeof action.end === 'number' ? action.end : state.renderEndIndex,
       };
     case UPDATE_READ_CHAPTERS:
       return {
@@ -212,7 +214,8 @@ export default function comics(state: State = initialState, action: Action) {
     case UPDATE_INNER_HEIGHT:
       return {
         ...state,
-        innerHeight: action.innerHeight,
+        innerHeight:
+          typeof action.innerHeight === 'number' ? action.innerHeight : state.innerHeight,
       };
     default:
       return state;
@@ -227,7 +230,7 @@ export function updateComicsID(data: string) {
   return { type: UPDATE_COMICS_ID, data };
 }
 
-export function updateSubscribe(data: Array<any>) {
+export function updateSubscribe(data: boolean) {
   return { type: UPDATE_SUBSCRIBE, data };
 }
 

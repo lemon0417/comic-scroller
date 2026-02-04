@@ -2,11 +2,14 @@
   "compilerOptions": {
     "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
+    "allowJs": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "module": "esnext",
@@ -14,18 +17,17 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx",
+    "jsx": "react",
     "baseUrl": "src",
+    "types": ["jest", "node"],
     "paths": {
-      "@imgs": [
-        "imgs"
-      ],
-      "@css": [
-        "css"
-      ],
-      "cmp": [
-        "js/component"
-      ]
+      "@imgs": ["imgs"],
+      "@imgs/*": ["imgs/*"],
+      "imgs/*": ["imgs/*"],
+      "@css": ["css"],
+      "css/*": ["css/*"],
+      "cmp": ["js/component"],
+      "cmp/*": ["js/component/*"]
     },
   },
   "include": ["src/**/*"],

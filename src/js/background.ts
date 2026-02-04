@@ -17,7 +17,7 @@ const fetchChapterPage$ = {
   comicbus: comicbus.fetchChapterPage$,
 };
 
-function dm5RefererHandler(details) {
+function dm5RefererHandler(details: any) {
   return {
     requestHeaders: [
       ...details.requestHeaders,
@@ -29,7 +29,7 @@ function dm5RefererHandler(details) {
   };
 }
 
-function dm5CookieHandler(details) {
+function dm5CookieHandler(details: any) {
   return {
     requestHeaders: map(details.requestHeaders, item => {
       if (item.name === 'Cookie') {
@@ -43,7 +43,7 @@ function dm5CookieHandler(details) {
   };
 }
 
-function sfRefererHandler(details) {
+function sfRefererHandler(details: any) {
   return {
     requestHeaders: [
       ...details.requestHeaders,
@@ -75,7 +75,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
   ['requestHeaders', 'blocking', 'extraHeaders'],
 );
 
-chrome.notifications.onClicked.addListener(id => {
+chrome.notifications.onClicked.addListener((id: any) => {
   if (id !== 'Comics Scroller Update') {
     chrome.tabs.create({ url: id });
   }
@@ -83,7 +83,7 @@ chrome.notifications.onClicked.addListener(id => {
 });
 
 function comicsQuery() {
-storageGet(item => {
+storageGet((item: any) => {
     if (typeof item !== 'undefined' && typeof item.subscribe !== 'undefined') {
       chrome.browserAction.setBadgeText({
         text: `${item.update.length > 0 ? item.update.length : ''}`,
@@ -94,13 +94,13 @@ storageGet(item => {
           console.log(item, `comicsID: ${comicsID}`);
           return;
         }
-        const fetchChapterPage = fetchChapterPage$[site];
+        const fetchChapterPage = (fetchChapterPage$ as any)[site];
         fetchChapterPage(url).subscribe(
-          ({ title, chapterList, cover, chapters }) => {
+          ({ title, chapterList, cover, chapters }: any) => {
             const comic = item[site][comicsID];
             forEach(chapterList, chapterID => {
               if (!comic.chapters[chapterID]) {
-                storageGet(oldStore =>
+                storageGet((oldStore: any) =>
                   storageSet(
                     {
                       ...oldStore,
@@ -128,7 +128,7 @@ storageGet(item => {
                       ],
                     },
                     () => {
-                      storageGet(store =>
+                      storageGet((store: any) =>
                         chrome.browserAction.setBadgeText({
                           text: `${store.update.length}`,
                         }),
@@ -145,9 +145,9 @@ storageGet(item => {
   });
 }
 
-chrome.runtime.onInstalled.addListener(details => {
+chrome.runtime.onInstalled.addListener((details: any) => {
   if (details.reason === 'update') {
-  storageGet(item => {
+  storageGet((item: any) => {
       const { version } = chrome.runtime.getManifest();
       delete item.udpate;
       if (!item.version) {
@@ -170,10 +170,12 @@ chrome.runtime.onInstalled.addListener(details => {
 });
 
 chrome.webNavigation.onBeforeNavigate.addListener(
-  details => {
+  (details: any) => {
     if (comicbusRegex.test(details.url)) {
       console.log('comicbus fired');
-      const chapter = comicbusRegex.exec(details.url)[2];
+      const match = comicbusRegex.exec(details.url);
+      if (!match) return;
+      const chapter = match[2];
       chrome.tabs.update(details.tabId, {
         url: `${chrome.extension.getURL(
           'app.html',
@@ -182,7 +184,9 @@ chrome.webNavigation.onBeforeNavigate.addListener(
       // ga('send', 'event', 'comicbus view');
     } else if (sfRegex.test(details.url)) {
       console.log('sf fired');
-      const chapter = sfRegex.exec(details.url)[1];
+      const match = sfRegex.exec(details.url);
+      if (!match) return;
+      const chapter = match[1];
       chrome.tabs.update(details.tabId, {
         url: `${chrome.extension.getURL(
           'app.html',
@@ -191,8 +195,10 @@ chrome.webNavigation.onBeforeNavigate.addListener(
       // ga('send', 'event', 'sf view');
     } else if (dm5Regex.test(details.url)) {
       console.log('dm5 fired');
+      const match = dm5Regex.exec(details.url);
+      if (!match) return;
       let chapter = '';
-      chapter = dm5Regex.exec(details.url)[2];
+      chapter = match[2];
       chrome.tabs.update(details.tabId, {
         url: `${chrome.extension.getURL(
           'app.html',
@@ -215,7 +221,7 @@ chrome.alarms.create('comcisScroller', {
   periodInMinutes: 10,
 });
 
-chrome.alarms.onAlarm.addListener(alarm => {
+chrome.alarms.onAlarm.addListener((alarm: any) => {
   if (alarm.name === 'comcisScroller') {
     comicsQuery();
   }

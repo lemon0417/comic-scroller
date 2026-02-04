@@ -2,17 +2,20 @@ import React, { Component } from 'react';
 import cn from './IconButton.css';
 import ripple from '../Ripple';
 
-class IconButton extends Component {
-  props: {
-    children?: React$Element<any>,
-    onClickHandler: Function,
-    onMouseDownHandler: Function,
-  };
+type Props = {
+  children?: React.ReactNode,
+  onClickHandler?: Function,
+  onMouseDownHandler?: Function,
+};
+
+class IconButton extends Component<Props> {
 
   node: any;
 
-  onMouseDownHandler = e => {
-    this.props.onMouseDownHandler(e, this.node);
+  onMouseDownHandler = (e: any) => {
+    if (this.props.onMouseDownHandler) {
+      this.props.onMouseDownHandler(e, this.node);
+    }
   };
 
   onClickHandler = () => {
@@ -21,7 +24,7 @@ class IconButton extends Component {
     }
   };
 
-  refHandler = node => {
+  refHandler = (node: any) => {
     this.node = node;
   };
 
