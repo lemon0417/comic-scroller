@@ -78,6 +78,7 @@ const MenuButton = ({
   downloadHandler,
   uploadHandler,
   resetHandler,
+  backgroundCheckHandler,
   aRefHandler,
   inputRefHandler,
   fileOnChangeHandler,
@@ -89,6 +90,7 @@ const MenuButton = ({
   downloadHandler: React.MouseEventHandler<HTMLDivElement>,
   uploadHandler: React.MouseEventHandler<HTMLDivElement>,
   resetHandler: React.MouseEventHandler<HTMLDivElement>,
+  backgroundCheckHandler: React.MouseEventHandler<HTMLDivElement>,
   aRefHandler: React.Ref<HTMLAnchorElement>,
   inputRefHandler: React.Ref<HTMLInputElement>,
   fileOnChangeHandler: React.ChangeEventHandler<HTMLInputElement>,
@@ -101,14 +103,17 @@ const MenuButton = ({
     <MoreIcon />
     <div className={cn.rippleContainer}>{children}</div>
     <div className={showMenu ? cn.menuOn : cn.menuOff}>
-      <div onMouseDown={preventDefault} onClick={downloadHandler}>
+      <div className={cn.menuItem} onMouseDown={preventDefault} onClick={downloadHandler}>
         Download Config
       </div>
-      <div onMouseDown={preventDefault} onClick={uploadHandler}>
+      <div className={cn.menuItem} onMouseDown={preventDefault} onClick={uploadHandler}>
         Upload Config
       </div>
-      <div onMouseDown={preventDefault} onClick={resetHandler}>
+      <div className={cn.menuItem} onMouseDown={preventDefault} onClick={resetHandler}>
         Reset Config
+      </div>
+      <div className={cn.menuItem} onMouseDown={preventDefault} onClick={backgroundCheckHandler}>
+        Background Check
       </div>
       <a
         style={{ display: 'none' }}
@@ -250,6 +255,30 @@ class PopUpApp extends Component<any, PopUpState> {
     });
   };
 
+  backgroundCheckHandler = () => {
+    chrome.runtime.sendMessage({ msg: 'PING_BACKGROUND' }, (response: any) => {
+      if (response && response.ok) {
+        const time = new Date(response.at).toLocaleTimeString();
+        const summary = response.summary || {};
+        const diff = summary.diff || {};
+        const details = [
+          `checked ${summary.checked ?? 0}`,
+          `new ${summary.updated ?? 0}`,
+          `added ${diff.added ?? 0}`,
+          `update ${diff.before ?? 0} -> ${diff.after ?? 0}`,
+          `errors ${summary.errors ?? 0}`,
+        ].join(' | ');
+        chrome.notifications.create(`bg-check-${response.at}`, {
+          type: 'basic',
+          iconUrl: chrome.runtime.getURL('imgs/comics-128.png'),
+          title: 'Background Check',
+          message: `OK @ ${time} (${details})`,
+        });
+      }
+    });
+    this.hideMenuHandler();
+  };
+
   resetHandler = () => {
     storageClear();
     storageSet(initObject, () => {
@@ -294,6 +323,7 @@ class PopUpApp extends Component<any, PopUpState> {
             downloadHandler={this.downloadHandler}
             uploadHandler={this.uploadHandler}
             resetHandler={this.resetHandler}
+            backgroundCheckHandler={this.backgroundCheckHandler}
             aRefHandler={this.aRefHandler}
             inputRefHandler={this.inputRefHandler}
             fileOnChangeHandler={this.fileOnChangeHandler}

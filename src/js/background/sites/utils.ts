@@ -7,7 +7,12 @@ export function fetchText$(url: string) {
 export function parseHtml(html: string): Document {
   const Parser = globalThis.DOMParser;
   if (!Parser) {
-    throw new Error('DOMParser is not available in this environment.');
+    const fallback = globalThis.document?.implementation?.createHTMLDocument?.('');
+    if (!fallback) {
+      throw new Error('DOMParser is not available in this environment.');
+    }
+    fallback.documentElement.innerHTML = html;
+    return fallback;
   }
   return new Parser().parseFromString(html, 'text/html');
 }

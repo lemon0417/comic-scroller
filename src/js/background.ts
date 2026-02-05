@@ -18,6 +18,113 @@ const fetchChapterPage$ = {
   comicbus: comicbus.fetchChapterPage$,
 };
 
+async function storageGetAsync() {
+  return new Promise<any>(resolve => storageGet(item => resolve(item)));
+}
+
+async function storageSetAsync(data: any) {
+  return new Promise<void>(resolve => storageSet(data, () => resolve()));
+}
+
+function computeUpdateDiff(before: any, after: any) {
+  const beforeSet = new Set(
+    (before?.update || []).map(
+      (item: any) => `${item.site}:${item.comicsID}:${item.chapterID}`,
+    ),
+  );
+  const afterSet = new Set(
+    (after?.update || []).map(
+      (item: any) => `${item.site}:${item.comicsID}:${item.chapterID}`,
+    ),
+  );
+  let added = 0;
+  afterSet.forEach(key => {
+    if (!beforeSet.has(key)) added += 1;
+  });
+  return {
+    before: before?.update?.length || 0,
+    after: after?.update?.length || 0,
+    added,
+  };
+}
+
+async function comicsQuerySummary() {
+  const before = await storageGetAsync();
+  let checked = 0;
+  let updated = 0;
+  let errors = 0;
+
+  if (before && before.subscribe && Array.isArray(before.subscribe)) {
+    const newStore = { ...before };
+    const newUpdate = Array.isArray(before.update) ? [...before.update] : [];
+    for (const sub of before.subscribe) {
+      const { site, comicsID } = sub || {};
+      if (!site || !comicsID || !before[site] || !before[site][comicsID]) {
+        continue;
+      }
+      checked += 1;
+      try {
+        const { url } = before[site][comicsID];
+        const fetchChapterPage = (fetchChapterPage$ as any)[site];
+        const result$ =
+          site === 'comicbus'
+            ? fetchChapterPage(url, comicsID)
+            : fetchChapterPage(url);
+        await new Promise<void>((resolve, reject) => {
+          result$.subscribe(
+            ({ title, chapterList, cover, chapters }: any) => {
+              const comic = before[site][comicsID];
+              for (const chapterID of chapterList || []) {
+                if (!comic.chapters[chapterID]) {
+                  newStore[site] = {
+                    ...newStore[site],
+                    [comicsID]: {
+                      ...newStore[site][comicsID],
+                      title,
+                      chapterList,
+                      cover,
+                      chapters,
+                    },
+                  };
+                  newUpdate.unshift({
+                    site,
+                    chapterID,
+                    updateChapter: {
+                      title: chapters[chapterID].title,
+                      href: chapters[chapterID].href,
+                    },
+                    comicsID,
+                  });
+                  updated += 1;
+                }
+              }
+              resolve();
+            },
+            () => {
+              errors += 1;
+              resolve();
+            },
+          );
+        });
+      } catch {
+        errors += 1;
+      }
+    }
+    await storageSetAsync({ ...newStore, update: newUpdate });
+    chrome.action.setBadgeText({
+      text: `${newUpdate.length > 0 ? newUpdate.length : ''}`,
+    });
+  }
+
+  const after = await storageGetAsync();
+  return {
+    checked,
+    updated,
+    errors,
+    diff: computeUpdateDiff(before, after),
+  };
+}
+
 chrome.action.setBadgeBackgroundColor({ color: '#F00' });
 
 chrome.notifications.onClicked.addListener((id: any) => {
@@ -116,6 +223,16 @@ chrome.runtime.onInstalled.addListener((details: any) => {
     storageClear();
     storageSet(initObject);
   }
+});
+
+chrome.runtime.onMessage.addListener((message: any, _sender: any, sendResponse: any) => {
+  if (message && message.msg === 'PING_BACKGROUND') {
+    comicsQuerySummary().then(summary => {
+      sendResponse({ ok: true, at: Date.now(), summary });
+    });
+    return true;
+  }
+  return false;
 });
 
 chrome.webNavigation.onBeforeNavigate.addListener(

@@ -45,6 +45,17 @@
   }
 }
 
+.menuItem {
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+  font-size: 16px;
+}
+
+.menuItem:hover {
+  background: grey-300;
+}
+
 .menuOn {
   composes: menu;
   transform: scale(1, 1);

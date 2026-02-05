@@ -1,30 +1,36 @@
 import { map } from 'rxjs';
-import { fetchText$, parseHtml, textContent } from './utils';
+import { fetchText$ } from './utils';
 
 const baseURL = 'http://www.comicbus.com';
 
-function buildChapterList(nodes: Element[]) {
-  return nodes
-    .map(node => {
-      const match = /\'(.*)-(.*)\.html/.exec(node.getAttribute('onclick') || '');
-      if (!match) return '';
-      return `comic-${match[1]}.html?ch=${match[2]}`;
-    })
-    .filter(Boolean)
-    .reverse();
+const stripTags = (input: string) =>
+  input.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+
+function extractNodes(html: string, className: string) {
+  const regex = new RegExp(
+    `<[^>]*class="[^"]*${className}[^"]*"[^>]*onclick="[^"]*'(comic-[^']+\\.html\\?ch=[^']+)'[^"]*"[^>]*>([\\s\\S]*?)<\\/[^>]+>`,
+    'gi',
+  );
+  const nodes: Array<{ key: string; title: string }> = [];
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(html))) {
+    nodes.push({
+      key: match[1],
+      title: stripTags(match[2]) || match[1],
+    });
+  }
+  return nodes;
 }
 
-function buildChapters(nodes: Element[], prefix: string) {
+function buildChapterList(nodes: Array<{ key: string }>) {
+  return nodes.map(node => node.key).filter(Boolean).reverse();
+}
+
+function buildChapters(nodes: Array<{ key: string; title: string }>) {
   return nodes.reduce<Record<string, any>>((acc, node) => {
-    const match = /\'(.*)-(.*)\.html/.exec(node.getAttribute('onclick') || '');
-    if (!match) return acc;
-    const key = `${prefix}${match[1]}.html?ch=${match[2]}`;
-    acc[key] = {
-      title:
-        node.children.length > 0
-          ? textContent(node.children[0])
-          : textContent(node),
-      href: `${baseURL}/online/${key}`,
+    acc[node.key] = {
+      title: node.title,
+      href: `${baseURL}/online/${node.key}`,
     };
     return acc;
   }, {});
@@ -33,18 +39,18 @@ function buildChapters(nodes: Element[], prefix: string) {
 export function fetchChapterPage$(url: string, comicsID: string) {
   return fetchText$(url).pipe(
     map(html => {
-      const doc = parseHtml(html);
-      const chapterNodes = Array.from(doc.querySelectorAll('.ch'));
-      const volNodes = Array.from(doc.querySelectorAll('.vol'));
-      const title = doc.title.split(',')[0] || '';
+      const chapterNodes = extractNodes(html, 'ch');
+      const volNodes = extractNodes(html, 'vol');
+      const titleMatch = /<title>([^<]+)<\/title>/i.exec(html);
+      const title = (titleMatch ? stripTags(titleMatch[1]) : '').split(',')[0] || '';
       const cover = `${baseURL}/pics/0/${comicsID}.jpg`;
       const chapterList = [
         ...buildChapterList(chapterNodes),
         ...buildChapterList(volNodes),
       ];
       const chapters = {
-        ...buildChapters(chapterNodes, 'comic-'),
-        ...buildChapters(volNodes, 'comic-'),
+        ...buildChapters(chapterNodes),
+        ...buildChapters(volNodes),
       };
       return { title, cover, chapterList, chapters, baseURL };
     }),
