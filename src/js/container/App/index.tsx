@@ -58,8 +58,11 @@ class App extends Component<any, any> {
         }
       });
     });
-    const chapter = window.location.search.split('&chapter=')[1];
-    this.props.fetchChapter(chapter);
+    const params = new URLSearchParams(window.location.search);
+    const chapter = params.get('chapter') || '';
+    if (chapter && this.props.fetchChapter) {
+      this.props.fetchChapter(chapter);
+    }
   }
 
   showChapterListHandler = () => {

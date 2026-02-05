@@ -1,6 +1,6 @@
 import { dm5, sf, comicbus } from './sites';
 
-function getInfor(site: any) {
+function getInfor(site: string) {
   switch (site) {
     case 'dm5':
       return {
@@ -22,7 +22,7 @@ function getInfor(site: any) {
   }
 }
 
-function getAction(site: any) {
+function getAction(site: string) {
   switch (site) {
     case 'dm5':
       return {
@@ -50,7 +50,7 @@ function getAction(site: any) {
   }
 }
 
-function getEpic(site: any) {
+function getEpic(site: string) {
   switch (site) {
     case 'dm5':
       return {
@@ -78,9 +78,18 @@ function getEpic(site: any) {
   }
 }
 
-const _site = /site=(.*)&/.test(document.URL)
-  ? /site=(.*)&/.exec(document.URL)![1]
-  : ''; //eslint-disable-line
+const inferSite = (siteParam: string, chapterParam: string) => {
+  if (siteParam) return siteParam;
+  if (/^m\d+$/i.test(chapterParam)) return 'dm5';
+  if (/^comic-\d+\.html\?ch=/i.test(chapterParam)) return 'comicbus';
+  if (chapterParam.startsWith('HTML/')) return 'sf';
+  return '';
+};
+
+const searchParams = new URLSearchParams(window.location.search);
+const siteParam = searchParams.get('site') || '';
+const chapterParam = searchParams.get('chapter') || '';
+const _site = inferSite(siteParam, chapterParam);
 
 export const { site, baseURL } = getInfor(_site);
 

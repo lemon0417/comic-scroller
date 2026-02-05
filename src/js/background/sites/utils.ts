@@ -1,4 +1,4 @@
-import { from, map } from 'rxjs';
+import { from } from 'rxjs';
 
 export function fetchText$(url: string) {
   return from(fetch(url).then(response => response.text()));

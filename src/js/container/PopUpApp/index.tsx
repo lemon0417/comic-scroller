@@ -151,6 +151,10 @@ class PopUpApp extends Component<any, PopUpState> {
     });
   }
 
+  componentWillUnmount() {
+    document.removeEventListener('click', this.hideMenuHandler);
+  }
+
   tabOnClickHandler = (e: any) => {
     const selectedType = e.target.getAttribute('data-type') as
       | SelectedType
@@ -181,13 +185,19 @@ class PopUpApp extends Component<any, PopUpState> {
     }
   };
 
-  showMenuHandler = () => {
-    if (!this.state.showMenu) {
-      document.addEventListener('click', this.showMenuHandler);
-    } else {
-      document.removeEventListener('click', this.showMenuHandler);
+  hideMenuHandler = () => {
+    document.removeEventListener('click', this.hideMenuHandler);
+    this.setState({ showMenu: false });
+  };
+
+  showMenuHandler = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (this.state.showMenu) {
+      this.hideMenuHandler();
+      return;
     }
-    this.setState(prevState => ({ showMenu: !prevState.showMenu }));
+    document.addEventListener('click', this.hideMenuHandler);
+    this.setState({ showMenu: true });
   };
 
   inputRefHandler = (node: HTMLInputElement | null) => {
