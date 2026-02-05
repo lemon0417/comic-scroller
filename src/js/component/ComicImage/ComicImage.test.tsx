@@ -4,7 +4,7 @@ import { ComicImage } from '.';
 
 const defaultProps = {
   loading: false,
-  src: '',
+  src: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==',
   type: '',
   height: 0,
   innerHeight: 0,
