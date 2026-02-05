@@ -36,9 +36,10 @@ function fetchImgs$(chapter: string) {
     url: `${baseURL}/online/${chapter}`,
     responseType: 'document',
   }).pipe(mergeMap(function fetchImgPageHandler({ response }) {
+    const doc = response as Document;
     /* eslint-disable */
     const scriptText =
-      response.querySelector('#Form1 > script').textContent || '';
+      doc.querySelector('#Form1 > script')?.textContent || '';
     const extractVar = (name: string) => {
       const match = new RegExp(`var\\s+${name}\\s*=\\s*([^;]+);`).exec(
         scriptText,
@@ -148,9 +149,10 @@ export function fetchChapterPage$(url: string, comicsID: string) {
     url,
     responseType: 'document',
   }).pipe(mergeMap(function fetchChapterPageHandler({ response }) {
-    const chapterNodes = response.querySelectorAll('.ch');
-    const volNodes = response.querySelectorAll('.vol');
-    const title = response.title.split(',')[0];
+    const doc = response as Document;
+    const chapterNodes = doc.querySelectorAll('.ch');
+    const volNodes = doc.querySelectorAll('.vol');
+    const title = doc.title.split(',')[0];
     const cover = `${baseURL}/pics/0/${comicsID}.jpg`;
     const chapterList = [
       ...map(chapterNodes, n => {

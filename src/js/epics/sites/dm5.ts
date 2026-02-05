@@ -34,9 +34,11 @@ function fetchImgs$(chapter: any) {
     url: `${baseURL}/${chapter}/`,
     responseType: 'document',
   }).pipe(mergeMap(function fetchImgPageHandler({ response }) {
-    const node = response.querySelector('div.title > span:nth-child(2) > a');
-    const script = response.querySelector('head')
-      .textContent;
+    const doc = response as Document;
+    const node = doc.querySelector('div.title > span:nth-child(2) > a') as
+      | HTMLAnchorElement
+      | null;
+    const script = doc.querySelector('head')?.textContent || '';
     const DM5_IMAGE_COUNT = parseInt(/DM5_IMAGE_COUNT=(\d+);/.exec(script)![1], 10);
     const DM5_CID = /DM5_CID=(\d+);/.exec(script)![1];
     const DM5_CURL = /DM5_CURL\s*=\s*\"\/(m\d+\/)\"/.exec(script)![1];
@@ -60,7 +62,7 @@ function fetchImgs$(chapter: any) {
     return of({
       chapter,
       imgList,
-      comicsID: node.getAttribute('href').replace(/\//g, ''),
+      comicsID: node?.getAttribute('href')?.replace(/\//g, '') || '',
     });
   }));
 }
@@ -87,6 +89,8 @@ export function fetchImgSrcEpic(action$: any, state$: { value: any }) {
               'Content-Type': 'text/html; charset=utf-8'
             },
           }).pipe(rxMap(function fetchImgSrcHandler({ response }) {
+            const responseText =
+              typeof response === 'string' ? response : String(response ?? '');
             const parseArrayLiteral = (raw: string) => {
               try {
                 return JSON.parse(raw.replace(/'/g, '"'));
@@ -114,14 +118,14 @@ export function fetchImgSrcEpic(action$: any, state$: { value: any }) {
               return match ? match[0].replace(/\\\//g, '/') : null;
             };
 
-            const hd = extractArrayVar(response, 'hd_c');
-            const dArr = extractArrayVar(response, 'd');
-            const arr = extractAnyArray(response);
+            const hd = extractArrayVar(responseText, 'hd_c');
+            const dArr = extractArrayVar(responseText, 'd');
+            const arr = extractAnyArray(responseText);
             const candidate =
               (hd && hd[0]) ||
               (dArr && dArr[0]) ||
               (arr && arr[0]) ||
-              extractFirstUrl(response) ||
+              extractFirstUrl(responseText) ||
               '';
             return loadImgSrc(String(candidate), id);
           }));
@@ -140,12 +144,18 @@ export function fetchChapterPage$(url: string) {
     url,
     responseType: 'document',
   }).pipe(mergeMap(function fetchChapterPageHandler({ response }) {
-    const chapterNodes = response.querySelectorAll('#chapterlistload li > a');
-    const title = response
+    const doc = response as Document;
+    const chapterNodes = doc.querySelectorAll<HTMLAnchorElement>(
+      '#chapterlistload li > a',
+    );
+    const title = (doc
       .querySelector('.banner_detail .info > .title')
-      .textContent.trim()
+      ?.textContent || '')
+      .trim()
       .split(/\s+/)[0];
-    const cover = response.querySelector('.banner_detail .cover > img').src;
+    const cover =
+      (doc.querySelector('.banner_detail .cover > img') as HTMLImageElement | null)
+        ?.src || '';
     const chapterList = map(chapterNodes, n =>
       n.getAttribute('href').replace(/\//g, ''),
     );

@@ -35,11 +35,13 @@ function fetchImgs$(chapter: any) {
     url: `${baseURL}/${chapter}`,
     responseType: 'document',
   }).pipe(mergeMap(function fetchImgPageHandler({ response }) {
+    const doc = response as Document;
     const comicsID = /\.sfacg\.com\/(.*\/)$/.exec(
-      response.querySelector('.AD_D2 > a:nth-child(1)').href,
+      (doc.querySelector('.AD_D2 > a:nth-child(1)') as HTMLAnchorElement | null)
+        ?.href || '',
     )![1];
     const scriptURL = /src=\"\/(Utility\/\d+.*\.js)\">/.exec(
-      response.head.innerHTML,
+      doc.head?.innerHTML || '',
     )![1];
     return of({ chapter, scriptURL, comicsID });
   }));
@@ -50,6 +52,8 @@ function fetchScript$(scriptURL: any, chapter: any) {
     url: `${baseURL}/${scriptURL}`,
     responseType: 'text',
   }).pipe(mergeMap(function scriptURLHandler({ response }) {
+    const responseText =
+      typeof response === 'string' ? response : String(response ?? '');
     const extractArray = (script: string, name: string) => {
       const arrayMatch = new RegExp(
         `${name}\\s*=\\s*(\\[[\\s\\S]*?\\]|new Array\\([^)]*\\))`,
@@ -71,9 +75,9 @@ function fetchScript$(scriptURL: any, chapter: any) {
       return match ? Number(match[1]) : 0;
     };
 
-    const picCount = extractNumber(response, 'picCount');
-    const hosts = extractArray(response, 'hosts');
-    const picAy = extractArray(response, 'picAy');
+    const picCount = extractNumber(responseText, 'picCount');
+    const hosts = extractArray(responseText, 'hosts');
+    const picAy = extractArray(responseText, 'picAy');
     // $FlowFixMe
     const imgList = Array.from({ length: Number(picCount) || 0 }, (_v, k) => ({
       src: `${hosts[1] || ''}${picAy[k] || ''}`,
@@ -114,13 +118,16 @@ export function fetchChapterPage$(url: string) {
     url,
     responseType: 'document',
   }).pipe(mergeMap(function fetchChapterPageHandler({ response }) {
-    const chapterNode = response.querySelectorAll(
+    const doc = response as Document;
+    const chapterNode = doc.querySelectorAll<HTMLAnchorElement>(
       '.serialise_list.Blue_link2 > li > a',
     );
-    const title = response.querySelector(
+    const title = doc.querySelector(
       'body > table > tbody > tr > td:nth-child(1) > table:nth-child(2) > tbody > tr > td > h1 > b',
-    ).textContent;
-    const cover = response.querySelector('.comic_cover > img').src;
+    )?.textContent;
+    const cover =
+      (doc.querySelector('.comic_cover > img') as HTMLImageElement | null)
+        ?.src || '';
     const chapterList = map(chapterNode, n =>
       n.getAttribute('href').replace(/^(\/)/g, ''),
     );
