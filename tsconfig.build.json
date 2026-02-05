@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
-    "outDir": "./build",
+    "outDir": "./build/tsc",
     "rootDir": "./src",
     "strict": false,
     "noImplicitAny": false,
@@ -10,8 +10,9 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },
-  "include": ["src/js/**/*"],
+  "include": ["src/**/*"],
   "exclude": [
+    "src/extensions/**",
     "src/js/**/*.test.ts",
     "src/js/**/*.test.tsx",
     "src/js/__mocks__/**",
