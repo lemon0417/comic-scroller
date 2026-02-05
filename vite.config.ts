@@ -9,6 +9,7 @@ const srcDir = path.join(rootDir, 'src');
 const outDir = path.join(rootDir, 'ComicsScroller');
 
 const htmlOutputFiles = ['app.html', 'popup.html', 'background.html'];
+const mv3ManagedHtml = ['background.html'];
 
 function relocateHtmlOutputs() {
   return {
@@ -22,6 +23,10 @@ function relocateHtmlOutputs() {
         const srcPath = path.join(nestedDir, file);
         const destPath = path.join(outDir, file);
         if (fs.existsSync(srcPath)) {
+          if (mv3ManagedHtml.includes(file)) {
+            fs.unlinkSync(srcPath);
+            continue;
+          }
           fs.copyFileSync(srcPath, destPath);
           fs.unlinkSync(srcPath);
         }
@@ -79,7 +84,6 @@ export default defineConfig(({ mode }) => ({
       input: {
         app: path.join(rootDir, 'src', 'extensions', 'app.html'),
         popup: path.join(rootDir, 'src', 'extensions', 'popup.html'),
-        background: path.join(rootDir, 'src', 'extensions', 'background.html'),
       },
       output: {
         entryFileNames: 'js/[name].js',

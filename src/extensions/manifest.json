@@ -1,7 +1,7 @@
 {
   "name": "Comics Scroller",
   "version": "4.0.51",
-  "manifest_version": 2,
+  "manifest_version": 3,
   "description": "一個支援動漫屋、無限動漫、sfacg，給你更好的漫畫閱讀體驗的 chrome extension ",
   "icons": {
     "16": "imgs/comics-16.png",
@@ -9,7 +9,7 @@
     "64": "imgs/comics-64.png",
     "128": "imgs/comics-128.png"
   },
-  "browser_action": {
+  "action": {
     "default_icon": {
       "16": "imgs/comics-16.png"
     },
@@ -17,26 +17,41 @@
     "default_popup": "popup.html"
   },
   "background": {
-    "page": "background.html",
-    "persistence": false
+    "service_worker": "js/background.js",
+    "type": "module"
   },
   "permissions": [
-    "webNavigation",
     "alarms",
     "notifications",
-    "webRequest",
-    "webRequestBlocking",
     "storage",
     "tabs",
+    "webNavigation",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess"
+  ],
+  "host_permissions": [
     "http://*.comicbus.com/*",
     "http://*.sfacg.com/*",
     "https://*.dm5.com/*",
     "https://*.cdndm5.com/*",
     "https://*.cdnmanhua.net/*"
   ],
-  "content_security_policy": "img-src 'self' data: * ; script-src 'self' 'unsafe-eval' https://*.google-analytics.com; object-src 'self' ; ",
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "default",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
+  },
   "web_accessible_resources": [
-    "js/*.js",
-    "css/*.css"
+    {
+      "resources": ["js/*.js", "css/*.css", "imgs/*"],
+      "matches": ["<all_urls>"]
+    }
   ]
 }

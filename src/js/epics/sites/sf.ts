@@ -50,13 +50,33 @@ function fetchScript$(scriptURL: any, chapter: any) {
     url: `${baseURL}/${scriptURL}`,
     responseType: 'text',
   }).pipe(mergeMap(function scriptURLHandler({ response }) {
-    let picCount;
-    let hosts: any;
-    let picAy: any;
-    eval(response); // eslint-disable-line
+    const extractArray = (script: string, name: string) => {
+      const arrayMatch = new RegExp(
+        `${name}\\s*=\\s*(\\[[\\s\\S]*?\\]|new Array\\([^)]*\\))`,
+      ).exec(script);
+      if (!arrayMatch) return [];
+      const raw = arrayMatch[1].trim();
+      const normalized = raw.startsWith('new Array(')
+        ? `[${raw.slice('new Array('.length, -1)}]`
+        : raw;
+      try {
+        return JSON.parse(normalized.replace(/'/g, '"'));
+      } catch {
+        return [];
+      }
+    };
+
+    const extractNumber = (script: string, name: string) => {
+      const match = new RegExp(`${name}\\s*=\\s*(\\d+)`).exec(script);
+      return match ? Number(match[1]) : 0;
+    };
+
+    const picCount = extractNumber(response, 'picCount');
+    const hosts = extractArray(response, 'hosts');
+    const picAy = extractArray(response, 'picAy');
     // $FlowFixMe
     const imgList = Array.from({ length: Number(picCount) || 0 }, (_v, k) => ({
-      src: `${hosts[1]}${picAy[k]}`,
+      src: `${hosts[1] || ''}${picAy[k] || ''}`,
       chapter,
     }));
     return of({ imgList });
@@ -210,7 +230,7 @@ export function fetchChapterEpic(action$: any) {
                     item.subscribe,
                     citem => citem.site === 'sf' && citem.comicsID === comicsID,
                   );
-                  chrome.browserAction.setBadgeText({
+                chrome.action.setBadgeText({
                     text: `${
                       newItem.update.length === 0 ? '' : newItem.update.length
                     }`,
@@ -221,7 +241,7 @@ export function fetchChapterEpic(action$: any) {
                   return merge(
                     of(updateSubscribe(subscribe)),
                     save$.pipe(mergeMap(() => {
-                      chrome.browserAction.setBadgeText({
+                      chrome.action.setBadgeText({
                         text: `${
                           newItem.update.length === 0 ? '' : newItem.update.length
                         }`,
@@ -286,7 +306,7 @@ export function updateReadEpic(action$: any, state$: { value: any }) {
         return bindCallback(
           (items: any, cb: any) => storageSet(items, cb),
         )(newItem).pipe(mergeMap(() => {
-          chrome.browserAction.setBadgeText({
+        chrome.action.setBadgeText({
             text: `${newItem.update.length === 0 ? '' : newItem.update.length}`,
           });
           return [

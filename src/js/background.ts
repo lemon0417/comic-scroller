@@ -1,4 +1,3 @@
-import map from 'lodash/map';
 import forEach from 'lodash/forEach';
 import initObject from './util/initObject';
 import * as dm5 from './epics/sites/dm5';
@@ -19,63 +18,7 @@ const fetchChapterPage$ = {
   comicbus: comicbus.fetchChapterPage$,
 };
 
-function dm5RefererHandler(details: any) {
-  return {
-    requestHeaders: [
-      ...details.requestHeaders,
-      {
-        name: 'Referer',
-        value: 'https://www.dm5.com/m',
-      },
-    ],
-  };
-}
-
-function dm5CookieHandler(details: any) {
-  return {
-    requestHeaders: map(details.requestHeaders, item => {
-      if (item.name === 'Cookie') {
-        return {
-          name: item.name,
-          value: `${item.value};isAdult=1`,
-        };
-      }
-      return item;
-    }),
-  };
-}
-
-function sfRefererHandler(details: any) {
-  return {
-    requestHeaders: [
-      ...details.requestHeaders,
-      {
-        name: 'Referer',
-        value: 'http://comic.sfacg.com/HTML/',
-      },
-    ],
-  };
-}
-
-chrome.browserAction.setBadgeBackgroundColor({ color: '#F00' });
-
-chrome.webRequest.onBeforeSendHeaders.addListener(
-  dm5RefererHandler,
-  { urls: ['https://www.dm5.com/m*/chapterfun*', 'https://*.cdndm5.com/*', 'https://*.cdnmanhua.net/*'] },
-  ['requestHeaders', 'blocking', 'extraHeaders'],
-);
-
-chrome.webRequest.onBeforeSendHeaders.addListener(
-  dm5CookieHandler,
-  { urls: ['https://www.dm5.com/m*/', 'https://*.cdnmanhua.net/*'] },
-  ['requestHeaders', 'blocking', 'extraHeaders'],
-);
-
-chrome.webRequest.onBeforeSendHeaders.addListener(
-  sfRefererHandler,
-  { urls: ['http://*.sfacg.com/*'] },
-  ['requestHeaders', 'blocking', 'extraHeaders'],
-);
+chrome.action.setBadgeBackgroundColor({ color: '#F00' });
 
 chrome.notifications.onClicked.addListener((id: any) => {
   if (id !== 'Comics Scroller Update') {
@@ -87,7 +30,7 @@ chrome.notifications.onClicked.addListener((id: any) => {
 function comicsQuery() {
 storageGet((item: any) => {
     if (typeof item !== 'undefined' && typeof item.subscribe !== 'undefined') {
-      chrome.browserAction.setBadgeText({
+      chrome.action.setBadgeText({
         text: `${item.update.length > 0 ? item.update.length : ''}`,
       });
       forEach(item.subscribe, ({ site, comicsID }) => {
@@ -131,7 +74,7 @@ storageGet((item: any) => {
                     },
                     () => {
                       storageGet((store: any) =>
-                        chrome.browserAction.setBadgeText({
+                        chrome.action.setBadgeText({
                           text: `${store.update.length}`,
                         }),
                       );
@@ -179,9 +122,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
       if (!match) return;
       const chapter = match[2];
       chrome.tabs.update(details.tabId, {
-        url: `${chrome.extension.getURL(
-          'app.html',
-        )}?site=comicbus&chapter=${chapter}`,
+        url: `${chrome.runtime.getURL('app.html')}?site=comicbus&chapter=${chapter}`,
       });
       // ga('send', 'event', 'comicbus view');
     } else if (sfRegex.test(details.url)) {
@@ -190,9 +131,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
       if (!match) return;
       const chapter = match[1];
       chrome.tabs.update(details.tabId, {
-        url: `${chrome.extension.getURL(
-          'app.html',
-        )}?site=sf&chapter=${chapter}`,
+        url: `${chrome.runtime.getURL('app.html')}?site=sf&chapter=${chapter}`,
       });
       // ga('send', 'event', 'sf view');
     } else if (dm5Regex.test(details.url)) {
@@ -202,9 +141,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
       let chapter = '';
       chapter = match[2];
       chrome.tabs.update(details.tabId, {
-        url: `${chrome.extension.getURL(
-          'app.html',
-        )}?site=dm5&chapter=${chapter}`,
+        url: `${chrome.runtime.getURL('app.html')}?site=dm5&chapter=${chapter}`,
       });
       // ga('send', 'event', 'dm5 view');
     }

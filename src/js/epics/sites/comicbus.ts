@@ -37,14 +37,18 @@ function fetchImgs$(chapter: string) {
     responseType: 'document',
   }).pipe(mergeMap(function fetchImgPageHandler({ response }) {
     /* eslint-disable */
-    let chs: any;
-    let cs: any;
-    let ti: any;
-    eval(
-      /(var chs.*var cs=\'[^']+\';)/.exec(
-        response.querySelector('#Form1 > script').textContent,
-      )![1],
-    );
+    const scriptText =
+      response.querySelector('#Form1 > script').textContent || '';
+    const extractVar = (name: string) => {
+      const match = new RegExp(`var\\s+${name}\\s*=\\s*([^;]+);`).exec(
+        scriptText,
+      );
+      return match ? match[1].trim() : '';
+    };
+    const unquote = (value: string) => value.replace(/^['"]|['"]$/g, '');
+    const chs = unquote(extractVar('chs'));
+    const cs = unquote(extractVar('cs'));
+    const ti = unquote(extractVar('ti'));
     let ch: any = /.*ch\=(.*)/.exec(chapter)![1];
     if (ch.indexOf('#') > 0) {
       ch = ch.split('#')[0];
@@ -283,7 +287,7 @@ export function fetchChapterEpic(action$: any) {
                     },
                   },
                 };
-                chrome.browserAction.setBadgeText({
+              chrome.action.setBadgeText({
                   text: `${
                     newItem.update.length === 0 ? '' : newItem.update.length
                   }`,
@@ -299,7 +303,7 @@ export function fetchChapterEpic(action$: any) {
                 return merge(
                   of(updateSubscribe(subscribe)),
                   save$.pipe(mergeMap(() => {
-                    chrome.browserAction.setBadgeText({
+                  chrome.action.setBadgeText({
                       text: `${
                         newItem.update.length === 0 ? '' : newItem.update.length
                       }`,
@@ -365,7 +369,7 @@ export function updateReadEpic(action$: any, state$: { value: any }) {
         return bindCallback(
           (items: any, cb: any) => storageSet(items, cb),
         )(newItem).pipe(mergeMap(() => {
-          chrome.browserAction.setBadgeText({
+        chrome.action.setBadgeText({
             text: `${newItem.update.length === 0 ? '' : newItem.update.length}`,
           });
           return [

@@ -87,19 +87,43 @@ export function fetchImgSrcEpic(action$: any, state$: { value: any }) {
               'Content-Type': 'text/html; charset=utf-8'
             },
           }).pipe(rxMap(function fetchImgSrcHandler({ response }) {
-            /* eslint-disable */
-            let src, d, isrevtt, hd_c: any;
-            // $FlowFixMe
-            const arr = eval(response);
-            if (hd_c && hd_c.length > 0 && isrevtt) {
-              src = hd_c[0];
-            } else if (typeof d !== 'undefined') {
-              src = d[0];
-            } else if (arr) {
-              src = arr[0];
-            }
-            return loadImgSrc(src, id);
-            /* eslint-enable */
+            const parseArrayLiteral = (raw: string) => {
+              try {
+                return JSON.parse(raw.replace(/'/g, '"'));
+              } catch {
+                return null;
+              }
+            };
+
+            const extractArrayVar = (script: string, name: string) => {
+              const match = new RegExp(
+                `${name}\\s*=\\s*(\\[[\\s\\S]*?\\])`,
+              ).exec(script);
+              return match ? parseArrayLiteral(match[1]) : null;
+            };
+
+            const extractAnyArray = (script: string) => {
+              const match = /(\[[\s\S]*?\])/.exec(script);
+              return match ? parseArrayLiteral(match[1]) : null;
+            };
+
+            const extractFirstUrl = (script: string) => {
+              const match =
+                /https?:\\\/\\\/[^"'\\s]+/.exec(script) ||
+                /https?:\/\/[^"'\s]+/.exec(script);
+              return match ? match[0].replace(/\\\//g, '/') : null;
+            };
+
+            const hd = extractArrayVar(response, 'hd_c');
+            const dArr = extractArrayVar(response, 'd');
+            const arr = extractAnyArray(response);
+            const candidate =
+              (hd && hd[0]) ||
+              (dArr && dArr[0]) ||
+              (arr && arr[0]) ||
+              extractFirstUrl(response) ||
+              '';
+            return loadImgSrc(String(candidate), id);
           }));
         }),
       );
@@ -235,7 +259,7 @@ export function fetchChapterEpic(
                 );
                 store.dispatch(updateSubscribe(subscribe));
                 storageSet(newItem, () => {
-                  chrome.browserAction.setBadgeText({
+                chrome.action.setBadgeText({
                     text: `${
                       newItem.update.length === 0 ? '' : newItem.update.length
                       }`,
@@ -298,7 +322,7 @@ export function updateReadEpic(
           },
         };
         storageSet(newItem, () => {
-          chrome.browserAction.setBadgeText({
+        chrome.action.setBadgeText({
             text: `${newItem.update.length === 0 ? '' : newItem.update.length}`,
           });
           store.dispatch(updateReadChapters(newItem.dm5[comicsID].read))
