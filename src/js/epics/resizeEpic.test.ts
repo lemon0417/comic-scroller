@@ -1,4 +1,4 @@
-import { ActionsObservable } from 'redux-observable';
+import { of } from 'rxjs';
 import resizeEpic, { startResize } from './resizeEpic';
 import { updateInnerHeight } from '../reducers/comics';
 
@@ -6,7 +6,7 @@ describe('resizeEpic', () => {
   it('emits updateInnerHeight on window resize after start', () => {
     jest.useFakeTimers();
 
-    const action$ = ActionsObservable.of(startResize());
+    const action$ = of(startResize());
     const output$ = resizeEpic(action$);
 
     const actions: any[] = [];

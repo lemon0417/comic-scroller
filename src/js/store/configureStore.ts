@@ -4,7 +4,8 @@ import { createLogger } from 'redux-logger';
 import rootReducer from '../reducers';
 import rootEpic from '../epics';
 
-const epicMiddleware = createEpicMiddleware(rootEpic as any);
+const epicDependencies: { store?: any } = {};
+const epicMiddleware = createEpicMiddleware({ dependencies: epicDependencies });
 
 const buildMiddleware = () =>
   process.env.NODE_ENV !== 'production'
@@ -18,6 +19,8 @@ export default function configureStore(initialState?: any) {
     preloadedState: initialState,
     devTools: process.env.NODE_ENV !== 'production',
   });
+  epicDependencies.store = store;
+  epicMiddleware.run(rootEpic);
 
   if (import.meta.hot) {
     import.meta.hot.accept('../reducers', module => {

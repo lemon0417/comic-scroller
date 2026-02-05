@@ -1,9 +1,6 @@
-import { Observable } from 'rxjs/Observable';
-import 'rxjs/add/observable/fromEvent';
-import 'rxjs/add/operator/throttleTime';
-import 'rxjs/add/operator/map';
-import 'rxjs/add/operator/mergeMap';
-import 'rxjs/add/operator/takeUntil';
+import { fromEvent } from 'rxjs';
+import { mergeMap, takeUntil, throttleTime } from 'rxjs/operators';
+import { ofType } from 'redux-observable';
 import findIndex from 'lodash/findIndex';
 import { fetchImgSrc, fetchImgList, updateRead } from './getAction';
 import { updateChapterLatestIndex, updateRenderIndex } from '../reducers/comics';
@@ -38,11 +35,11 @@ declare var document: Document;
 
 const margin = 20;
 
-function fromScrollEvent(store: { getState: Function }, cancel$: any) {
-  return Observable.fromEvent(document, 'scroll')
-    .throttleTime(100)
-    .mergeMap(() => {
-      const { entity, result } = store.getState().comics.imageList;
+function fromScrollEvent(state$: { value: any }, cancel$: any) {
+  return fromEvent(document, 'scroll').pipe(
+    throttleTime(100),
+    mergeMap(() => {
+      const { entity, result } = state$.value.comics.imageList;
       const {
         chapterList,
         chapterLatestIndex,
@@ -50,7 +47,7 @@ function fromScrollEvent(store: { getState: Function }, cancel$: any) {
         renderBeginIndex,
         renderEndIndex,
         innerHeight,
-      } = store.getState().comics;
+      } = state$.value.comics;
       let accHeight = margin;
       let viewIndex = 0;
       // $FlowFixMe
@@ -94,17 +91,19 @@ function fromScrollEvent(store: { getState: Function }, cancel$: any) {
         }
       }
       return result$;
-    })
-    .takeUntil(cancel$);
+    }),
+    takeUntil(cancel$),
+  );
 }
 
 export default function scrollEpic(
   action$: any,
-  store: { getState: Function },
+  state$: { value: any },
 ) {
-  return action$
-    .ofType(START_SCROLL_EPIC)
-    .mergeMap(() => fromScrollEvent(store, action$.ofType(STOP_SCROLL_EPIC)));
+  return action$.pipe(
+    ofType(START_SCROLL_EPIC),
+    mergeMap(() => fromScrollEvent(state$, action$.pipe(ofType(STOP_SCROLL_EPIC)))),
+  );
 }
 
 export function startScroll() {

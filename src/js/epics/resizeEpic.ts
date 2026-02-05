@@ -1,20 +1,22 @@
-import { Observable } from 'rxjs/Observable';
-import 'rxjs/add/observable/fromEvent';
-import 'rxjs/add/operator/throttleTime';
-import 'rxjs/add/operator/mapTo';
-import 'rxjs/add/operator/mergeMap';
+import { fromEvent } from 'rxjs';
+import { mergeMap, throttleTime } from 'rxjs/operators';
+import { ofType } from 'redux-observable';
 import { updateInnerHeight } from '../reducers/comics';
 
 const START_RESIZE_EPIC = 'START_RESIZE_EPIC';
 
 function fromResizeEvent() {
-  return Observable.fromEvent(window, 'resize')
-    .throttleTime(100)
-    .mergeMap(() => [updateInnerHeight(window.innerHeight)]);
+  return fromEvent(window, 'resize').pipe(
+    throttleTime(100),
+    mergeMap(() => [updateInnerHeight(window.innerHeight)]),
+  );
 }
 
 export default function resizeEpic(action$: any) {
-  return action$.ofType(START_RESIZE_EPIC).mergeMap(() => fromResizeEvent());
+  return action$.pipe(
+    ofType(START_RESIZE_EPIC),
+    mergeMap(() => fromResizeEvent()),
+  );
 }
 
 export function startResize() {

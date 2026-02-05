@@ -1,7 +1,4 @@
-import { ActionsObservable } from 'redux-observable';
-import 'rxjs/add/operator/mergeMap';
-import 'rxjs/add/operator/takeUntil';
-import 'rxjs/add/operator/throttleTime';
+import { of } from 'rxjs';
 
 function setup() {
   jest.resetModules();
@@ -29,8 +26,8 @@ describe('scrollEpic', () => {
       updateRead,
     } = setup();
 
-    const store = {
-      getState: () => ({
+    const state$ = {
+      value: {
         comics: {
           imageList: {
             result: [0],
@@ -45,7 +42,7 @@ describe('scrollEpic', () => {
           renderEndIndex: 1,
           innerHeight: 800,
         },
-      }),
+      },
     };
 
     Object.defineProperty(window, 'innerHeight', {
@@ -57,8 +54,8 @@ describe('scrollEpic', () => {
       configurable: true,
     });
 
-    const action$ = ActionsObservable.of(startScroll());
-    const output$ = scrollEpic(action$, store);
+    const action$ = of(startScroll());
+    const output$ = scrollEpic(action$, state$ as any);
 
     const actions: any[] = [];
     const subscription = output$.subscribe((action: any) => actions.push(action));

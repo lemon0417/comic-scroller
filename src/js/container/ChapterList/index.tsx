@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import 'rxjs/add/operator/takeUntil';
 import map from 'lodash/map';
 import {
   resetImg,
