@@ -97,8 +97,52 @@ class App extends Component<any, any> {
   };
 
   subscribeHandler = () => {
-    const { site, comicsID } = this.props;
+    const { site: propSite, comicsID: propComicsID } = this.props;
+    const params = new URLSearchParams(window.location.search);
+    const chapterParam = params.get('chapter') || '';
+    const inferSite = () => {
+      if (/^m\d+$/i.test(chapterParam)) return 'dm5';
+      if (/^comic-\d+\.html\?ch=/i.test(chapterParam)) return 'comicbus';
+      if (chapterParam.startsWith('HTML/')) return 'sf';
+      return '';
+    };
+    const resolveSiteAndId = (store: any) => {
+      const rawKey = String(propComicsID ?? '');
+      const tryKeys = (bucket: any, baseKey: string) => {
+        if (!bucket) return null;
+        if (baseKey && bucket[baseKey]) return baseKey;
+        const withPrefix = baseKey ? `m${baseKey}` : '';
+        if (withPrefix && bucket[withPrefix]) return withPrefix;
+        if (baseKey.startsWith('m')) {
+          const stripped = baseKey.slice(1);
+          if (stripped && bucket[stripped]) return stripped;
+        }
+        return null;
+      };
+
+      if (propSite) {
+        const resolvedKey = tryKeys(store[propSite], rawKey) || rawKey;
+        return { site: propSite, comicsID: resolvedKey };
+      }
+
+      const candidates = ['dm5', 'sf', 'comicbus'];
+      for (const candidate of candidates) {
+        const resolvedKey = tryKeys(store[candidate], rawKey);
+        if (resolvedKey) {
+          return { site: candidate, comicsID: resolvedKey };
+        }
+      }
+
+      const inferred = inferSite();
+      if (inferred) {
+        return { site: inferred, comicsID: rawKey };
+      }
+      return { site: '', comicsID: rawKey };
+    };
+
     storageGet((item: any) => {
+      const { site, comicsID } = resolveSiteAndId(item);
+      if (!site) return;
       if (item.subscribe) {
         let newItem = {};
         if (

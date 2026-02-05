@@ -167,14 +167,18 @@ class ComicCard extends Component<Props> {
 }
 
 function mapStateToProps(state: any, ownProps: any) {
-  const {
-    title,
-    lastRead,
-    cover,
-    url,
-    chapters,
-    chapterList,
-  } = state.popup[ownProps.site][ownProps.comicsID];
+  const bucket = state.popup[ownProps.site] || {};
+  const record = bucket[ownProps.comicsID];
+  if (!record) {
+    return {
+      title: '',
+      url: '',
+      cover: '',
+      lastRead: {},
+      lastChapter: {},
+    };
+  }
+  const { title, lastRead, cover, url, chapters, chapterList } = record;
   return {
     title,
     url,

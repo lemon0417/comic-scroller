@@ -354,19 +354,57 @@ class PopUpApp extends Component<any, PopUpState> {
 }
 
 function mapStateToProps(state: any) {
+  const resolveComicsKeyForBucket = (bucket: any, rawKey: string) => {
+    if (!bucket) return null;
+    if (rawKey && bucket[rawKey]) return rawKey;
+    const withPrefix = rawKey ? `m${rawKey}` : '';
+    if (withPrefix && bucket[withPrefix]) return withPrefix;
+    if (rawKey.startsWith('m')) {
+      const stripped = rawKey.slice(1);
+      if (stripped && bucket[stripped]) return stripped;
+    }
+    return null;
+  };
+
+  const resolveItem = (item: any) => {
+    if (!item) return null;
+    const rawKey = String(item.comicsID ?? '');
+    if (!rawKey) return null;
+
+    const site = item.site as string;
+    if (site) {
+      const bucket = state.popup[site];
+      const resolvedKey = resolveComicsKeyForBucket(bucket, rawKey);
+      return resolvedKey
+        ? {
+            ...item,
+            comicsID: resolvedKey,
+          }
+        : null;
+    }
+
+    const sites = ['dm5', 'sf', 'comicbus'];
+    for (const candidateSite of sites) {
+      const bucket = state.popup[candidateSite];
+      const resolvedKey = resolveComicsKeyForBucket(bucket, rawKey);
+      if (resolvedKey) {
+        return {
+          ...item,
+          site: candidateSite,
+          comicsID: resolvedKey,
+        };
+      }
+    }
+    return null;
+  };
+
+  const normalizeList = (list: any[]) =>
+    filter(map(list, resolveItem), Boolean);
+
   return {
-    update: filter(
-      state.popup.update,
-      item => state.popup[item.site][item.comicsID],
-    ),
-    subscribe: filter(
-      state.popup.subscribe,
-      item => state.popup[item.site][item.comicsID],
-    ),
-    history: filter(
-      state.popup.history,
-      item => state.popup[item.site][item.comicsID],
-    ),
+    update: normalizeList(state.popup.update),
+    subscribe: normalizeList(state.popup.subscribe),
+    history: normalizeList(state.popup.history),
   };
 }
 
