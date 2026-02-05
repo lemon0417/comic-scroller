@@ -1,20 +1,17 @@
 import React from 'react';
-import { shallow } from 'enzyme';
-import renderer from 'react-test-renderer';
+import { render } from '@testing-library/react';
 import Loading from './index';
 
 test('Loading contains circle svg', () => {
-  const Cmp = shallow(<Loading />);
-  expect(
-    Cmp.contains(
-      <svg>
-        <circle cx="30" cy="30" r="25" />
-      </svg>,
-    ),
-  ).toBe(true);
+  const { container } = render(<Loading />);
+  const circle = container.querySelector('svg circle');
+  expect(circle).toBeInTheDocument();
+  expect(circle).toHaveAttribute('cx', '30');
+  expect(circle).toHaveAttribute('cy', '30');
+  expect(circle).toHaveAttribute('r', '25');
 });
 
 test('Loading snapshot', () => {
-  const tree = renderer.create(<Loading />).toJSON();
-  expect(tree).toMatchSnapshot();
+  const { asFragment } = render(<Loading />);
+  expect(asFragment()).toMatchSnapshot();
 });
