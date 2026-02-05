@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import cn from './IconButton.css';
+import cn from './IconButton.module.css';
 import ripple from '../Ripple';
 
 type Props = {

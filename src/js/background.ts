@@ -1,7 +1,9 @@
 import map from 'lodash/map';
 import forEach from 'lodash/forEach';
 import initObject from './util/initObject';
-import { dm5, sf, comicbus } from './epics/sites';
+import * as dm5 from './epics/sites/dm5';
+import * as sf from './epics/sites/sf';
+import * as comicbus from './epics/sites/comicbus';
 import { storageGet, storageSet, storageClear } from './services/storage';
 
 const dm5Regex = /https\:\/\/(tel||www)\.dm5\.com\/(m\d+)\//;

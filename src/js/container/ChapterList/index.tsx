@@ -7,11 +7,9 @@ import {
   updateChapterLatestIndex,
   updateRenderIndex,
 } from '../../reducers/comics';
-import { dm5 } from '../../epics/sites';
+import { fetchImgList, updateRead } from '../../epics/sites/dm5';
 import { stopScroll } from '../../epics/scrollEpic';
-import cn from './ChapterList.css';
-
-const { fetchImgList, updateRead } = dm5;
+import cn from './ChapterList.module.css';
 
 class ChapterList extends Component<any, any> {
 

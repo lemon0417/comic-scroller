@@ -7,28 +7,24 @@ import App from './container/PopUpApp';
 import configureStore from './store/configurePopStore';
 
 const store = configureStore();
-const AppContainer = module.hot
-  ? require('react-hot-loader').AppContainer // eslint-disable-line global-require
-  : React.Fragment;
+const rootEl = document.getElementById('app');
 
-render(
-  <AppContainer>
+function renderApp(NextApp: typeof App) {
+  if (!rootEl) return;
+  render(
     <Provider store={store}>
-      <App />
-    </Provider>
-  </AppContainer>,
-  document.getElementById('app'),
-);
+      <NextApp />
+    </Provider>,
+    rootEl,
+  );
+}
 
-if (module.hot) {
-  module.hot.accept('./container/App', () => {
-    render(
-      <AppContainer>
-        <Provider store={store}>
-          <App />
-        </Provider>
-      </AppContainer>,
-      document.getElementById('app'),
-    );
+renderApp(App);
+
+if (import.meta.hot) {
+  import.meta.hot.accept('./container/PopUpApp', module => {
+    if (module && module.default) {
+      renderApp(module.default);
+    }
   });
 }

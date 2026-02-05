@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import cn from './ComicImage.css';
+import cn from './ComicImage.module.css';
 import { updateImgType } from '../../reducers/comics';
 
 type Props = {

@@ -1,5 +1,5 @@
 import React, { PureComponent } from 'react';
-import cn from './RippleCircle.css';
+import cn from './RippleCircle.module.css';
 
 type Props = {
   removeRippleHandler: Function,

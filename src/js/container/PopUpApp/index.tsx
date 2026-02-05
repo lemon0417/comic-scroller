@@ -5,7 +5,7 @@ import MoreIcon from 'imgs/more_vert.svg';
 import ComicCard from 'cmp/ComicCard';
 import ripple from 'cmp/Ripple';
 import { updatePopupData, shiftCards } from './reducers/popup';
-import cn from './PopUpApp.css';
+import cn from './PopUpApp.module.css';
 import initObject from '../../util/initObject';
 import filter from 'lodash/filter';
 import { storageGet, storageSet, storageClear } from '../../services/storage';

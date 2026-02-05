@@ -10,7 +10,7 @@ import {
   removeCard,
   shiftCards,
 } from '../../container/PopUpApp/reducers/popup';
-import cn from './ComicCard.css';
+import cn from './ComicCard.module.css';
 
 declare var chrome: any;
 

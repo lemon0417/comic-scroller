@@ -7,7 +7,7 @@ import NextIcon from '@imgs/circle-right.svg';
 import PrevIcon from '@imgs/circle-left.svg';
 import TagIcon from '@imgs/tag.svg';
 import IconButton from '../../component/IconButton';
-import cn from './App.css';
+import cn from './App.module.css';
 import ImgContainer from '../ImgContainer';
 import ChapterList from '../ChapterList';
 import {
@@ -227,8 +227,4 @@ const connectedApp = connect(mapStateToProps, {
   fetchImgList,
 })(App);
 
-const hotExport = module.hot
-  ? require('react-hot-loader').hot // eslint-disable-line global-require
-  : (Component: any) => Component;
-
-export default hotExport(module)(connectedApp as any);
+export default connectedApp as any;

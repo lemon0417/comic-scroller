@@ -6,7 +6,7 @@ import reduce from 'lodash/reduce';
 import filter from 'lodash/filter';
 import Loading from 'cmp/Loading';
 import ConnectedComicImage from 'cmp/ComicImage';
-import cn from './ImgContainer.css';
+import cn from './ImgContainer.module.css';
 
 class ImgContainer extends Component<any, any> {
 
