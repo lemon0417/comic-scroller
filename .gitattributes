@@ -1,0 +1,82 @@
+# Line ending normalization
+# Set default behavior for all files
+* text=auto
+
+# Source code files - force LF line endings
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.less text eol=lf
+*.html text eol=lf
+*.xml text eol=lf
+*.svg text eol=lf
+
+# Configuration files
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.config text eol=lf
+*.eslintrc* text eol=lf
+*.prettierrc* text eol=lf
+
+# Build and dependency files
+*.lock text eol=lf
+package-lock.json text eol=lf
+yarn.lock text eol=lf
+
+# Test files
+*.test.js text eol=lf
+*.test.jsx text eol=lf
+*.test.ts text eol=lf
+*.test.tsx text eol=lf
+*.spec.js text eol=lf
+*.spec.jsx text eol=lf
+*.spec.ts text eol=lf
+*.spec.tsx text eol=lf
+
+# Binary files - treat as binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+
+# Generated files - often binary or have specific line endings
+*.zip binary
+*.tar.gz binary
+*.rar binary
+
+# Chrome extension specific files
+manifest.json text eol=lf
+rules.json text eol=lf
+
+# Node modules and build output (should be in .gitignore but just in case)
+node_modules/ text eol=lf
+dist/ text eol=lf
+build/ text eol=lf
+ComicsScroller/ text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+
+# Git files
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# Editor files
+*.vscode/ text eol=lf
+*.idea/ text eol=lf
+
+# Documentation
+*.txt text eol=lf
+*.rst text eol=lf
