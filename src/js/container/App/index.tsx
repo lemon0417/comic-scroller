@@ -143,7 +143,7 @@ class App extends Component<any, any> {
               <MenuIcon className={cn.icon} />
             </IconButton>
             <span>Comics Scroller</span>
-            <a target="_blank" href={this.props.url}>{`${
+            <a target="_blank" rel="noreferrer" href={this.props.url}>{`${
               this.props.title
             }`}</a>
             <span>&gt;</span>

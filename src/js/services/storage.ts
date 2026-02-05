@@ -1,9 +1,9 @@
 
 declare var chrome: any;
 
-type StorageCallback<T> = (items: T) => void;
+type StorageCallback<T> = (_items: T) => void;
 
-type ErrorCallback = (err?: any) => void;
+type ErrorCallback = (_err?: any) => void;
 
 export function storageGet<T = any>(keys?: any, cb?: StorageCallback<T>) {
   return chrome.storage.local.get(keys, cb);
