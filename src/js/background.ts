@@ -1,8 +1,8 @@
 import forEach from 'lodash/forEach';
 import initObject from './util/initObject';
-import * as dm5 from './epics/sites/dm5';
-import * as sf from './epics/sites/sf';
-import * as comicbus from './epics/sites/comicbus';
+import * as dm5 from './background/sites/dm5';
+import * as sf from './background/sites/sf';
+import * as comicbus from './background/sites/comicbus';
 import { storageGet, storageSet, storageClear } from './services/storage';
 
 const dm5Regex = /https\:\/\/(tel||www)\.dm5\.com\/(m\d+)\//;
@@ -28,7 +28,7 @@ chrome.notifications.onClicked.addListener((id: any) => {
 });
 
 function comicsQuery() {
-storageGet((item: any) => {
+  storageGet((item: any) => {
     if (typeof item !== 'undefined' && typeof item.subscribe !== 'undefined') {
       chrome.action.setBadgeText({
         text: `${item.update.length > 0 ? item.update.length : ''}`,
@@ -40,7 +40,11 @@ storageGet((item: any) => {
           return;
         }
         const fetchChapterPage = (fetchChapterPage$ as any)[site];
-        fetchChapterPage(url).subscribe(
+        const result$ =
+          site === 'comicbus'
+            ? fetchChapterPage(url, comicsID)
+            : fetchChapterPage(url);
+        result$.subscribe(
           ({ title, chapterList, cover, chapters }: any) => {
             const comic = item[site][comicsID];
             forEach(chapterList, chapterID => {
@@ -92,7 +96,7 @@ storageGet((item: any) => {
 
 chrome.runtime.onInstalled.addListener((details: any) => {
   if (details.reason === 'update') {
-  storageGet((item: any) => {
+    storageGet((item: any) => {
       const { version } = chrome.runtime.getManifest();
       delete item.udpate;
       if (!item.version) {
@@ -103,7 +107,7 @@ chrome.runtime.onInstalled.addListener((details: any) => {
       }
       chrome.notifications.create('Comics Scroller Update', {
         type: 'basic',
-        iconUrl: './imgs/comics-128.png',
+        iconUrl: chrome.runtime.getURL('imgs/comics-128.png'),
         title: 'Comics Scroller Update',
         message: `Comics Scroller 版本 ${version} 更新`,
       });

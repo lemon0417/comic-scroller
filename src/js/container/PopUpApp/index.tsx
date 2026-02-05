@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import map from 'lodash/map';
-import MoreIcon from 'imgs/more_vert.svg';
+import MoreIcon from 'imgs/more_vert.svg?react';
 import ComicCard from 'cmp/ComicCard';
 import ripple from 'cmp/Ripple';
 import { updatePopupData, shiftCards } from './reducers/popup';

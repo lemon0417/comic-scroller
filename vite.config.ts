@@ -66,7 +66,7 @@ export default defineConfig(({ mode }) => ({
       scopeBehaviour: 'local',
       globalModulePaths: [/node_modules/, /src\/css\//],
       generateScopedName: '[name]__[local]__[hash:base64:5]',
-      localsConvention: 'asIs',
+      localsConvention: name => name,
     },
   },
   define: {

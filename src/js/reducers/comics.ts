@@ -34,7 +34,7 @@ type Action = {
 };
 
 const initialState: State = {
-  innerHeight: window.innerHeight,
+  innerHeight: typeof window === 'undefined' ? 0 : window.innerHeight,
   site: '',
   comicsID: '',
   title: '',

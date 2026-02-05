@@ -34,6 +34,7 @@
       "^undici$": "<rootDir>/node_modules/empty/index.js",
       "^parse5-parser-stream$": "<rootDir>/node_modules/empty/index.js",
       "^node:(.*)$": "$1",
+      "\\.svg\\?react$": "<rootDir>/src/js/__mocks__/svgMock.tsx",
       "\\.(svg)$": "<rootDir>/src/js/__mocks__/svgMock.tsx",
       "\\.(css)$": "identity-obj-proxy",
       "^css/(.*)$": "<rootDir>/src/css/$1",

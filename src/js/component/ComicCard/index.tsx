@@ -2,8 +2,8 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import filter from 'lodash/filter';
 import pickBy from 'lodash/pickBy';
-import TrashTopIcon from 'imgs/bin_top.svg';
-import TrashBodyIcon from 'imgs/bin_body.svg';
+import TrashTopIcon from 'imgs/bin_top.svg?react';
+import TrashBodyIcon from 'imgs/bin_body.svg?react';
 import { storageGet, storageSet } from '../../services/storage';
 import {
   moveCard,
