@@ -7,14 +7,11 @@ import importPlugin from 'eslint-plugin-import';
 import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import prettier from 'eslint-config-prettier';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 const reactRecommended = react.configs.flat.recommended || {};
 const reactJsxRuntime = react.configs.flat['jsx-runtime'] || {};
 const importRecommended = importPlugin.configs?.recommended || {};
 const jsxA11yRecommended = jsxA11y.configs?.recommended || {};
-const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default [
   {
@@ -61,7 +58,16 @@ export default [
     settings: {
       react: { version: 'detect' },
       'import/resolver': {
-        webpack: { config: path.join(rootDir, 'webpack.config.dev.js') },
+        alias: {
+          map: [
+            ['css', './src/css'],
+            ['@css', './src/css'],
+            ['imgs', './src/imgs'],
+            ['@imgs', './src/imgs'],
+            ['cmp', './src/js/component'],
+          ],
+          extensions: ['.js', '.jsx', '.ts', '.tsx', '.json', '.css'],
+        },
       },
     },
     rules: {
