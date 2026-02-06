@@ -1,3 +1,4 @@
+import { EMPTY } from 'rxjs';
 import { dm5, sf, comicbus } from './sites';
 
 function getInfor(site: string) {
@@ -86,6 +87,8 @@ const inferSite = (siteParam: string, chapterParam: string) => {
   return '';
 };
 
+const noopEpic = () => EMPTY;
+
 const searchParams = new URLSearchParams(window.location.search);
 const siteParam = searchParams.get('site') || '';
 const chapterParam = searchParams.get('chapter') || '';
@@ -101,8 +104,8 @@ export const {
 } = getAction(_site);
 
 export const {
-  fetchChapterEpic,
-  fetchImgSrcEpic,
-  fetchImgListEpic,
-  updateReadEpic,
-} = getEpic(_site);
+  fetchChapterEpic = noopEpic,
+  fetchImgSrcEpic = noopEpic,
+  fetchImgListEpic = noopEpic,
+  updateReadEpic = noopEpic,
+} = getEpic(_site) as any;

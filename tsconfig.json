@@ -20,6 +20,7 @@
     "jsx": "react-jsx",
     "baseUrl": "src",
     "types": ["jest", "node", "vite/client"],
+    "typeRoots": ["./node_modules/@types"],
     "paths": {
       "@imgs": ["imgs"],
       "@imgs/*": ["imgs/*"],

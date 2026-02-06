@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 import some from 'lodash/some';
 import filter from 'lodash/filter';

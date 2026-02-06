@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { Component } from 'react';
 import { connect } from 'react-redux';
 import cn from './ComicImage.module.css';
 import { updateImgType } from '../../reducers/comics';
@@ -33,8 +33,8 @@ function getImgClass(type: string) {
 }
 
 export class ComicImage extends Component<Props, State> {
-  w: number;
-  h: number;
+  w = 0;
+  h = 0;
 
   state = {
     showImage: false,
@@ -92,9 +92,9 @@ export class ComicImage extends Component<Props, State> {
   }
 }
 
-function makeMapStateToProps(state, props) {
+function makeMapStateToProps(_state: any, props: any) {
   const { index } = props;
-  return function mapStateToProps({ comics }) {
+  return function mapStateToProps({ comics }: any) {
     const { src, loading, type, height } = comics.imageList.entity[index];
     return { src, loading, type, height, innerHeight: comics.innerHeight };
   };

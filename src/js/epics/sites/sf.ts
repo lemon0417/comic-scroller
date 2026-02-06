@@ -128,18 +128,23 @@ export function fetchChapterPage$(url: string) {
     const cover =
       (doc.querySelector('.comic_cover > img') as HTMLImageElement | null)
         ?.src || '';
-    const chapterList = map(chapterNode, n =>
-      n.getAttribute('href').replace(/^(\/)/g, ''),
-    );
+    const chapterList = map(chapterNode, n => {
+      const href = n.getAttribute('href') || '';
+      return href ? href.replace(/^(\/)/g, '') : null;
+    }).filter(Boolean);
     const chapters = reduce(
       chapterNode,
-      (acc, n) => ({
-        ...acc,
-        [n.getAttribute('href').replace(/^(\/)/g, '')]: {
-          title: n.textContent,
-          href: n.href,
-        },
-      }),
+      (acc, n) => {
+        const href = n.getAttribute('href') || '';
+        if (!href) return acc;
+        return {
+          ...acc,
+          [href.replace(/^(\/)/g, '')]: {
+            title: n.textContent,
+            href: n.href,
+          },
+        };
+      },
       {},
     );
     return of({ title, cover, chapterList, chapters });
@@ -254,7 +259,7 @@ export function fetchChapterEpic(action$: any) {
                         }`,
                       });
                       const result$: any[] = [
-                        updateTitle(title),
+                        updateTitle(title || ''),
                         updateReadChapters(newItem.sf[comicsID].read),
                         updateChapters(chapters),
                         updateChapterList(chapterList),

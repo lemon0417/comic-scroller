@@ -3,6 +3,8 @@ import filter from 'lodash/filter';
 import findIndex from 'lodash/findIndex';
 import pickBy from 'lodash/pickBy';
 
+type ListCategory = 'update' | 'subscribe' | 'history';
+
 type Action = {
   type: string,
   data?: {
@@ -13,7 +15,7 @@ type Action = {
     sf: any,
     comicbus: any,
   },
-  category?: string,
+  category?: ListCategory,
   index?: number,
 };
 
@@ -30,6 +32,7 @@ type State = {
   comicbus: {
     baseURL: string,
   },
+  [key: string]: any,
 };
 
 const initialState = {
@@ -54,40 +57,52 @@ const MOVE_CARD = 'MOVE_CARD';
 
 export default function popup(state: State = initialState, action: Action) {
   switch (action.type) {
-    case UPDATE_POPUP_DATA:
+    case UPDATE_POPUP_DATA: {
+      const data = action.data || {
+        update: [],
+        subscribe: [],
+        history: [],
+        dm5: {},
+        sf: {},
+        comicbus: {},
+      };
       return {
-        update: map(action.data.update, item => ({
+        update: map(data.update || [], item => ({
           ...item,
           shift: false,
           move: false,
         })),
-        subscribe: map(action.data.subscribe, item => ({
+        subscribe: map(data.subscribe || [], item => ({
           ...item,
           shift: false,
           move: false,
         })),
-        history: map(action.data.history, item => ({
+        history: map(data.history || [], item => ({
           ...item,
           shift: false,
           move: false,
         })),
         dm5: {
           ...state.dm5,
-          ...action.data.dm5,
+          ...data.dm5,
         },
         sf: {
           ...state.sf,
-          ...action.data.sf,
+          ...data.sf,
         },
         comicbus: {
           ...state.comicbus,
-          ...action.data.comicbus,
+          ...data.comicbus,
         },
       };
-    case REMOVE_CARD:
-      if (action.category === 'history') {
+    }
+    case REMOVE_CARD: {
+      const category = action.category;
+      if (!category) return state;
+      if (category === 'history') {
         const index = findIndex(state.history, item => item.move);
-        const { site, comicsID } = state.history[index];
+        if (index < 0) return state;
+        const { site, comicsID } = state.history[index] || {};
         return {
           ...state,
           history: filter(state.history, item => !item.move).map(item => ({
@@ -95,32 +110,43 @@ export default function popup(state: State = initialState, action: Action) {
             move: false,
             shift: false,
           })),
-          [site]: pickBy(state[site], item => item.comicsID !== comicsID),
+          ...(site
+            ? { [site]: pickBy(state[site], item => item.comicsID !== comicsID) }
+            : {}),
         };
       }
       return {
         ...state,
-        [action.category]: filter(
-          state[action.category],
+        [category]: filter(
+          state[category],
           item => !item.move,
         ).map(item => ({ ...item, move: false, shift: false })),
       };
-    case SHIFT_CARDS:
+    }
+    case SHIFT_CARDS: {
+      const category = action.category;
+      const index = typeof action.index === 'number' ? action.index : -1;
+      if (!category) return state;
       return {
         ...state,
-        [action.category]: map(state[action.category], (item, i) => {
-          if (i > action.index) return { ...item, shift: true };
+        [category]: map(state[category], (item, i) => {
+          if (i > index) return { ...item, shift: true };
           return item;
         }),
       };
-    case MOVE_CARD:
+    }
+    case MOVE_CARD: {
+      const category = action.category;
+      const index = typeof action.index === 'number' ? action.index : -1;
+      if (!category) return state;
       return {
         ...state,
-        [action.category]: map(state[action.category], (item, i) => {
-          if (i === action.index) return { ...item, move: true };
+        [category]: map(state[category], (item, i) => {
+          if (i === index) return { ...item, move: true };
           return item;
         }),
       };
+    }
     default:
       return state;
   }

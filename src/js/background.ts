@@ -20,7 +20,7 @@ const fetchChapterPage$ = {
 };
 
 async function storageGetAsync() {
-  return new Promise<any>(resolve => storageGet(item => resolve(item)));
+  return new Promise<any>(resolve => storageGet((item: any) => resolve(item)));
 }
 
 async function storageSetAsync(data: any) {

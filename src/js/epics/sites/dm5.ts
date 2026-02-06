@@ -316,18 +316,23 @@ export function fetchChapterPage$(url: string) {
     const cover =
       (doc.querySelector('.banner_detail .cover > img') as HTMLImageElement | null)
         ?.src || '';
-    const chapterList = map(chapterNodes, n =>
-      n.getAttribute('href').replace(/\//g, ''),
-    );
+    const chapterList = map(chapterNodes, n => {
+      const href = n.getAttribute('href') || '';
+      return href ? href.replace(/\//g, '') : null;
+    }).filter(Boolean);
     const chapters = reduce(
       chapterNodes,
-      (acc, n) => ({
-        ...acc,
-        [n.getAttribute('href').replace(/\//g, '')]: {
-          title: n.textContent.trim().replaceAll(/\s+/g, ' '),
-          href: n.href,
-        },
-      }),
+      (acc, n) => {
+        const href = n.getAttribute('href') || '';
+        if (!href) return acc;
+        return {
+          ...acc,
+          [href.replace(/\//g, '')]: {
+            title: n.textContent.trim().replaceAll(/\s+/g, ' '),
+            href: n.href,
+          },
+        };
+      },
       {},
     );
     return of({ title, cover, chapterList, chapters });

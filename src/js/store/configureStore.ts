@@ -4,7 +4,7 @@ import { createLogger } from 'redux-logger';
 import rootReducer from '../reducers';
 import rootEpic from '../epics';
 
-const epicDependencies: { store?: any } = {};
+const epicDependencies: { store: any } = { store: null };
 const epicMiddleware = createEpicMiddleware({ dependencies: epicDependencies });
 
 const buildMiddleware = () =>
