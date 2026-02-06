@@ -8,6 +8,7 @@ import { storageGet, storageSet, storageClear } from './services/storage';
 const dm5Regex = /https\:\/\/(tel||www)\.dm5\.com\/(m\d+)\//;
 const sfRegex = /http\:\/\/comic\.sfacg\.com\/(HTML\/[^\/]+\/.+)$/;
 const comicbusRegex = /http\:\/\/(www|v)\.comicbus.com\/online\/(comic-\d+\.html\?ch=.*$)/;
+const isDev = import.meta.env.DEV;
 
 declare var chrome: any;
 // declare var ga: any;
@@ -70,7 +71,7 @@ async function comicsQuerySummary() {
           site === 'comicbus'
             ? fetchChapterPage(url, comicsID)
             : fetchChapterPage(url);
-        await new Promise<void>((resolve, reject) => {
+        await new Promise<void>((resolve, _reject) => {
           result$.subscribe(
             ({ title, chapterList, cover, chapters }: any) => {
               const comic = before[site][comicsID];
@@ -227,6 +228,10 @@ chrome.runtime.onInstalled.addListener((details: any) => {
 
 chrome.runtime.onMessage.addListener((message: any, _sender: any, sendResponse: any) => {
   if (message && message.msg === 'PING_BACKGROUND') {
+    if (!isDev) {
+      sendResponse({ ok: false, reason: 'disabled' });
+      return false;
+    }
     comicsQuerySummary().then(summary => {
       sendResponse({ ok: true, at: Date.now(), summary });
     });

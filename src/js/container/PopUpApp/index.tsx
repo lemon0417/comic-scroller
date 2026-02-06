@@ -11,6 +11,7 @@ import filter from 'lodash/filter';
 import { storageGet, storageSet, storageClear } from '../../services/storage';
 
 declare var chrome: any;
+const isDev = import.meta.env.DEV;
 
 function stopImmediatePropagation(e: any) {
   e.stopPropagation();
@@ -79,6 +80,7 @@ const MenuButton = ({
   uploadHandler,
   resetHandler,
   backgroundCheckHandler,
+  showBackgroundCheck,
   aRefHandler,
   inputRefHandler,
   fileOnChangeHandler,
@@ -91,6 +93,7 @@ const MenuButton = ({
   uploadHandler: React.MouseEventHandler<HTMLDivElement>,
   resetHandler: React.MouseEventHandler<HTMLDivElement>,
   backgroundCheckHandler: React.MouseEventHandler<HTMLDivElement>,
+  showBackgroundCheck?: boolean,
   aRefHandler: React.Ref<HTMLAnchorElement>,
   inputRefHandler: React.Ref<HTMLInputElement>,
   fileOnChangeHandler: React.ChangeEventHandler<HTMLInputElement>,
@@ -112,9 +115,11 @@ const MenuButton = ({
       <div className={cn.menuItem} onMouseDown={preventDefault} onClick={resetHandler}>
         Reset Config
       </div>
-      <div className={cn.menuItem} onMouseDown={preventDefault} onClick={backgroundCheckHandler}>
-        Background Check
-      </div>
+      {showBackgroundCheck ? (
+        <div className={cn.menuItem} onMouseDown={preventDefault} onClick={backgroundCheckHandler}>
+          Background Check
+        </div>
+      ) : null}
       <a
         style={{ display: 'none' }}
         ref={aRefHandler}
@@ -256,6 +261,7 @@ class PopUpApp extends Component<any, PopUpState> {
   };
 
   backgroundCheckHandler = () => {
+    if (!isDev) return;
     chrome.runtime.sendMessage({ msg: 'PING_BACKGROUND' }, (response: any) => {
       if (response && response.ok) {
         const time = new Date(response.at).toLocaleTimeString();
@@ -324,6 +330,7 @@ class PopUpApp extends Component<any, PopUpState> {
             uploadHandler={this.uploadHandler}
             resetHandler={this.resetHandler}
             backgroundCheckHandler={this.backgroundCheckHandler}
+            showBackgroundCheck={isDev}
             aRefHandler={this.aRefHandler}
             inputRefHandler={this.inputRefHandler}
             fileOnChangeHandler={this.fileOnChangeHandler}

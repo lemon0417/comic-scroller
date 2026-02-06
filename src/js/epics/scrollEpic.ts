@@ -65,14 +65,16 @@ function fromScrollEvent(state$: { value: any }, cancel$: any) {
         }
       }
       const result$ = [];
-      const fetchImgSrcSafe = fetchImgSrc as any;
-      const fetchImgListSafe = fetchImgList as any;
-      const updateReadSafe = updateRead as any;
+      const pushIfFn = (fn: any, ...args: any[]) => {
+        if (typeof fn === 'function') {
+          result$.push(fn(...args));
+        }
+      };
       if ((renderBeginIndex + renderEndIndex) / 2 !== viewIndex) {
         result$.push(
           updateRenderIndex(viewIndex - 6, viewIndex + 6),
-          fetchImgSrcSafe(viewIndex - 6, viewIndex + 6),
         );
+        pushIfFn(fetchImgSrc, viewIndex - 6, viewIndex + 6);
       }
       if (chapterList.length > 0) {
         const imgChapter = entity[viewIndex].chapter;
@@ -81,13 +83,11 @@ function fromScrollEvent(state$: { value: any }, cancel$: any) {
           item => item === imgChapter,
         );
         if (chapterLatestIndex === imgChapterIndex && chapterLatestIndex > 0) {
-          result$.push(
-            fetchImgListSafe(chapterLatestIndex - 1),
-            updateChapterLatestIndex(chapterLatestIndex - 1),
-          );
+          pushIfFn(fetchImgList, chapterLatestIndex - 1);
+          result$.push(updateChapterLatestIndex(chapterLatestIndex - 1));
         }
         if (chapterNowIndex !== imgChapterIndex) {
-          result$.push(updateReadSafe(imgChapterIndex));
+          pushIfFn(updateRead, imgChapterIndex);
         }
       }
       return result$;

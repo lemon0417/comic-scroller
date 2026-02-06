@@ -105,7 +105,7 @@ const extractDictSource = (arg: string) => {
   return match ? match[2] : null;
 };
 
-const unpackPacker = (source: string) => {
+export const unpackPacker = (source: string) => {
   const match = PACKER_REGEX.exec(source);
   if (!match) return source;
   const args = splitArgs(match[1]);
@@ -128,6 +128,80 @@ const unpackPacker = (source: string) => {
   }
   return unpacked;
 };
+
+export function resolveDm5ImageUrl(
+  responseText: string,
+  entityItem?: { cid?: string; key?: string },
+) {
+  const unpacked = unpackPacker(responseText);
+  const scriptText = unpacked || responseText;
+  const parseArrayLiteral = (raw: string) => {
+    try {
+      return JSON.parse(raw.replace(/'/g, '"'));
+    } catch {
+      return null;
+    }
+  };
+
+  const extractArrayVar = (script: string, name: string) => {
+    const match = new RegExp(`${name}\\s*=\\s*(\\[[\\s\\S]*?\\])`).exec(script);
+    return match ? parseArrayLiteral(match[1]) : null;
+  };
+
+  const extractAnyArray = (script: string) => {
+    const match = /(\[[\s\S]*?\])/.exec(script);
+    return match ? parseArrayLiteral(match[1]) : null;
+  };
+
+  const extractFirstUrl = (script: string) => {
+    const match =
+      /https?:\\\/\\\/[^"'\\s]+/.exec(script) ||
+      /https?:\/\/[^"'\s]+/.exec(script);
+    return match ? match[0].replace(/\\\//g, '/') : null;
+  };
+
+  const hd = extractArrayVar(scriptText, 'hd_c');
+  const dArr = extractArrayVar(scriptText, 'd');
+  const pvalue = extractArrayVar(scriptText, 'pvalue');
+  const arr = extractAnyArray(scriptText);
+  const candidate =
+    (hd && hd[0]) ||
+    (dArr && dArr[0]) ||
+    (pvalue && pvalue[0]) ||
+    (arr && arr[0]) ||
+    extractFirstUrl(scriptText) ||
+    '';
+  const baseUrl = extractFirstUrl(scriptText);
+  const queryMatch = /\\?cid=\\d+&key=[0-9a-z]+/i.exec(scriptText);
+  const cidMatch = /cid\\s*=\\s*(\\d+)/.exec(scriptText);
+  const keyMatch = /key\\s*=\\s*['"]?([^'"]+)['"]?/i.exec(scriptText);
+  const cidFromQuery = /cid=(\\d+)/i.exec(scriptText);
+  const keyFromQuery = /key=([0-9a-zA-Z]+)/i.exec(scriptText);
+  const keyFromHex = /[0-9a-f]{32}/i.exec(scriptText);
+  const derivedQuery =
+    (cidMatch && keyMatch && keyMatch[1])
+      ? `cid=${cidMatch[1]}&key=${keyMatch[1]}`
+      : (cidFromQuery && keyFromQuery
+          ? `cid=${cidFromQuery[1]}&key=${keyFromQuery[1]}`
+          : '');
+  const entityKey = entityItem && (entityItem.key || (keyFromHex && keyFromHex[0]));
+  const entityFallback =
+    !derivedQuery && entityItem && entityItem.cid && entityKey
+      ? `cid=${entityItem.cid}&key=${entityKey}`
+      : '';
+  let resolved = String(candidate || '');
+  if (resolved && !resolved.startsWith('http') && baseUrl) {
+    resolved = resolved.startsWith('/')
+      ? `${baseUrl}${resolved}`
+      : `${baseUrl}/${resolved}`;
+  }
+  if (resolved && !resolved.includes('?') && (queryMatch || derivedQuery || entityFallback)) {
+    const rawQuery = queryMatch ? queryMatch[0] : derivedQuery || entityFallback;
+    const query = rawQuery.startsWith('?') ? rawQuery : `?${rawQuery}`;
+    resolved += query;
+  }
+  return resolved;
+}
 const FETCH_CHAPTER = 'FETCH_CHAPTER';
 const FETCH_IMAGE_SRC = 'FETCH_IMAGE_SRC';
 const FETCH_IMG_LIST = 'FETCH_IMG_LIST';
@@ -212,85 +286,7 @@ export function fetchImgSrcEpic(action$: any, state$: { value: any }) {
           }).pipe(rxMap(function fetchImgSrcHandler({ response }) {
             const responseText =
               typeof response === 'string' ? response : String(response ?? '');
-            const unpacked = unpackPacker(responseText);
-            const scriptText = unpacked || responseText;
-            const parseArrayLiteral = (raw: string) => {
-              try {
-                return JSON.parse(raw.replace(/'/g, '"'));
-              } catch {
-                return null;
-              }
-            };
-
-            const extractArrayVar = (script: string, name: string) => {
-              const match = new RegExp(
-                `${name}\\s*=\\s*(\\[[\\s\\S]*?\\])`,
-              ).exec(script);
-              return match ? parseArrayLiteral(match[1]) : null;
-            };
-
-            const extractAnyArray = (script: string) => {
-              const match = /(\[[\s\S]*?\])/.exec(script);
-              return match ? parseArrayLiteral(match[1]) : null;
-            };
-
-            const extractFirstUrl = (script: string) => {
-              const match =
-                /https?:\\\/\\\/[^"'\\s]+/.exec(script) ||
-                /https?:\/\/[^"'\s]+/.exec(script);
-              return match ? match[0].replace(/\\\//g, '/') : null;
-            };
-
-            const hd = extractArrayVar(scriptText, 'hd_c');
-            const dArr = extractArrayVar(scriptText, 'd');
-            const pvalue = extractArrayVar(scriptText, 'pvalue');
-            const arr = extractAnyArray(scriptText);
-            const candidate =
-              (hd && hd[0]) ||
-              (dArr && dArr[0]) ||
-              (pvalue && pvalue[0]) ||
-              (arr && arr[0]) ||
-              extractFirstUrl(scriptText) ||
-              '';
-            const baseUrl = extractFirstUrl(scriptText);
-            const queryMatch =
-              /\\?cid=\\d+&key=[0-9a-z]+/i.exec(scriptText);
-            const cidMatch = /cid\\s*=\\s*(\\d+)/.exec(scriptText);
-            const keyMatch = /key\\s*=\\s*['"]?([^'"]+)['"]?/i.exec(
-              scriptText,
-            );
-            const cidFromQuery = /cid=(\\d+)/i.exec(scriptText);
-            const keyFromQuery = /key=([0-9a-zA-Z]+)/i.exec(scriptText);
-            const keyFromHex = /[0-9a-f]{32}/i.exec(scriptText);
-            const derivedQuery =
-              (cidMatch && keyMatch && keyMatch[1])
-                ? `cid=${cidMatch[1]}&key=${keyMatch[1]}`
-                : (cidFromQuery && keyFromQuery
-                    ? `cid=${cidFromQuery[1]}&key=${keyFromQuery[1]}`
-                    : '');
-            const entityKey =
-              entity[id] && (entity[id].key || (keyFromHex && keyFromHex[0]));
-            const entityFallback =
-              !derivedQuery && entity[id] && entity[id].cid && entityKey
-                ? `cid=${entity[id].cid}&key=${entityKey}`
-                : '';
-            let resolved = String(candidate || '');
-            if (resolved && !resolved.startsWith('http') && baseUrl) {
-              resolved = resolved.startsWith('/')
-                ? `${baseUrl}${resolved}`
-                : `${baseUrl}/${resolved}`;
-            }
-            if (
-              resolved &&
-              !resolved.includes('?') &&
-              (queryMatch || derivedQuery || entityFallback)
-            ) {
-              const rawQuery = queryMatch
-                ? queryMatch[0]
-                : derivedQuery || entityFallback;
-              const query = rawQuery.startsWith('?') ? rawQuery : `?${rawQuery}`;
-              resolved += query;
-            }
+            const resolved = resolveDm5ImageUrl(responseText, entity[id]);
             return loadImgSrc(resolved, id);
           }));
         }),

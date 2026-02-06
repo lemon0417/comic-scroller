@@ -6,6 +6,10 @@ function setup() {
     value: 'http://example.com/?site=dm5&chapter=1',
     configurable: true,
   });
+  Object.defineProperty(window, 'location', {
+    value: { search: '?site=dm5&chapter=1' },
+    writable: true,
+  });
 
   const { default: scrollEpic, startScroll } = require('./scrollEpic');
   const { updateRenderIndex } = require('../reducers/comics');
