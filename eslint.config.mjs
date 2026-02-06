@@ -23,7 +23,6 @@ export default [
       'dist/**',
       'scripts/**',
       'server.js',
-      'webpack.*.js',
       '**/*.test.*',
       '**/__mocks__/**',
     ],

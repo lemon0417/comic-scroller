@@ -27,29 +27,28 @@ https://chrome.google.com/webstore/detail/comics-scroller/mccpalfmlnjadfnojmphff
 http://zeroshine.github.io/ComicsScroller/
 
 # Developing ComicsScroller
-use webpack and flowtype and react to build  
+Use Vite + React + Redux-Observable. This repo is Yarn-first.  
 ## Install modules  
 ```
-npm install
+yarn install
 ```
 
 ## Run dev server
 ```
-npm start
+yarn start
 ```
 And then you can go to chrome://extensions add your-project-path/ComicsScroller to your chrome for developing with hot-reload  
 
 ## Build extension  
 ```
-npm run build
+yarn build
 ```
 
 ## Test
-Use jest to test.  
-But I am too busy to write enough test and will add more tests in the future.
+Use Jest to test.
 
 ```
-npm test
+yarn test
 ```
 
 # LICENSE
