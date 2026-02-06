@@ -37,7 +37,7 @@ yarn install
 ```
 yarn start
 ```
-And then you can go to chrome://extensions add your-project-path/ComicsScroller to your chrome for developing with hot-reload  
+Then load `dist/` in `chrome://extensions` for development (watch build outputs there).  
 
 ## Build extension  
 ```

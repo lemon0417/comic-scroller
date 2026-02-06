@@ -6,39 +6,22 @@ import fs from 'fs';
 
 const rootDir = process.cwd();
 const srcDir = path.join(rootDir, 'src');
-const outDir = path.join(rootDir, 'ComicsScroller');
+const outDir = path.join(rootDir, 'dist');
+const manifestDir = path.join(srcDir, 'manifest');
 
-const htmlOutputFiles = ['app.html', 'popup.html'];
-
-function relocateHtmlOutputs() {
+function copyManifest(mode: string) {
   return {
-    name: 'relocate-extension-html',
+    name: 'copy-extension-manifest',
     apply: 'build',
     writeBundle() {
-      const nestedDir = path.join(outDir, 'src', 'extensions');
-      if (!fs.existsSync(nestedDir)) return;
-
-      for (const file of htmlOutputFiles) {
-        const srcPath = path.join(nestedDir, file);
-        const destPath = path.join(outDir, file);
-        if (fs.existsSync(srcPath)) {
-          fs.copyFileSync(srcPath, destPath);
-          fs.unlinkSync(srcPath);
-        }
+      const manifestName =
+        mode === 'development' ? 'manifest.dev.json' : 'manifest.json';
+      const srcPath = path.join(manifestDir, manifestName);
+      const destPath = path.join(outDir, 'manifest.json');
+      if (!fs.existsSync(srcPath)) {
+        throw new Error(`Missing manifest file: ${srcPath}`);
       }
-
-      try {
-        const remaining = fs.readdirSync(nestedDir);
-        if (remaining.length === 0) {
-          fs.rmdirSync(nestedDir);
-        }
-        const srcRoot = path.join(outDir, 'src');
-        if (fs.existsSync(srcRoot) && fs.readdirSync(srcRoot).length === 0) {
-          fs.rmdirSync(srcRoot);
-        }
-      } catch {
-        // Ignore cleanup failures in watch mode.
-      }
+      fs.copyFileSync(srcPath, destPath);
     },
   };
 }
@@ -46,12 +29,8 @@ function relocateHtmlOutputs() {
 export default defineConfig(({ mode }) => ({
   base: './',
   root: rootDir,
-  publicDir: false,
-  plugins: [
-    react(),
-    svgr({ exportAsDefault: true }),
-    relocateHtmlOutputs(),
-  ],
+  publicDir: 'public',
+  plugins: [react(), svgr({ exportAsDefault: true }), copyManifest(mode)],
   resolve: {
     alias: {
       css: path.join(srcDir, 'css'),
@@ -74,11 +53,11 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     outDir,
-    emptyOutDir: false,
+    emptyOutDir: true,
     rollupOptions: {
       input: {
-        app: path.join(rootDir, 'src', 'extensions', 'app.html'),
-        popup: path.join(rootDir, 'src', 'extensions', 'popup.html'),
+        app: path.join(rootDir, 'app.html'),
+        popup: path.join(rootDir, 'popup.html'),
         background: path.join(rootDir, 'src', 'js', 'background.ts'),
       },
       output: {

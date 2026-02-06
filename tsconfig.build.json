@@ -12,7 +12,6 @@
   },
   "include": ["src/**/*"],
   "exclude": [
-    "src/extensions/**",
     "src/js/**/*.test.ts",
     "src/js/**/*.test.tsx",
     "src/js/__mocks__/**",

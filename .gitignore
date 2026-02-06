@@ -195,11 +195,11 @@ sketch
 # End of https://www.toptal.com/developers/gitignore/api/yarn,node,visualstudiocode,react
 
 # Chrome Extension Specific
-# Build output directory (from package.json scripts)
-ComicsScroller/
+# Build output directory (Vite)
+dist/
 # Extension zip file (from package.json zip script)
 *.zip
-# Legacy build directory (if exists)
+# TypeScript build output (if used)
 build/
 # macOS system files
 .DS_Store

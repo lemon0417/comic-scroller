@@ -17,7 +17,7 @@ export default [
   {
     ignores: [
       '**/node_modules/**',
-      'ComicsScroller/**',
+      'dist/**',
       'build/**',
       'coverage/**',
       'dist/**',
