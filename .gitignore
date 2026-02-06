@@ -185,12 +185,8 @@ sketch
 !.yarn/sdks
 !.yarn/versions
 
-# if you are NOT using Zero-installs, then:
-# comment the following lines
-!.yarn/cache
-
-# and uncomment the following lines
-# .pnp.*
+# If you are NOT using Zero-installs, keep Yarn cache ignored.
+# If you enable Zero-installs later, unignore .yarn/cache.
 
 # End of https://www.toptal.com/developers/gitignore/api/yarn,node,visualstudiocode,react
 

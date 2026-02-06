@@ -8,7 +8,7 @@ import { storageGet, storageSet, storageClear } from './services/storage';
 const dm5Regex = /https\:\/\/(tel||www)\.dm5\.com\/(m\d+)\//;
 const sfRegex = /http\:\/\/comic\.sfacg\.com\/(HTML\/[^\/]+\/.+)$/;
 const comicbusRegex = /http\:\/\/(www|v)\.comicbus.com\/online\/(comic-\d+\.html\?ch=.*$)/;
-const isDev = import.meta.env.DEV;
+const isDev = import.meta.env.MODE !== 'production';
 
 declare var chrome: any;
 // declare var ga: any;

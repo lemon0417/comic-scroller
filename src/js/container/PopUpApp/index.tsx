@@ -11,7 +11,7 @@ import filter from 'lodash/filter';
 import { storageGet, storageSet, storageClear } from '../../services/storage';
 
 declare var chrome: any;
-const isDev = import.meta.env.DEV;
+const isDev = import.meta.env.MODE !== 'production';
 
 function stopImmediatePropagation(e: any) {
   e.stopPropagation();
