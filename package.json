@@ -11,6 +11,7 @@
     "start": "vite build --watch --mode development",
     "build": "vite build",
     "prepare": "husky install",
+    "version:bump": "node scripts/bump-version.mjs",
     "verify:release": "node scripts/verify-release.mjs",
     "typecheck": "tsc --noEmit",
     "typecheck:emit": "tsc -p tsconfig.build.json",
