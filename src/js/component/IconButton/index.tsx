@@ -1,15 +1,14 @@
-import React, { Component } from 'react';
-import cn from './IconButton.module.css';
-import ripple from '../Ripple';
+import React, { Component } from "react";
+import cn from "./IconButton.module.css";
+import ripple from "../Ripple";
 
 type Props = {
-  children?: React.ReactNode,
-  onClickHandler?: Function,
-  onMouseDownHandler?: Function,
+  children?: React.ReactNode;
+  onClickHandler?: Function;
+  onMouseDownHandler?: Function;
 };
 
 class IconButton extends Component<Props> {
-
   node: any;
 
   onMouseDownHandler = (e: any) => {

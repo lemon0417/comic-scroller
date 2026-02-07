@@ -1,12 +1,12 @@
-import { fromEvent } from 'rxjs';
-import { mergeMap, throttleTime } from 'rxjs/operators';
-import { ofType } from 'redux-observable';
-import { updateInnerHeight } from '../reducers/comics';
+import { fromEvent } from "rxjs";
+import { mergeMap, throttleTime } from "rxjs/operators";
+import { ofType } from "redux-observable";
+import { updateInnerHeight } from "../reducers/comics";
 
-const START_RESIZE_EPIC = 'START_RESIZE_EPIC';
+const START_RESIZE_EPIC = "START_RESIZE_EPIC";
 
 function fromResizeEvent() {
-  return fromEvent(window, 'resize').pipe(
+  return fromEvent(window, "resize").pipe(
     throttleTime(100),
     mergeMap(() => [updateInnerHeight(window.innerHeight)]),
   );

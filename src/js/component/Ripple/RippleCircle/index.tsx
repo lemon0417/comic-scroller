@@ -1,17 +1,17 @@
-import { PureComponent } from 'react';
-import cn from './RippleCircle.module.css';
+import { PureComponent } from "react";
+import cn from "./RippleCircle.module.css";
 
 type Props = {
-  removeRippleHandler: Function,
-  radius: number,
-  id: string,
-  left: number,
-  top: number,
+  removeRippleHandler: Function;
+  radius: number;
+  id: string;
+  left: number;
+  top: number;
 };
 
 type State = {
-  active: boolean,
-  opacity: boolean,
+  active: boolean;
+  opacity: boolean;
 };
 
 function getRippleClass(active: boolean, opacity: boolean): string {
@@ -31,12 +31,12 @@ class RippleCircle extends PureComponent<Props, State> {
   };
 
   componentDidMount() {
-    document.addEventListener('mouseup', this.mouseUpHandler);
+    document.addEventListener("mouseup", this.mouseUpHandler);
     setTimeout(() => this.setState({ active: true }), 0);
   }
 
   mouseUpHandler = () => {
-    document.removeEventListener('mouseup', this.mouseUpHandler);
+    document.removeEventListener("mouseup", this.mouseUpHandler);
     if (this.readyOpacity) {
       this.setState({ opacity: true });
     } else {

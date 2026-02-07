@@ -1,16 +1,16 @@
-import { Component } from 'react';
-import { connect } from 'react-redux';
-import filter from 'lodash/filter';
-import pickBy from 'lodash/pickBy';
-import TrashTopIcon from 'imgs/bin_top.svg?react';
-import TrashBodyIcon from 'imgs/bin_body.svg?react';
-import { storageGet, storageSet } from '../../services/storage';
+import { Component } from "react";
+import { connect } from "react-redux";
+import filter from "lodash/filter";
+import pickBy from "lodash/pickBy";
+import TrashTopIcon from "imgs/bin_top.svg?react";
+import TrashBodyIcon from "imgs/bin_body.svg?react";
+import { storageGet, storageSet } from "../../services/storage";
 import {
   moveCard,
   removeCard,
   shiftCards,
-} from '../../container/PopUpApp/reducers/popup';
-import cn from './ComicCard.module.css';
+} from "../../container/PopUpApp/reducers/popup";
+import cn from "./ComicCard.module.css";
 
 declare var chrome: any;
 
@@ -21,33 +21,32 @@ function getComicCardClass(shift: boolean, move: boolean) {
 }
 
 type Props = {
-  url: string,
-  category: string,
-  comicsID: string,
-  chapterID: string,
-    cover: string,
-  title: string,
-  site: string,
-    index: number | string,
-  move: boolean,
-  shift: boolean,
-  moveCard: Function,
+  url: string;
+  category: string;
+  comicsID: string;
+  chapterID: string;
+  cover: string;
+  title: string;
+  site: string;
+  index: number | string;
+  move: boolean;
+  shift: boolean;
+  moveCard: Function;
   lastRead: {
-    href: string,
-    title: string,
-  },
+    href: string;
+    title: string;
+  };
   lastChapter: {
-    href: string,
-    title: string,
-  },
+    href: string;
+    title: string;
+  };
   updateChapter: {
-    href: string,
-    title: string,
-  },
+    href: string;
+    title: string;
+  };
 };
 
 class ComicCard extends Component<Props> {
-
   pageClickHandler = () => {
     chrome.tabs.create({ url: this.props.url });
   };
@@ -67,26 +66,26 @@ class ComicCard extends Component<Props> {
   removeHandler = () => {
     storageGet((store: any) => {
       let newStore: any = { update: [] };
-      if (this.props.category === 'history') {
+      if (this.props.category === "history") {
         newStore = {
           history: filter(
             store.history,
-            item => item.comicsID !== this.props.comicsID,
+            (item) => item.comicsID !== this.props.comicsID,
           ),
           subscribe: filter(
             store.subscribe,
-            item => item.comicsID !== this.props.comicsID,
+            (item) => item.comicsID !== this.props.comicsID,
           ),
           update: filter(
             store.update,
-            item => item.comicsID !== this.props.comicsID,
+            (item) => item.comicsID !== this.props.comicsID,
           ),
           [this.props.site]: pickBy(
             store[this.props.site],
             (_item, key) => key !== this.props.comicsID,
           ),
         };
-      } else if (this.props.category === 'subscribe') {
+      } else if (this.props.category === "subscribe") {
         newStore = {
           subscribe: filter(
             store.subscribe,
@@ -94,14 +93,14 @@ class ComicCard extends Component<Props> {
           ),
           update: filter(
             store.update,
-            item => item.comicsID !== this.props.comicsID,
+            (item) => item.comicsID !== this.props.comicsID,
           ),
         };
-      } else if (this.props.category === 'update') {
+      } else if (this.props.category === "update") {
         newStore = {
           update: filter(
             store.update,
-            item =>
+            (item) =>
               item.comicsID !== this.props.comicsID ||
               item.chapterID !== this.props.chapterID,
           ),
@@ -111,11 +110,11 @@ class ComicCard extends Component<Props> {
         if (!err) {
           chrome.action.setBadgeText({
             text: `${
-              newStore.update.length === 0 ? '' : newStore.update.length
+              newStore.update.length === 0 ? "" : newStore.update.length
             }`,
           });
           this.props.moveCard(this.props.category, this.props.index);
-          chrome.runtime.sendMessage({ msg: 'UPDATE' });
+          chrome.runtime.sendMessage({ msg: "UPDATE" });
         }
       });
     });
@@ -129,7 +128,7 @@ class ComicCard extends Component<Props> {
         data-move={this.props.move}
         data-shift={this.props.shift}
       >
-        <img src={this.props.cover} alt={'cover'} />
+        <img src={this.props.cover} alt={"cover"} />
         <div className={cn.trash} onClick={this.removeHandler}>
           <TrashTopIcon className={cn.trashTop} />
           <TrashBodyIcon className={cn.trashBody} />
@@ -144,9 +143,7 @@ class ComicCard extends Component<Props> {
                   {this.props.updateChapter.title}
                 </span>
               </div>
-            ) : (
-              undefined
-            )}
+            ) : undefined}
             <div>
               <span>上次看到</span>
               <span onClick={this.lastReadHandler}>
@@ -171,9 +168,9 @@ function mapStateToProps(state: any, ownProps: any) {
   const record = bucket[ownProps.comicsID];
   if (!record) {
     return {
-      title: '',
-      url: '',
-      cover: '',
+      title: "",
+      url: "",
+      cover: "",
       lastRead: {},
       lastChapter: {},
     };

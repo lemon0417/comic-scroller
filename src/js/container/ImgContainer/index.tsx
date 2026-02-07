@@ -1,15 +1,14 @@
-import { Component } from 'react';
-import { connect } from 'react-redux';
-import { createSelector } from 'reselect';
-import map from 'lodash/map';
-import reduce from 'lodash/reduce';
-import filter from 'lodash/filter';
-import Loading from 'cmp/Loading';
-import ConnectedComicImage from 'cmp/ComicImage';
-import cn from './ImgContainer.module.css';
+import { Component } from "react";
+import { connect } from "react-redux";
+import { createSelector } from "reselect";
+import map from "lodash/map";
+import reduce from "lodash/reduce";
+import filter from "lodash/filter";
+import Loading from "cmp/Loading";
+import ConnectedComicImage from "cmp/ComicImage";
+import cn from "./ImgContainer.module.css";
 
 class ImgContainer extends Component<any, any> {
-
   render() {
     return (
       <div
@@ -20,7 +19,7 @@ class ImgContainer extends Component<any, any> {
         }}
       >
         {this.props.renderResult.length > 0 ? (
-          map(this.props.renderResult, key => (
+          map(this.props.renderResult, (key) => (
             <ConnectedComicImage key={key} index={key} />
           ))
         ) : (
@@ -35,7 +34,8 @@ const getRenderResult = createSelector(
   (comics: any) => comics.imageList.result,
   (comics: any) => comics.renderBeginIndex,
   (comics: any) => comics.renderEndIndex,
-  (result, begin, end) => filter(result, item => item >= begin && item <= end),
+  (result, begin, end) =>
+    filter(result, (item) => item >= begin && item <= end),
 );
 
 const margin = 20;
@@ -47,9 +47,9 @@ const getPaddingTop = createSelector(
   (comics: any) => comics.innerHeight,
   (result, entity, begin, innerHeight) =>
     reduce(
-      filter(result, item => item < begin),
+      filter(result, (item) => item < begin),
       (acc, i) => {
-        if (entity[i].type === 'wide')
+        if (entity[i].type === "wide")
           return acc + (innerHeight - 68) + 2 * margin;
         return acc + entity[i].height + 2 * margin;
       },
@@ -64,9 +64,9 @@ const getPaddingBottom = createSelector(
   (comics: any) => comics.innerHeight,
   (result, entity, end, innerHeight) =>
     reduce(
-      filter(result, item => item > end),
+      filter(result, (item) => item > end),
       (acc, i) => {
-        if (entity[i].type === 'wide')
+        if (entity[i].type === "wide")
           return acc + (innerHeight - 68) + 2 * margin;
         return acc + entity[i].height + 2 * margin;
       },

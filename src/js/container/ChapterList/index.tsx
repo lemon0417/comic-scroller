@@ -1,17 +1,16 @@
-import { Component } from 'react';
-import { connect } from 'react-redux';
-import map from 'lodash/map';
+import { Component } from "react";
+import { connect } from "react-redux";
+import map from "lodash/map";
 import {
   resetImg,
   updateChapterLatestIndex,
   updateRenderIndex,
-} from '../../reducers/comics';
-import { fetchImgList, updateRead } from '../../epics/sites/dm5';
-import { stopScroll } from '../../epics/scrollEpic';
-import cn from './ChapterList.module.css';
+} from "../../reducers/comics";
+import { fetchImgList, updateRead } from "../../epics/sites/dm5";
+import { stopScroll } from "../../epics/scrollEpic";
+import cn from "./ChapterList.module.css";
 
 class ChapterList extends Component<any, any> {
-
   node!: HTMLDivElement;
 
   onClickHandler = () => {
@@ -68,9 +67,9 @@ class ChapterList extends Component<any, any> {
 function mapStateToProps(state: any) {
   const { read, chapterList, chapters } = state.comics;
   return {
-    chapterList: map(chapterList, item => ({
+    chapterList: map(chapterList, (item) => ({
       ...chapters[item],
-      read: read.includes(item) ,
+      read: read.includes(item),
     })),
   };
 }

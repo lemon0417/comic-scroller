@@ -1,23 +1,25 @@
-import { of } from 'rxjs';
-import resizeEpic, { startResize } from './resizeEpic';
-import { updateInnerHeight } from '../reducers/comics';
+import { of } from "rxjs";
+import resizeEpic, { startResize } from "./resizeEpic";
+import { updateInnerHeight } from "../reducers/comics";
 
-describe('resizeEpic', () => {
-  it('emits updateInnerHeight on window resize after start', () => {
+describe("resizeEpic", () => {
+  it("emits updateInnerHeight on window resize after start", () => {
     jest.useFakeTimers();
 
     const action$ = of(startResize());
     const output$ = resizeEpic(action$);
 
     const actions: any[] = [];
-    const subscription = output$.subscribe((action: any) => actions.push(action));
+    const subscription = output$.subscribe((action: any) =>
+      actions.push(action),
+    );
 
-    Object.defineProperty(window, 'innerHeight', {
+    Object.defineProperty(window, "innerHeight", {
       value: 777,
       configurable: true,
     });
 
-    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event("resize"));
     jest.runAllTimers();
 
     expect(actions).toContainEqual(updateInnerHeight(777));

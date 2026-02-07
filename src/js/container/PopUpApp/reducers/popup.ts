@@ -1,38 +1,38 @@
-import map from 'lodash/map';
-import filter from 'lodash/filter';
-import findIndex from 'lodash/findIndex';
-import pickBy from 'lodash/pickBy';
+import map from "lodash/map";
+import filter from "lodash/filter";
+import findIndex from "lodash/findIndex";
+import pickBy from "lodash/pickBy";
 
-type ListCategory = 'update' | 'subscribe' | 'history';
+type ListCategory = "update" | "subscribe" | "history";
 
 type Action = {
-  type: string,
+  type: string;
   data?: {
-    update: Array<any>,
-    subscribe: Array<any>,
-    history: Array<any>,
-    dm5: any,
-    sf: any,
-    comicbus: any,
-  },
-  category?: ListCategory,
-  index?: number,
+    update: Array<any>;
+    subscribe: Array<any>;
+    history: Array<any>;
+    dm5: any;
+    sf: any;
+    comicbus: any;
+  };
+  category?: ListCategory;
+  index?: number;
 };
 
 type State = {
-  update: Array<any>,
-  subscribe: Array<any>,
-  history: Array<any>,
+  update: Array<any>;
+  subscribe: Array<any>;
+  history: Array<any>;
   dm5: {
-    baseURL: string,
-  },
+    baseURL: string;
+  };
   sf: {
-    baseURL: string,
-  },
+    baseURL: string;
+  };
   comicbus: {
-    baseURL: string,
-  },
-  [key: string]: any,
+    baseURL: string;
+  };
+  [key: string]: any;
 };
 
 const initialState = {
@@ -40,20 +40,20 @@ const initialState = {
   subscribe: [],
   history: [],
   dm5: {
-    baseURL: 'https://www.dm5.com',
+    baseURL: "https://www.dm5.com",
   },
   sf: {
-    baseURL: 'http://comic.sfacg.com',
+    baseURL: "http://comic.sfacg.com",
   },
   comicbus: {
-    baseURL: 'http://www.comicbus.com',
+    baseURL: "http://www.comicbus.com",
   },
 };
 
-const UPDATE_POPUP_DATA = 'UPDATE_POPUP_DATA';
-const REMOVE_CARD = 'REMOVE_CARD';
-const SHIFT_CARDS = 'SHIFT_CARDS';
-const MOVE_CARD = 'MOVE_CARD';
+const UPDATE_POPUP_DATA = "UPDATE_POPUP_DATA";
+const REMOVE_CARD = "REMOVE_CARD";
+const SHIFT_CARDS = "SHIFT_CARDS";
+const MOVE_CARD = "MOVE_CARD";
 
 export default function popup(state: State = initialState, action: Action) {
   switch (action.type) {
@@ -67,17 +67,17 @@ export default function popup(state: State = initialState, action: Action) {
         comicbus: {},
       };
       return {
-        update: map(data.update || [], item => ({
+        update: map(data.update || [], (item) => ({
           ...item,
           shift: false,
           move: false,
         })),
-        subscribe: map(data.subscribe || [], item => ({
+        subscribe: map(data.subscribe || [], (item) => ({
           ...item,
           shift: false,
           move: false,
         })),
-        history: map(data.history || [], item => ({
+        history: map(data.history || [], (item) => ({
           ...item,
           shift: false,
           move: false,
@@ -99,33 +99,37 @@ export default function popup(state: State = initialState, action: Action) {
     case REMOVE_CARD: {
       const category = action.category;
       if (!category) return state;
-      if (category === 'history') {
-        const index = findIndex(state.history, item => item.move);
+      if (category === "history") {
+        const index = findIndex(state.history, (item) => item.move);
         if (index < 0) return state;
         const { site, comicsID } = state.history[index] || {};
         return {
           ...state,
-          history: filter(state.history, item => !item.move).map(item => ({
+          history: filter(state.history, (item) => !item.move).map((item) => ({
             ...item,
             move: false,
             shift: false,
           })),
           ...(site
-            ? { [site]: pickBy(state[site], item => item.comicsID !== comicsID) }
+            ? {
+                [site]: pickBy(
+                  state[site],
+                  (item) => item.comicsID !== comicsID,
+                ),
+              }
             : {}),
         };
       }
       return {
         ...state,
-        [category]: filter(
-          state[category],
-          item => !item.move,
-        ).map(item => ({ ...item, move: false, shift: false })),
+        [category]: filter(state[category], (item) => !item.move).map(
+          (item) => ({ ...item, move: false, shift: false }),
+        ),
       };
     }
     case SHIFT_CARDS: {
       const category = action.category;
-      const index = typeof action.index === 'number' ? action.index : -1;
+      const index = typeof action.index === "number" ? action.index : -1;
       if (!category) return state;
       return {
         ...state,
@@ -137,7 +141,7 @@ export default function popup(state: State = initialState, action: Action) {
     }
     case MOVE_CARD: {
       const category = action.category;
-      const index = typeof action.index === 'number' ? action.index : -1;
+      const index = typeof action.index === "number" ? action.index : -1;
       if (!category) return state;
       return {
         ...state,
@@ -153,9 +157,9 @@ export default function popup(state: State = initialState, action: Action) {
 }
 
 export function updatePopupData(data: {
-  subscribe: Array<any>,
-  history: Array<any>,
-  update: Array<any>,
+  subscribe: Array<any>;
+  history: Array<any>;
+  update: Array<any>;
 }) {
   return { type: UPDATE_POPUP_DATA, data };
 }

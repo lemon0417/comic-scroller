@@ -1,17 +1,17 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import map from 'lodash/map';
-import MoreIcon from 'imgs/more_vert.svg?react';
-import ComicCard from 'cmp/ComicCard';
-import ripple from 'cmp/Ripple';
-import { updatePopupData, shiftCards } from './reducers/popup';
-import cn from './PopUpApp.module.css';
-import initObject from '../../util/initObject';
-import filter from 'lodash/filter';
-import { storageGet, storageSet, storageClear } from '../../services/storage';
+import React, { Component } from "react";
+import { connect } from "react-redux";
+import map from "lodash/map";
+import MoreIcon from "imgs/more_vert.svg?react";
+import ComicCard from "cmp/ComicCard";
+import ripple from "cmp/Ripple";
+import { updatePopupData, shiftCards } from "./reducers/popup";
+import cn from "./PopUpApp.module.css";
+import initObject from "../../util/initObject";
+import filter from "lodash/filter";
+import { storageGet, storageSet, storageClear } from "../../services/storage";
 
 declare var chrome: any;
-const isDev = import.meta.env.MODE !== 'production';
+const isDev = import.meta.env.MODE !== "production";
 
 function stopImmediatePropagation(e: any) {
   e.stopPropagation();
@@ -23,14 +23,14 @@ function preventDefault(e: any) {
 }
 
 function getShiftMarkerClass(
-  selectedType: 'update' | 'subscribe' | 'history',
+  selectedType: "update" | "subscribe" | "history",
 ): string {
   switch (selectedType) {
-    case 'update':
+    case "update":
       return cn.shiftMarker_left;
-    case 'subscribe':
+    case "subscribe":
       return cn.shiftMarker_mid;
-    case 'history':
+    case "history":
       return cn.shiftMarker_right;
     default:
       return cn.shiftMarker_left;
@@ -38,14 +38,14 @@ function getShiftMarkerClass(
 }
 
 function getContainerClass(
-  selectedType: 'update' | 'subscribe' | 'history',
+  selectedType: "update" | "subscribe" | "history",
 ): string {
   switch (selectedType) {
-    case 'update':
+    case "update":
       return cn.CardContainer_left;
-    case 'subscribe':
+    case "subscribe":
       return cn.CardContainer_mid;
-    case 'history':
+    case "history":
       return cn.CardContainer_right;
     default:
       return cn.CardContainer_left;
@@ -58,10 +58,10 @@ const Tab = ({
   type,
   onMouseDownHandler,
 }: {
-  className: string,
-  children?: any,
-  type: string,
-  onMouseDownHandler?: React.MouseEventHandler<HTMLSpanElement>,
+  className: string;
+  children?: any;
+  type: string;
+  onMouseDownHandler?: React.MouseEventHandler<HTMLSpanElement>;
 }) => (
   <span className={className} onMouseDown={onMouseDownHandler}>
     <div data-type={type}>{type}</div>
@@ -85,18 +85,18 @@ const MenuButton = ({
   inputRefHandler,
   fileOnChangeHandler,
 }: {
-  children?: any,
-  showMenu: boolean,
-  showMenuHandler: React.MouseEventHandler<HTMLSpanElement>,
-  onMouseDownHandler?: React.MouseEventHandler<HTMLSpanElement>,
-  downloadHandler: React.MouseEventHandler<HTMLDivElement>,
-  uploadHandler: React.MouseEventHandler<HTMLDivElement>,
-  resetHandler: React.MouseEventHandler<HTMLDivElement>,
-  backgroundCheckHandler: React.MouseEventHandler<HTMLDivElement>,
-  showBackgroundCheck?: boolean,
-  aRefHandler: React.Ref<HTMLAnchorElement>,
-  inputRefHandler: React.Ref<HTMLInputElement>,
-  fileOnChangeHandler: React.ChangeEventHandler<HTMLInputElement>,
+  children?: any;
+  showMenu: boolean;
+  showMenuHandler: React.MouseEventHandler<HTMLSpanElement>;
+  onMouseDownHandler?: React.MouseEventHandler<HTMLSpanElement>;
+  downloadHandler: React.MouseEventHandler<HTMLDivElement>;
+  uploadHandler: React.MouseEventHandler<HTMLDivElement>;
+  resetHandler: React.MouseEventHandler<HTMLDivElement>;
+  backgroundCheckHandler: React.MouseEventHandler<HTMLDivElement>;
+  showBackgroundCheck?: boolean;
+  aRefHandler: React.Ref<HTMLAnchorElement>;
+  inputRefHandler: React.Ref<HTMLInputElement>;
+  fileOnChangeHandler: React.ChangeEventHandler<HTMLInputElement>;
 }) => (
   <span
     className={cn.button}
@@ -106,22 +106,38 @@ const MenuButton = ({
     <MoreIcon />
     <div className={cn.rippleContainer}>{children}</div>
     <div className={showMenu ? cn.menuOn : cn.menuOff}>
-      <div className={cn.menuItem} onMouseDown={preventDefault} onClick={downloadHandler}>
+      <div
+        className={cn.menuItem}
+        onMouseDown={preventDefault}
+        onClick={downloadHandler}
+      >
         Download Config
       </div>
-      <div className={cn.menuItem} onMouseDown={preventDefault} onClick={uploadHandler}>
+      <div
+        className={cn.menuItem}
+        onMouseDown={preventDefault}
+        onClick={uploadHandler}
+      >
         Upload Config
       </div>
-      <div className={cn.menuItem} onMouseDown={preventDefault} onClick={resetHandler}>
+      <div
+        className={cn.menuItem}
+        onMouseDown={preventDefault}
+        onClick={resetHandler}
+      >
         Reset Config
       </div>
       {showBackgroundCheck ? (
-        <div className={cn.menuItem} onMouseDown={preventDefault} onClick={backgroundCheckHandler}>
+        <div
+          className={cn.menuItem}
+          onMouseDown={preventDefault}
+          onClick={backgroundCheckHandler}
+        >
           Background Check
         </div>
       ) : null}
       <a
-        style={{ display: 'none' }}
+        style={{ display: "none" }}
         ref={aRefHandler}
         onClick={stopImmediatePropagation}
       >
@@ -129,8 +145,8 @@ const MenuButton = ({
       </a>
       <input
         ref={inputRefHandler}
-        type={'file'}
-        style={{ display: 'none' }}
+        type={"file"}
+        style={{ display: "none" }}
         onChange={fileOnChangeHandler}
         onClick={stopImmediatePropagation}
       />
@@ -140,10 +156,10 @@ const MenuButton = ({
 
 const RippleMenu = ripple(MenuButton);
 
-type SelectedType = 'update' | 'subscribe' | 'history';
+type SelectedType = "update" | "subscribe" | "history";
 type PopUpState = {
-  selectedType: SelectedType,
-  showMenu: boolean,
+  selectedType: SelectedType;
+  showMenu: boolean;
 };
 
 class PopUpApp extends Component<any, PopUpState> {
@@ -151,7 +167,7 @@ class PopUpApp extends Component<any, PopUpState> {
   aRef: HTMLAnchorElement | null = null;
 
   state: PopUpState = {
-    selectedType: 'update',
+    selectedType: "update",
     showMenu: false,
   };
 
@@ -162,25 +178,25 @@ class PopUpApp extends Component<any, PopUpState> {
   }
 
   componentWillUnmount() {
-    document.removeEventListener('click', this.hideMenuHandler);
+    document.removeEventListener("click", this.hideMenuHandler);
   }
 
   tabOnClickHandler = (e: any) => {
-    const selectedType = e.target.getAttribute('data-type') as
-      | SelectedType
-      | null;
+    const selectedType = e.target.getAttribute(
+      "data-type",
+    ) as SelectedType | null;
     if (selectedType) {
       this.setState({ selectedType });
     }
   };
 
   transitionEndHandler = (e: any) => {
-    const index = parseInt(e.target.getAttribute('data-index'), 10);
-    const move = e.target.getAttribute('data-move');
-    const shift = e.target.getAttribute('data-shift');
+    const index = parseInt(e.target.getAttribute("data-index"), 10);
+    const move = e.target.getAttribute("data-move");
+    const shift = e.target.getAttribute("data-shift");
     const category = this.state.selectedType;
     const len = this.props[category].length;
-    if (move === 'true') {
+    if (move === "true") {
       if (len > 1) {
         this.props.shiftCards(category, index);
       } else {
@@ -188,7 +204,7 @@ class PopUpApp extends Component<any, PopUpState> {
           this.props.updatePopupData(item);
         });
       }
-    } else if (shift === 'true' && index === len - 1) {
+    } else if (shift === "true" && index === len - 1) {
       storageGet((item: any) => {
         this.props.updatePopupData(item);
       });
@@ -196,7 +212,7 @@ class PopUpApp extends Component<any, PopUpState> {
   };
 
   hideMenuHandler = () => {
-    document.removeEventListener('click', this.hideMenuHandler);
+    document.removeEventListener("click", this.hideMenuHandler);
     this.setState({ showMenu: false });
   };
 
@@ -206,7 +222,7 @@ class PopUpApp extends Component<any, PopUpState> {
       this.hideMenuHandler();
       return;
     }
-    document.addEventListener('click', this.hideMenuHandler);
+    document.addEventListener("click", this.hideMenuHandler);
     this.setState({ showMenu: true });
   };
 
@@ -223,17 +239,17 @@ class PopUpApp extends Component<any, PopUpState> {
   fileOnChangeHandler = () => {
     if (!this.fileInput || !this.fileInput.files) return;
     const fr = new FileReader();
-    fr.onload = e => {
+    fr.onload = (e) => {
       const raw = e.target && (e.target as FileReader).result;
-      const result = JSON.parse(String(raw || '{}'));
-      storageSet(result, err => {
+      const result = JSON.parse(String(raw || "{}"));
+      storageSet(result, (err) => {
         if (!err) {
-          storageGet((item: { update: string | any[]; }) => {
+          storageGet((item: { update: string | any[] }) => {
             this.props.updatePopupData(item);
             chrome.action.setBadgeText({
-              text: `${item.update.length === 0 ? '' : item.update.length}`,
+              text: `${item.update.length === 0 ? "" : item.update.length}`,
             });
-            chrome.runtime.sendMessage({ msg: 'UPDATE' });
+            chrome.runtime.sendMessage({ msg: "UPDATE" });
           });
         }
       });
@@ -249,11 +265,11 @@ class PopUpApp extends Component<any, PopUpState> {
   downloadHandler = () => {
     storageGet((item: any) => {
       const json = JSON.stringify(item);
-      const blob = new Blob([json], { type: 'octet/stream' });
+      const blob = new Blob([json], { type: "octet/stream" });
       const url = window.URL.createObjectURL(blob);
       if (this.aRef) {
         this.aRef.href = url;
-        this.aRef.download = 'comic-scroller-config.json';
+        this.aRef.download = "comic-scroller-config.json";
         this.aRef.click();
         window.URL.revokeObjectURL(url);
       }
@@ -262,7 +278,7 @@ class PopUpApp extends Component<any, PopUpState> {
 
   backgroundCheckHandler = () => {
     if (!isDev) return;
-    chrome.runtime.sendMessage({ msg: 'PING_BACKGROUND' }, (response: any) => {
+    chrome.runtime.sendMessage({ msg: "PING_BACKGROUND" }, (response: any) => {
       if (response && response.ok) {
         const time = new Date(response.at).toLocaleTimeString();
         const summary = response.summary || {};
@@ -273,11 +289,11 @@ class PopUpApp extends Component<any, PopUpState> {
           `added ${diff.added ?? 0}`,
           `update ${diff.before ?? 0} -> ${diff.after ?? 0}`,
           `errors ${summary.errors ?? 0}`,
-        ].join(' | ');
+        ].join(" | ");
         chrome.notifications.create(`bg-check-${response.at}`, {
-          type: 'basic',
-          iconUrl: chrome.runtime.getURL('imgs/comics-128.png'),
-          title: 'Background Check',
+          type: "basic",
+          iconUrl: chrome.runtime.getURL("imgs/comics-128.png"),
+          title: "Background Check",
           message: `OK @ ${time} (${details})`,
         });
       }
@@ -288,12 +304,12 @@ class PopUpApp extends Component<any, PopUpState> {
   resetHandler = () => {
     storageClear();
     storageSet(initObject, () => {
-      storageGet((item: { update: string | any[]; }) => {
+      storageGet((item: { update: string | any[] }) => {
         this.props.updatePopupData(item);
         chrome.action.setBadgeText({
-          text: `${item.update.length === 0 ? '' : item.update.length}`,
+          text: `${item.update.length === 0 ? "" : item.update.length}`,
         });
-        chrome.runtime.sendMessage({ msg: 'UPDATE' });
+        chrome.runtime.sendMessage({ msg: "UPDATE" });
       });
     });
   };
@@ -305,21 +321,21 @@ class PopUpApp extends Component<any, PopUpState> {
           <header className={cn.header} onClick={this.tabOnClickHandler}>
             <RippleTab
               className={
-                this.state.selectedType === 'update' ? cn.tabActive : cn.tab
+                this.state.selectedType === "update" ? cn.tabActive : cn.tab
               }
-              type={'update'}
+              type={"update"}
             />
             <RippleTab
               className={
-                this.state.selectedType === 'subscribe' ? cn.tabActive : cn.tab
+                this.state.selectedType === "subscribe" ? cn.tabActive : cn.tab
               }
-              type={'subscribe'}
+              type={"subscribe"}
             />
             <RippleTab
               className={
-                this.state.selectedType === 'history' ? cn.tabActive : cn.tab
+                this.state.selectedType === "history" ? cn.tabActive : cn.tab
               }
-              type={'history'}
+              type={"history"}
             />
             <span className={getShiftMarkerClass(this.state.selectedType)} />
           </header>
@@ -394,9 +410,9 @@ function mapStateToProps(state: any) {
   const resolveComicsKeyForBucket = (bucket: any, rawKey: string) => {
     if (!bucket) return null;
     if (rawKey && bucket[rawKey]) return rawKey;
-    const withPrefix = rawKey ? `m${rawKey}` : '';
+    const withPrefix = rawKey ? `m${rawKey}` : "";
     if (withPrefix && bucket[withPrefix]) return withPrefix;
-    if (rawKey.startsWith('m')) {
+    if (rawKey.startsWith("m")) {
       const stripped = rawKey.slice(1);
       if (stripped && bucket[stripped]) return stripped;
     }
@@ -405,7 +421,7 @@ function mapStateToProps(state: any) {
 
   const resolveItem = (item: any) => {
     if (!item) return null;
-    const rawKey = String(item.comicsID ?? '');
+    const rawKey = String(item.comicsID ?? "");
     if (!rawKey) return null;
 
     const site = item.site as string;
@@ -420,7 +436,7 @@ function mapStateToProps(state: any) {
         : null;
     }
 
-    const sites = ['dm5', 'sf', 'comicbus'];
+    const sites = ["dm5", "sf", "comicbus"];
     for (const candidateSite of sites) {
       const bucket = state.popup[candidateSite];
       const resolvedKey = resolveComicsKeyForBucket(bucket, rawKey);

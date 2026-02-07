@@ -1,22 +1,22 @@
-import React, { PureComponent } from 'react';
-import { map, filter } from 'lodash';
-import RippleCircle from './RippleCircle';
+import React, { PureComponent } from "react";
+import { map, filter } from "lodash";
+import RippleCircle from "./RippleCircle";
 
 type RippleItem = {
-  left: number,
-  top: number,
-  radius: number,
-  id: string,
+  left: number;
+  top: number;
+  radius: number;
+  id: string;
 };
 
 type Props = {
-  children?: React.ReactNode,
-  onMouseDownHandler?: Function,
-  [key: string]: any,
+  children?: React.ReactNode;
+  onMouseDownHandler?: Function;
+  [key: string]: any;
 };
 
 type State = {
-  ripples: Array<RippleItem>,
+  ripples: Array<RippleItem>;
 };
 
 const ripple = <T extends {}>(WrapComponent: React.ComponentType<T>) => {
@@ -31,12 +31,8 @@ const ripple = <T extends {}>(WrapComponent: React.ComponentType<T>) => {
       if (e.defaultPrevented) return;
       const x = e.pageX - window.scrollX || window.pageXOffset;
       const y = e.pageY - window.scrollY || window.pageYOffset;
-      const {
-        left,
-        top,
-        height,
-        width,
-      } = e.currentTarget.getBoundingClientRect();
+      const { left, top, height, width } =
+        e.currentTarget.getBoundingClientRect();
       const dx = x - left;
       const dy = y - top;
       const topLeft = dx * dx + dy * dy;
@@ -61,15 +57,18 @@ const ripple = <T extends {}>(WrapComponent: React.ComponentType<T>) => {
 
     removeRippleHandler = (id: string) => {
       this.setState({
-        ripples: filter(this.state.ripples, item => item.id !== id),
+        ripples: filter(this.state.ripples, (item) => item.id !== id),
       });
     };
 
     render() {
       const { ...others } = this.props;
       return (
-        <WrapComponent {...(others as T)} onMouseDownHandler={this.onMouseDownHandler}>
-          {map(this.state.ripples, item => (
+        <WrapComponent
+          {...(others as T)}
+          onMouseDownHandler={this.onMouseDownHandler}
+        >
+          {map(this.state.ripples, (item) => (
             <RippleCircle
               key={item.id}
               id={item.id}

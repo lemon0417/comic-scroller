@@ -1,4 +1,3 @@
-
 declare var chrome: any;
 
 type StorageCallback<T> = (_items: T) => void;
@@ -6,7 +5,7 @@ type StorageCallback<T> = (_items: T) => void;
 type ErrorCallback = (_err?: any) => void;
 
 export function storageGet<T = any>(keys?: any, cb?: StorageCallback<T>) {
-  if (typeof keys === 'function') {
+  if (typeof keys === "function") {
     return chrome.storage.local.get(null, keys);
   }
   return chrome.storage.local.get(keys ?? null, cb);

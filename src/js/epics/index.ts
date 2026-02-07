@@ -1,12 +1,12 @@
-import { combineEpics } from 'redux-observable';
+import { combineEpics } from "redux-observable";
 import {
   fetchChapterEpic,
   fetchImgSrcEpic,
   fetchImgListEpic,
   updateReadEpic,
-} from './getAction';
-import scrollEpic from './scrollEpic';
-import resizeEpic from './resizeEpic';
+} from "./getAction";
+import scrollEpic from "./scrollEpic";
+import resizeEpic from "./resizeEpic";
 
 const rootEpic = combineEpics(
   fetchChapterEpic,

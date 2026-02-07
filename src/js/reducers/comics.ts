@@ -1,46 +1,46 @@
-import reduce from 'lodash/reduce';
+import reduce from "lodash/reduce";
 
 type State = {
-  innerHeight: number,
-  site: string,
-  comicsID: string,
-  title: string,
-  chapterLatestIndex: number,
-  chapterNowIndex: number,
-  baseURL: string,
-  subscribe: boolean,
-  chapters: Record<number, any>,
-  chapterList: Array<any>,
-  read: [],
-  renderBeginIndex: number,
-  renderEndIndex: number,
+  innerHeight: number;
+  site: string;
+  comicsID: string;
+  title: string;
+  chapterLatestIndex: number;
+  chapterNowIndex: number;
+  baseURL: string;
+  subscribe: boolean;
+  chapters: Record<number, any>;
+  chapterList: Array<any>;
+  read: [];
+  renderBeginIndex: number;
+  renderEndIndex: number;
   imageList: {
-    result: Array<any>,
-    entity: Record<number, any>,
-  },
+    result: Array<any>;
+    entity: Record<number, any>;
+  };
 };
 
 type Action = {
-  type: string,
-  src?: string,
-  data?: any,
-  index?: number,
-  begin?: number,
-  end?: number,
-  height?: number,
-  innerHeight?: number,
-  imgType?: any,
-  [key: string]: any,
+  type: string;
+  src?: string;
+  data?: any;
+  index?: number;
+  begin?: number;
+  end?: number;
+  height?: number;
+  innerHeight?: number;
+  imgType?: any;
+  [key: string]: any;
 };
 
 const initialState: State = {
-  innerHeight: typeof window === 'undefined' ? 0 : window.innerHeight,
-  site: '',
-  comicsID: '',
-  title: '',
+  innerHeight: typeof window === "undefined" ? 0 : window.innerHeight,
+  site: "",
+  comicsID: "",
+  title: "",
   chapterLatestIndex: 0,
   chapterNowIndex: 0,
-  baseURL: '',
+  baseURL: "",
   subscribe: false,
   chapters: {},
   chapterList: [],
@@ -53,25 +53,28 @@ const initialState: State = {
   },
 };
 
-const UPDATE_COMICS_ID = 'UPDATE_COMICS_ID';
-const UPDATE_SUBSCRIBE = 'UPDATE_SUBSCRIBE';
-const UPDATE_TITLE = 'UPDATE_TITLE';
-const UPDATE_CHAPTERS = 'UPDATE_CHAPTERS';
-const UPDATE_CHAPTER_LIST = 'UPDATE_CHAPTER_LIST';
-const UPDATE_CHAPTER_LATEST_INDEX = 'UPDATE_CHAPTER_LATEST_INDEX';
-const UPDATE_CHAPTER_NOW_INDEX = 'UPDATE_CHAPTER_NOW_INDEX';
-const UPDATE_RENDER_INDEX = 'UPDATE_RENDER_INDEX';
-const UPDATE_READ_CHAPTERS = 'UPDATE_READ_CHAPTERS';
-const CONCAT_IMAGE_LIST = 'CONCAT_IMAGE_LIST';
-const LOAD_IMAGE_SRC = 'LOAD_IMAGE_SRC';
-const UPDATE_IMAGE_TYPE = 'UPDATE_IMAGE_TYPE';
-const UPDATE_INNER_HEIGHT = 'UPDATE_INNER_HEIGHT';
-const RESET_IMAGE = 'RESET_IMAGE';
+const UPDATE_COMICS_ID = "UPDATE_COMICS_ID";
+const UPDATE_SUBSCRIBE = "UPDATE_SUBSCRIBE";
+const UPDATE_TITLE = "UPDATE_TITLE";
+const UPDATE_CHAPTERS = "UPDATE_CHAPTERS";
+const UPDATE_CHAPTER_LIST = "UPDATE_CHAPTER_LIST";
+const UPDATE_CHAPTER_LATEST_INDEX = "UPDATE_CHAPTER_LATEST_INDEX";
+const UPDATE_CHAPTER_NOW_INDEX = "UPDATE_CHAPTER_NOW_INDEX";
+const UPDATE_RENDER_INDEX = "UPDATE_RENDER_INDEX";
+const UPDATE_READ_CHAPTERS = "UPDATE_READ_CHAPTERS";
+const CONCAT_IMAGE_LIST = "CONCAT_IMAGE_LIST";
+const LOAD_IMAGE_SRC = "LOAD_IMAGE_SRC";
+const UPDATE_IMAGE_TYPE = "UPDATE_IMAGE_TYPE";
+const UPDATE_INNER_HEIGHT = "UPDATE_INNER_HEIGHT";
+const RESET_IMAGE = "RESET_IMAGE";
 
-export default function comics(state: State = initialState, action: Action): State {
+export default function comics(
+  state: State = initialState,
+  action: Action,
+): State {
   switch (action.type) {
     case LOAD_IMAGE_SRC:
-      if (typeof action.index === 'number' && action.index >= 0) {
+      if (typeof action.index === "number" && action.index >= 0) {
         return {
           ...state,
           imageList: {
@@ -89,7 +92,7 @@ export default function comics(state: State = initialState, action: Action): Sta
       }
       return state;
     case UPDATE_IMAGE_TYPE:
-      if (typeof action.index === 'number' && action.index >= 0) {
+      if (typeof action.index === "number" && action.index >= 0) {
         return {
           ...state,
           imageList: {
@@ -130,13 +133,13 @@ export default function comics(state: State = initialState, action: Action): Sta
                     ...item,
                     loading: true,
                     height: 1400,
-                    type: 'image',
+                    type: "image",
                   },
                 }),
                 state.imageList.entity,
               ),
               [data.length + state.imageList.result.length]: {
-                type: 'end',
+                type: "end",
                 chapter: data[0].chapter,
                 loading: false,
                 height: 72,
@@ -169,9 +172,11 @@ export default function comics(state: State = initialState, action: Action): Sta
       return {
         ...state,
         renderBeginIndex:
-          typeof action.begin === 'number' ? action.begin : state.renderBeginIndex,
+          typeof action.begin === "number"
+            ? action.begin
+            : state.renderBeginIndex,
         renderEndIndex:
-          typeof action.end === 'number' ? action.end : state.renderEndIndex,
+          typeof action.end === "number" ? action.end : state.renderEndIndex,
       };
     case UPDATE_READ_CHAPTERS:
       return {
@@ -215,7 +220,9 @@ export default function comics(state: State = initialState, action: Action): Sta
       return {
         ...state,
         innerHeight:
-          typeof action.innerHeight === 'number' ? action.innerHeight : state.innerHeight,
+          typeof action.innerHeight === "number"
+            ? action.innerHeight
+            : state.innerHeight,
       };
     default:
       return state;

@@ -1,24 +1,24 @@
-import { Component } from 'react';
-import { connect } from 'react-redux';
-import some from 'lodash/some';
-import filter from 'lodash/filter';
-import MenuIcon from '@imgs/menu.svg?react';
-import NextIcon from '@imgs/circle-right.svg?react';
-import PrevIcon from '@imgs/circle-left.svg?react';
-import TagIcon from '@imgs/tag.svg?react';
-import IconButton from '../../component/IconButton';
-import cn from './App.module.css';
-import ImgContainer from '../ImgContainer';
-import ChapterList from '../ChapterList';
+import { Component } from "react";
+import { connect } from "react-redux";
+import some from "lodash/some";
+import filter from "lodash/filter";
+import MenuIcon from "@imgs/menu.svg?react";
+import NextIcon from "@imgs/circle-right.svg?react";
+import PrevIcon from "@imgs/circle-left.svg?react";
+import TagIcon from "@imgs/tag.svg?react";
+import IconButton from "../../component/IconButton";
+import cn from "./App.module.css";
+import ImgContainer from "../ImgContainer";
+import ChapterList from "../ChapterList";
 import {
   resetImg,
   updateChapterLatestIndex,
   updateSubscribe,
-} from '../../reducers/comics';
-import { fetchImgList, fetchChapter, updateRead } from '../../epics/getAction';
-import { stopScroll } from '../../epics/scrollEpic';
-import { startResize } from '../../epics/resizeEpic';
-import { storageGet, storageSet } from '../../services/storage';
+} from "../../reducers/comics";
+import { fetchImgList, fetchChapter, updateRead } from "../../epics/getAction";
+import { stopScroll } from "../../epics/scrollEpic";
+import { startResize } from "../../epics/resizeEpic";
+import { storageGet, storageSet } from "../../services/storage";
 
 declare var chrome: any;
 
@@ -26,13 +26,12 @@ const ImgContainerAny: any = ImgContainer;
 const ChapterListAny: any = ChapterList;
 
 function getTagIconClass(chapterTitle: any, subscribe: any) {
-  if (chapterTitle === '') return cn.icon_deactive;
+  if (chapterTitle === "") return cn.icon_deactive;
   if (subscribe) return cn.icon_subscribe;
   return cn.icon;
 }
 
 class App extends Component<any, any> {
-
   state = {
     showChapterList: false,
   };
@@ -43,14 +42,14 @@ class App extends Component<any, any> {
       storageGet((item: any) => {
         const { subscribe, site, comicsID } = this.props;
         if (!item[this.props.site][comicsID]) {
-          chrome.tabs.getCurrent((tab: { id: any; }) => {
+          chrome.tabs.getCurrent((tab: { id: any }) => {
             chrome.tabs.remove(tab.id);
           });
         }
         if (
           !some(
             item.subscribe,
-            citem => citem.site === site && citem.comicsID === comicsID,
+            (citem) => citem.site === site && citem.comicsID === comicsID,
           ) &&
           subscribe
         ) {
@@ -59,7 +58,7 @@ class App extends Component<any, any> {
       });
     });
     const params = new URLSearchParams(window.location.search);
-    const chapter = params.get('chapter') || '';
+    const chapter = params.get("chapter") || "";
     if (chapter && this.props.fetchChapter) {
       this.props.fetchChapter(chapter);
     }
@@ -71,9 +70,9 @@ class App extends Component<any, any> {
       return;
     }
     if (!this.state.showChapterList) {
-      body.style.overflowY = 'hidden';
+      body.style.overflowY = "hidden";
     } else {
-      body.removeAttribute('style');
+      body.removeAttribute("style");
     }
     this.setState({ showChapterList: !this.state.showChapterList });
   };
@@ -99,21 +98,21 @@ class App extends Component<any, any> {
   subscribeHandler = () => {
     const { site: propSite, comicsID: propComicsID } = this.props;
     const params = new URLSearchParams(window.location.search);
-    const chapterParam = params.get('chapter') || '';
+    const chapterParam = params.get("chapter") || "";
     const inferSite = () => {
-      if (/^m\d+$/i.test(chapterParam)) return 'dm5';
-      if (/^comic-\d+\.html\?ch=/i.test(chapterParam)) return 'comicbus';
-      if (chapterParam.startsWith('HTML/')) return 'sf';
-      return '';
+      if (/^m\d+$/i.test(chapterParam)) return "dm5";
+      if (/^comic-\d+\.html\?ch=/i.test(chapterParam)) return "comicbus";
+      if (chapterParam.startsWith("HTML/")) return "sf";
+      return "";
     };
     const resolveSiteAndId = (store: any) => {
-      const rawKey = String(propComicsID ?? '');
+      const rawKey = String(propComicsID ?? "");
       const tryKeys = (bucket: any, baseKey: string) => {
         if (!bucket) return null;
         if (baseKey && bucket[baseKey]) return baseKey;
-        const withPrefix = baseKey ? `m${baseKey}` : '';
+        const withPrefix = baseKey ? `m${baseKey}` : "";
         if (withPrefix && bucket[withPrefix]) return withPrefix;
-        if (baseKey.startsWith('m')) {
+        if (baseKey.startsWith("m")) {
           const stripped = baseKey.slice(1);
           if (stripped && bucket[stripped]) return stripped;
         }
@@ -125,7 +124,7 @@ class App extends Component<any, any> {
         return { site: propSite, comicsID: resolvedKey };
       }
 
-      const candidates = ['dm5', 'sf', 'comicbus'];
+      const candidates = ["dm5", "sf", "comicbus"];
       for (const candidate of candidates) {
         const resolvedKey = tryKeys(store[candidate], rawKey);
         if (resolvedKey) {
@@ -137,7 +136,7 @@ class App extends Component<any, any> {
       if (inferred) {
         return { site: inferred, comicsID: rawKey };
       }
-      return { site: '', comicsID: rawKey };
+      return { site: "", comicsID: rawKey };
     };
 
     storageGet((item: any) => {
@@ -148,19 +147,17 @@ class App extends Component<any, any> {
         if (
           some(
             item.subscribe,
-            citem => citem.site === site && citem.comicsID === comicsID,
+            (citem) => citem.site === site && citem.comicsID === comicsID,
           )
         ) {
           newItem = {
             ...item,
             subscribe: filter(
               item.subscribe,
-              citem => citem.site !== site || citem.comicsID !== comicsID,
+              (citem) => citem.site !== site || citem.comicsID !== comicsID,
             ),
           };
-          storageSet(newItem, () =>
-            this.props.updateSubscribe(false),
-          );
+          storageSet(newItem, () => this.props.updateSubscribe(false));
         } else {
           newItem = {
             ...item,
@@ -172,9 +169,7 @@ class App extends Component<any, any> {
               ...item.subscribe,
             ],
           };
-          storageSet(newItem, () =>
-            this.props.updateSubscribe(true),
-          );
+          storageSet(newItem, () => this.props.updateSubscribe(true));
         }
       }
     });
@@ -197,7 +192,7 @@ class App extends Component<any, any> {
             <span>
               {this.props.chapterList.length > 0
                 ? this.props.chapterTitle
-                : 'Loading ...'}
+                : "Loading ..."}
             </span>
           </span>
           <span className={cn.rigthtContainer}>
@@ -213,7 +208,7 @@ class App extends Component<any, any> {
             </IconButton>
             <IconButton
               onClickHandler={
-                chapterTitle !== '' ? this.subscribeHandler : undefined
+                chapterTitle !== "" ? this.subscribeHandler : undefined
               }
             >
               <TagIcon className={getTagIconClass(chapterTitle, subscribe)} />
@@ -247,12 +242,12 @@ function mapStateToProps(state: any) {
     chapterTitle:
       chapterList.length > 0 && chapters[chapterID]
         ? chapters[chapterID].title
-        : '',
+        : "",
     site,
     chapter:
       chapterList.length > 0 && chapters[chapterID]
         ? chapters[chapterID].chapter
-        : '',
+        : "",
     chapterList,
     prevable: chapterNowIndex < chapterList.length,
     nextable: chapterNowIndex > 0,

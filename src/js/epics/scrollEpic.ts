@@ -1,12 +1,15 @@
-import { fromEvent } from 'rxjs';
-import { mergeMap, takeUntil, throttleTime } from 'rxjs/operators';
-import { ofType } from 'redux-observable';
-import findIndex from 'lodash/findIndex';
-import { fetchImgSrc, fetchImgList, updateRead } from './getAction';
-import { updateChapterLatestIndex, updateRenderIndex } from '../reducers/comics';
+import { fromEvent } from "rxjs";
+import { mergeMap, takeUntil, throttleTime } from "rxjs/operators";
+import { ofType } from "redux-observable";
+import findIndex from "lodash/findIndex";
+import { fetchImgSrc, fetchImgList, updateRead } from "./getAction";
+import {
+  updateChapterLatestIndex,
+  updateRenderIndex,
+} from "../reducers/comics";
 
-const START_SCROLL_EPIC = 'START_SCROLL_EPIC';
-const STOP_SCROLL_EPIC = 'STOP_SCROLL_EPIC';
+const START_SCROLL_EPIC = "START_SCROLL_EPIC";
+const STOP_SCROLL_EPIC = "STOP_SCROLL_EPIC";
 declare var document: Document;
 // function getImageIndexOnScreen(entity, begin, end) {
 //   if (end <= begin) {
@@ -36,7 +39,7 @@ declare var document: Document;
 const margin = 20;
 
 function fromScrollEvent(state$: { value: any }, cancel$: any) {
-  return fromEvent(document, 'scroll').pipe(
+  return fromEvent(document, "scroll").pipe(
     throttleTime(100),
     mergeMap(() => {
       const { entity, result } = state$.value.comics.imageList;
@@ -54,7 +57,7 @@ function fromScrollEvent(state$: { value: any }, cancel$: any) {
       const scrollTop = window.pageYOffset + 0.75 * innerHeight;
       const len = result.length;
       for (let i = 0; i < len; i += 1) {
-        if (entity[result[i]].type === 'wide') {
+        if (entity[result[i]].type === "wide") {
           accHeight += innerHeight - 68 + 2 * margin;
         } else {
           accHeight += entity[result[i]].height + 2 * margin;
@@ -66,21 +69,19 @@ function fromScrollEvent(state$: { value: any }, cancel$: any) {
       }
       const result$ = [];
       const pushIfFn = (fn: any, ...args: any[]) => {
-        if (typeof fn === 'function') {
+        if (typeof fn === "function") {
           result$.push(fn(...args));
         }
       };
       if ((renderBeginIndex + renderEndIndex) / 2 !== viewIndex) {
-        result$.push(
-          updateRenderIndex(viewIndex - 6, viewIndex + 6),
-        );
+        result$.push(updateRenderIndex(viewIndex - 6, viewIndex + 6));
         pushIfFn(fetchImgSrc, viewIndex - 6, viewIndex + 6);
       }
       if (chapterList.length > 0) {
         const imgChapter = entity[viewIndex].chapter;
         const imgChapterIndex = findIndex(
           chapterList,
-          item => item === imgChapter,
+          (item) => item === imgChapter,
         );
         if (chapterLatestIndex === imgChapterIndex && chapterLatestIndex > 0) {
           pushIfFn(fetchImgList, chapterLatestIndex - 1);
@@ -96,13 +97,12 @@ function fromScrollEvent(state$: { value: any }, cancel$: any) {
   );
 }
 
-export default function scrollEpic(
-  action$: any,
-  state$: { value: any },
-) {
+export default function scrollEpic(action$: any, state$: { value: any }) {
   return action$.pipe(
     ofType(START_SCROLL_EPIC),
-    mergeMap(() => fromScrollEvent(state$, action$.pipe(ofType(STOP_SCROLL_EPIC)))),
+    mergeMap(() =>
+      fromScrollEvent(state$, action$.pipe(ofType(STOP_SCROLL_EPIC))),
+    ),
   );
 }
 
