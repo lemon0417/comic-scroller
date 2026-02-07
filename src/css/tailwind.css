@@ -8,7 +8,8 @@
   }
 
   body {
-    color: #616161;
+    color: #111827;
+    background: #f5f2e9;
     font-family: "Noto Sans", Arial, Helvetica, sans-serif;
   }
 
@@ -17,7 +18,7 @@
   }
 
   .popup-body {
-    background: #eeeeee;
+    background: #f5f2e9;
     overflow-x: hidden;
     width: 500px;
     height: 400px;

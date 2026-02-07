@@ -15,7 +15,7 @@ declare var chrome: any;
 
 function getComicCardClass(shift: boolean, move: boolean) {
   const base =
-    "relative m-2 flex h-[180px] bg-white shadow-paper-1 transition-none opacity-100";
+    "relative m-1 flex h-[180px] rounded-md border-2 border-comic-ink bg-comic-paper shadow-comic-sm transition-none opacity-100";
   if (move) {
     return `${base} transition-[transform,opacity] duration-300 ease-in-out -translate-x-[calc(100%+8px)] scale-0 opacity-0`;
   }
@@ -134,7 +134,7 @@ class ComicCard extends Component<Props> {
         data-shift={this.props.shift}
       >
         <img
-          className="h-[180px] min-w-[120px] flex-none"
+          className="h-[180px] min-w-[120px] flex-none border-r-2 border-comic-ink"
           src={this.props.cover}
           alt={"cover"}
         />
@@ -142,12 +142,12 @@ class ComicCard extends Component<Props> {
           className="group absolute right-4 top-4 cursor-pointer"
           onClick={this.removeHandler}
         >
-          <TrashTopIcon className="absolute right-0 top-0 fill-current text-[#808080] transition-transform duration-300 ease-in-out origin-top-left group-hover:-rotate-[20deg]" />
-          <TrashBodyIcon className="absolute right-0 top-0 fill-current text-[#616161]" />
+          <TrashTopIcon className="absolute right-0 top-0 fill-current text-comic-accent transition-transform duration-300 ease-in-out origin-top-left group-hover:-rotate-[20deg]" />
+          <TrashBodyIcon className="absolute right-0 top-0 fill-current text-comic-ink" />
         </div>
-        <div className="flex flex-1 flex-col px-4">
+        <div className="flex flex-1 flex-col px-3 text-comic-ink">
           <h1
-            className="mr-6 text-[18px] text-deep-orange-500 cursor-pointer"
+            className="mr-4 font-display text-[17px] text-comic-accent cursor-pointer"
             onClick={this.pageClickHandler}
           >
             {this.props.title}
@@ -157,7 +157,7 @@ class ComicCard extends Component<Props> {
               <div className="text-sm leading-6">
                 <span className="mr-2">更新章節</span>
                 <span
-                  className="mr-2 cursor-pointer text-deep-orange-500"
+                  className="mr-2 cursor-pointer text-comic-accent"
                   onClick={this.updateChapterHandler}
                 >
                   {this.props.updateChapter.title}
@@ -167,7 +167,7 @@ class ComicCard extends Component<Props> {
             <div className="text-sm leading-6">
               <span className="mr-2">上次看到</span>
               <span
-                className="mr-2 cursor-pointer text-deep-orange-500"
+                className="mr-2 cursor-pointer text-comic-accent"
                 onClick={this.lastReadHandler}
               >
                 {this.props.lastRead.title}
@@ -176,7 +176,7 @@ class ComicCard extends Component<Props> {
             <div className="text-sm leading-6">
               <span className="mr-2">最新一話</span>
               <span
-                className="mr-2 cursor-pointer text-deep-orange-500"
+                className="mr-2 cursor-pointer text-comic-accent"
                 onClick={this.lastChapterHandler}
               >
                 {this.props.lastChapter.title}

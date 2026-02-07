@@ -9,6 +9,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        comic: {
+          ink: "#111827",
+          paper: "#F5F2E9",
+          paper2: "#EAE3D6",
+          accent: "#1D4ED8",
+          muted: "#6B7280",
+        },
         grey: {
           200: "#eeeeee",
           300: "#e0e0e0",
@@ -21,6 +28,8 @@ module.exports = {
         },
       },
       boxShadow: {
+        comic: "4px 4px 0 #111827",
+        "comic-sm": "2px 2px 0 #111827",
         "paper-1": "0 1px 6px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.24)",
         "paper-2": "0 3px 10px rgba(0, 0, 0, 0.16), 0 3px 10px rgba(0, 0, 0, 0.23)",
         "paper-3": "0 10px 30px rgba(0, 0, 0, 0.19), 0 6px 10px rgba(0, 0, 0, 0.23)",
@@ -30,6 +39,12 @@ module.exports = {
       fontFamily: {
         sans: ["\"Noto Sans\"", "Arial", "Helvetica", "sans-serif"],
         display: ["\"Comic Neue\"", "\"Noto Sans\"", "Arial", "Helvetica", "sans-serif"],
+      },
+      backgroundImage: {
+        halftone: "radial-gradient(rgba(17, 24, 39, 0.18) 1px, transparent 1px)",
+      },
+      backgroundSize: {
+        halftone: "12px 12px",
       },
       keyframes: {
         "circular-rotate": {

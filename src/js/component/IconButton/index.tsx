@@ -29,7 +29,7 @@ class IconButton extends Component<Props> {
   render() {
     return (
       <span
-        className="relative inline-flex items-center justify-center overflow-hidden rounded-full p-2"
+        className="relative inline-flex h-9 w-9 cursor-pointer items-center justify-center overflow-hidden rounded-none border-2 border-comic-ink bg-comic-paper p-1 shadow-comic-sm transition-transform duration-150 ease-out hover:-translate-y-0.5 active:translate-y-0"
         ref={this.refHandler}
         onClick={this.onClickHandler}
         onMouseDown={this.onMouseDownHandler}

@@ -13,31 +13,31 @@ declare var chrome: any;
 const isDev = import.meta.env.MODE !== "production";
 
 const headerContainerClass =
-  "relative z-[100] flex bg-white shadow-paper-1";
+  "relative z-[100] flex border-b-2 border-comic-ink bg-comic-paper shadow-comic-sm";
 const buttonClass =
-  "relative flex w-8 items-center justify-center bg-white cursor-pointer self-stretch";
+  "relative flex h-12 w-8 items-center justify-center border-l-2 border-comic-ink bg-comic-paper2 cursor-pointer self-stretch";
 const rippleContainerClass = "absolute inset-0 overflow-hidden";
 const menuBaseClass =
-  "absolute right-0 top-12 z-[200] w-[180px] origin-top bg-white shadow-paper-1 transition-[transform,opacity] duration-[160ms] ease-in-out";
+  "absolute right-2 top-[52px] z-[200] w-[180px] origin-top rounded-md border-2 border-comic-ink bg-comic-paper shadow-comic-sm transition-[transform,opacity] duration-[160ms] ease-in-out";
 const menuItemClass =
-  "h-8 text-center text-base leading-8 hover:bg-grey-300";
+  "h-9 text-center font-display text-[13px] uppercase tracking-[0.1em] leading-9 text-comic-ink hover:bg-comic-accent hover:text-white";
 const headerClass =
   "relative z-[100] flex h-12 w-[calc(100vw-32px)] leading-[48px]";
 const tabBaseClass =
-  "relative w-[calc((100vw-32px)/3)] cursor-pointer overflow-hidden text-center text-[18px]";
-const tabActiveClass = `${tabBaseClass} text-deep-orange-500`;
+  "relative w-[calc((100vw-32px)/3)] cursor-pointer overflow-hidden text-center font-display text-[15px] uppercase tracking-[0.14em] text-comic-ink transition-colors duration-150 hover:text-comic-accent";
+const tabActiveClass = `${tabBaseClass} text-comic-accent`;
 const shiftMarkerBaseClass =
-  "absolute bottom-0 left-0 h-1 w-[calc((100vw-32px)/3)] bg-deep-orange-500 transition-transform duration-[330ms] ease-in-out";
+  "absolute bottom-0 left-0 h-1 w-[calc((100vw-32px)/3)] bg-comic-accent transition-transform duration-[330ms] ease-in-out";
 const shiftMarkerLeftClass = `${shiftMarkerBaseClass} translate-x-0`;
 const shiftMarkerMidClass = `${shiftMarkerBaseClass} translate-x-full`;
 const shiftMarkerRightClass = `${shiftMarkerBaseClass} translate-x-[200%]`;
 const cardContainerBaseClass =
-  "absolute top-12 flex h-[calc(100vh-48px)] overflow-x-hidden overflow-y-auto transition-transform duration-[330ms] ease-in-out popup-scrollbar";
+  "absolute top-12 flex h-[calc(100vh-48px)] overflow-x-hidden overflow-y-auto bg-comic-paper transition-transform duration-[330ms] ease-in-out popup-scrollbar";
 const cardContainerLeftClass = `${cardContainerBaseClass} translate-x-0`;
 const cardContainerMidClass = `${cardContainerBaseClass} -translate-x-[500px]`;
 const cardContainerRightClass = `${cardContainerBaseClass} -translate-x-[1000px]`;
 const cardColumnClass =
-  "h-[calc(100vh-48px)] w-[500px] flex-none overflow-y-auto";
+  "h-[calc(100vh-48px)] w-[500px] flex-none overflow-y-auto px-1 py-1";
 
 function stopImmediatePropagation(e: any) {
   e.stopPropagation();
@@ -129,7 +129,7 @@ const MenuButton = ({
     onClick={showMenuHandler}
     onMouseDown={onMouseDownHandler}
   >
-    <MoreIcon className="fill-current text-[#616161]" />
+    <MoreIcon className="fill-current text-comic-ink" />
     <div className={rippleContainerClass}>{children}</div>
     <div
       className={
@@ -348,7 +348,7 @@ class PopUpApp extends Component<any, PopUpState> {
 
   render() {
     return (
-      <div className="relative h-full w-full">
+      <div className="relative h-full w-full bg-comic-paper bg-halftone [background-size:12px_12px]">
         <div className={headerContainerClass}>
           <header className={headerClass} onClick={this.tabOnClickHandler}>
             <RippleTab

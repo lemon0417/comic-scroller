@@ -38,33 +38,28 @@ class ChapterList extends Component<any, any> {
 
   render() {
     const modalBase =
-      "fixed inset-0 z-[1000] flex h-screen items-center justify-center bg-[rgba(0,0,0,0.4)] opacity-0 transition-opacity duration-300 ease-in-out pointer-events-none will-change-[scroll-position]";
+      "fixed inset-0 z-[1000] flex h-screen items-center justify-center bg-[rgba(17,24,39,0.55)] opacity-0 transition-opacity duration-300 ease-in-out pointer-events-none will-change-[scroll-position]";
     const modalClass = this.props.show
       ? `${modalBase} opacity-100 pointer-events-auto`
       : modalBase;
     const panelBase =
-      "relative flex h-[90vh] w-[50vw] min-w-[900px] scale-0 flex-col items-center justify-center bg-white shadow-paper-2 transition-transform duration-300 ease-in-out will-change-[scroll-position]";
-    const panelClass = this.props.show
-      ? `${panelBase} scale-100`
-      : panelBase;
+      "relative flex h-[90vh] w-[50vw] min-w-[900px] scale-0 flex-col items-center justify-center rounded-lg border-2 border-comic-ink bg-comic-paper shadow-comic-sm transition-transform duration-300 ease-in-out will-change-[scroll-position]";
+    const panelClass = this.props.show ? `${panelBase} scale-100` : panelBase;
     const contentClass =
-      "flex h-[calc(90vh-48px)] w-full flex-wrap content-start items-start overflow-y-auto py-5";
+      "flex h-[calc(90vh-48px)] w-full flex-wrap content-start items-start overflow-y-auto bg-comic-paper py-3";
     const itemBase =
-      "h-10 w-[200px] flex-[1_0_auto] max-w-[calc(25%-8px)] rounded-[5px] border border-current text-center text-base leading-10 m-1";
+      "m-0.5 h-10 w-[200px] flex-[1_0_auto] max-w-[calc(25%-8px)] rounded-md border-2 border-comic-ink bg-comic-paper text-center text-[15px] leading-9 shadow-comic-sm transition-transform duration-150 ease-out hover:-translate-y-0.5";
     const chapterBase = "cursor-pointer overflow-hidden";
-    const chapterClass = `${itemBase} ${chapterBase} text-[cadetblue] hover:bg-[cadetblue] hover:text-white`;
-    const chapterReadClass = `${itemBase} ${chapterBase} text-grey-400 hover:bg-grey-400 hover:text-white`;
+    const chapterClass = `${itemBase} ${chapterBase} text-comic-ink hover:bg-comic-accent hover:text-white`;
+    const chapterReadClass = `${itemBase} ${chapterBase} bg-comic-paper2 text-comic-ink/60 hover:bg-comic-accent hover:text-white`;
 
     return (
       <div
         className={modalClass}
         onClick={this.props.show ? this.onClickHandler : undefined}
       >
-        <div
-          className={panelClass}
-          ref={this.refHandler}
-        >
-          <div className="h-12 w-full bg-grey-800 text-center text-[24px] leading-[48px] text-grey-300">
+        <div className={panelClass} ref={this.refHandler}>
+          <div className="h-12 w-full border-b-2 border-comic-ink bg-comic-paper2 text-center font-display text-[19px] uppercase tracking-[0.16em] leading-[48px] text-comic-ink">
             章節
           </div>
           <div className={contentClass} onClick={this.chapterClickHandler}>

@@ -11,7 +11,7 @@ class ImgContainer extends Component<any, any> {
   render() {
     return (
       <div
-        className="flex min-h-screen flex-col items-center justify-center bg-grey-900 overflow-y-hidden"
+        className="flex min-h-screen flex-col items-center justify-center bg-comic-ink overflow-y-hidden"
         style={{
           paddingTop: this.props.paddingTop + 48,
           paddingBottom: this.props.paddingBottom,

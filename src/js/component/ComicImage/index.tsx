@@ -18,7 +18,7 @@ type State = {
 
 function getImgClass(type: string) {
   const base =
-    "my-[5px] flex max-w-[100vw] items-center justify-center border-2 border-current text-center";
+    "my-[5px] flex max-w-[100vw] items-center justify-center border-2 border-comic-paper text-center text-comic-paper";
   switch (type) {
     case "normal":
       return base;
@@ -27,7 +27,7 @@ function getImgClass(type: string) {
     case "natural":
       return base;
     case "end":
-      return "my-5 text-center text-[36px] leading-[72px] text-white";
+      return "my-5 text-center font-display text-[36px] leading-[72px] text-comic-accent";
     default:
       return `${base} w-[980px]`;
   }
@@ -77,7 +77,7 @@ export class ComicImage extends Component<Props, State> {
         }}
       >
         {!this.state.showImage && this.props.type !== "end" ? (
-          <div className="w-[900px] text-center text-[40px] text-white">
+          <div className="w-[900px] text-center font-display text-[40px] text-comic-paper">
             Loading...
           </div>
         ) : undefined}
