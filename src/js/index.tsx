@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { Provider } from "react-redux";
 import "normalize.css/normalize.css";
-import "css/tag.css";
+import "@css/tailwind.css";
 import App from "./container/App";
 import configureStore from "./store/configureStore";
 

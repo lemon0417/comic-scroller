@@ -6,13 +6,12 @@ import reduce from "lodash/reduce";
 import filter from "lodash/filter";
 import Loading from "cmp/Loading";
 import ConnectedComicImage from "cmp/ComicImage";
-import cn from "./ImgContainer.module.css";
 
 class ImgContainer extends Component<any, any> {
   render() {
     return (
       <div
-        className={cn.ImgContainer}
+        className="flex min-h-screen flex-col items-center justify-center bg-grey-900 overflow-y-hidden"
         style={{
           paddingTop: this.props.paddingTop + 48,
           paddingBottom: this.props.paddingBottom,

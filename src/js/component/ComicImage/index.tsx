@@ -1,6 +1,5 @@
 import { Component, type SyntheticEvent } from "react";
 import { connect } from "react-redux";
-import cn from "./ComicImage.module.css";
 import { updateImgType } from "../../reducers/comics";
 
 type Props = {
@@ -18,17 +17,19 @@ type State = {
 };
 
 function getImgClass(type: string) {
+  const base =
+    "my-[5px] flex max-w-[100vw] items-center justify-center border-2 border-current text-center";
   switch (type) {
     case "normal":
-      return cn.ComicImage;
+      return base;
     case "wide":
-      return cn.ComicImageWide;
+      return `${base} min-w-[980px]`;
     case "natural":
-      return cn.ComicImageNatural;
+      return base;
     case "end":
-      return cn.ComicImageEnd;
+      return "my-5 text-center text-[36px] leading-[72px] text-white";
     default:
-      return cn.ComicImageInit;
+      return `${base} w-[980px]`;
   }
 }
 
@@ -70,16 +71,20 @@ export class ComicImage extends Component<Props, State> {
     return (
       <div
         className={getImgClass(this.props.type || "")}
+        data-variant={this.props.type || "init"}
         style={{
           minHeight: this.props.height,
         }}
       >
         {!this.state.showImage && this.props.type !== "end" ? (
-          <div>Loading...</div>
+          <div className="w-[900px] text-center text-[40px] text-white">
+            Loading...
+          </div>
         ) : undefined}
         {!this.props.loading && this.props.type !== "end" ? (
           <img
             style={this.state.showImage ? undefined : { display: "none" }}
+            className="h-full object-contain"
             src={this.props.src}
             onLoad={this.imgLoadHandler}
             alt={String(this.props.index ?? "")}

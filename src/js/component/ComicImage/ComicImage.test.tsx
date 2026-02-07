@@ -16,25 +16,25 @@ function renderComicImage(overrideProps: Partial<typeof defaultProps> = {}) {
   return render(<ComicImage {...props} />);
 }
 
-describe("ComicImage type className check", () => {
-  it("ComicImage type = undefined => className = ComicImageInit", () => {
+describe("ComicImage type variant check", () => {
+  it("ComicImage type = undefined => data-variant = init", () => {
     const { container } = renderComicImage({ type: "" });
-    expect(container.firstChild).toHaveClass("ComicImageInit");
+    expect(container.firstChild).toHaveAttribute("data-variant", "init");
   });
 
-  it("ComicImage type = normal => className = ComicImage", () => {
+  it("ComicImage type = normal => data-variant = normal", () => {
     const { container } = renderComicImage({ type: "normal" });
-    expect(container.firstChild).toHaveClass("ComicImage");
+    expect(container.firstChild).toHaveAttribute("data-variant", "normal");
   });
 
-  it("ComicImage type = wide => className = ComicImageWide", () => {
+  it("ComicImage type = wide => data-variant = wide", () => {
     const { container } = renderComicImage({ type: "wide" });
-    expect(container.firstChild).toHaveClass("ComicImageWide");
+    expect(container.firstChild).toHaveAttribute("data-variant", "wide");
   });
 
-  it("ComicImage type = natural => className = ComicImageNatural", () => {
+  it("ComicImage type = natural => data-variant = natural", () => {
     const { container } = renderComicImage({ type: "natural" });
-    expect(container.firstChild).toHaveClass("ComicImageNatural");
+    expect(container.firstChild).toHaveAttribute("data-variant", "natural");
   });
 });
 
@@ -54,9 +54,9 @@ describe("ComicImage Loading controls", () => {
 });
 
 describe("ComicImage shows End", () => {
-  it("ComicImage type = end => className = ComicImageEnd", () => {
+  it("ComicImage type = end => data-variant = end", () => {
     const { container } = renderComicImage({ type: "end" });
-    expect(container.firstChild).toHaveClass("ComicImageEnd");
+    expect(container.firstChild).toHaveAttribute("data-variant", "end");
   });
 
   it("show End when props { type = end }", () => {

@@ -5,13 +5,39 @@ import MoreIcon from "imgs/more_vert.svg?react";
 import ComicCard from "cmp/ComicCard";
 import ripple from "cmp/Ripple";
 import { updatePopupData, shiftCards } from "./reducers/popup";
-import cn from "./PopUpApp.module.css";
 import initObject from "../../util/initObject";
 import filter from "lodash/filter";
 import { storageGet, storageSet, storageClear } from "../../services/storage";
 
 declare var chrome: any;
 const isDev = import.meta.env.MODE !== "production";
+
+const headerContainerClass =
+  "relative z-[100] flex bg-white shadow-paper-1";
+const buttonClass =
+  "relative flex w-8 items-center justify-center bg-white cursor-pointer self-stretch";
+const rippleContainerClass = "absolute inset-0 overflow-hidden";
+const menuBaseClass =
+  "absolute right-0 top-12 z-[200] w-[180px] origin-top bg-white shadow-paper-1 transition-[transform,opacity] duration-[160ms] ease-in-out";
+const menuItemClass =
+  "h-8 text-center text-base leading-8 hover:bg-grey-300";
+const headerClass =
+  "relative z-[100] flex h-12 w-[calc(100vw-32px)] leading-[48px]";
+const tabBaseClass =
+  "relative w-[calc((100vw-32px)/3)] cursor-pointer overflow-hidden text-center text-[18px]";
+const tabActiveClass = `${tabBaseClass} text-deep-orange-500`;
+const shiftMarkerBaseClass =
+  "absolute bottom-0 left-0 h-1 w-[calc((100vw-32px)/3)] bg-deep-orange-500 transition-transform duration-[330ms] ease-in-out";
+const shiftMarkerLeftClass = `${shiftMarkerBaseClass} translate-x-0`;
+const shiftMarkerMidClass = `${shiftMarkerBaseClass} translate-x-full`;
+const shiftMarkerRightClass = `${shiftMarkerBaseClass} translate-x-[200%]`;
+const cardContainerBaseClass =
+  "absolute top-12 flex h-[calc(100vh-48px)] overflow-x-hidden overflow-y-auto transition-transform duration-[330ms] ease-in-out popup-scrollbar";
+const cardContainerLeftClass = `${cardContainerBaseClass} translate-x-0`;
+const cardContainerMidClass = `${cardContainerBaseClass} -translate-x-[500px]`;
+const cardContainerRightClass = `${cardContainerBaseClass} -translate-x-[1000px]`;
+const cardColumnClass =
+  "h-[calc(100vh-48px)] w-[500px] flex-none overflow-y-auto";
 
 function stopImmediatePropagation(e: any) {
   e.stopPropagation();
@@ -27,13 +53,13 @@ function getShiftMarkerClass(
 ): string {
   switch (selectedType) {
     case "update":
-      return cn.shiftMarker_left;
+      return shiftMarkerLeftClass;
     case "subscribe":
-      return cn.shiftMarker_mid;
+      return shiftMarkerMidClass;
     case "history":
-      return cn.shiftMarker_right;
+      return shiftMarkerRightClass;
     default:
-      return cn.shiftMarker_left;
+      return shiftMarkerLeftClass;
   }
 }
 
@@ -42,13 +68,13 @@ function getContainerClass(
 ): string {
   switch (selectedType) {
     case "update":
-      return cn.CardContainer_left;
+      return cardContainerLeftClass;
     case "subscribe":
-      return cn.CardContainer_mid;
+      return cardContainerMidClass;
     case "history":
-      return cn.CardContainer_right;
+      return cardContainerRightClass;
     default:
-      return cn.CardContainer_left;
+      return cardContainerLeftClass;
   }
 }
 
@@ -99,29 +125,35 @@ const MenuButton = ({
   fileOnChangeHandler: React.ChangeEventHandler<HTMLInputElement>;
 }) => (
   <span
-    className={cn.button}
+    className={buttonClass}
     onClick={showMenuHandler}
     onMouseDown={onMouseDownHandler}
   >
-    <MoreIcon />
-    <div className={cn.rippleContainer}>{children}</div>
-    <div className={showMenu ? cn.menuOn : cn.menuOff}>
+    <MoreIcon className="fill-current text-[#616161]" />
+    <div className={rippleContainerClass}>{children}</div>
+    <div
+      className={
+        showMenu
+          ? `${menuBaseClass} scale-y-100 opacity-100`
+          : `${menuBaseClass} scale-y-0 opacity-0`
+      }
+    >
       <div
-        className={cn.menuItem}
+        className={menuItemClass}
         onMouseDown={preventDefault}
         onClick={downloadHandler}
       >
         Download Config
       </div>
       <div
-        className={cn.menuItem}
+        className={menuItemClass}
         onMouseDown={preventDefault}
         onClick={uploadHandler}
       >
         Upload Config
       </div>
       <div
-        className={cn.menuItem}
+        className={menuItemClass}
         onMouseDown={preventDefault}
         onClick={resetHandler}
       >
@@ -129,7 +161,7 @@ const MenuButton = ({
       </div>
       {showBackgroundCheck ? (
         <div
-          className={cn.menuItem}
+          className={menuItemClass}
           onMouseDown={preventDefault}
           onClick={backgroundCheckHandler}
         >
@@ -316,24 +348,30 @@ class PopUpApp extends Component<any, PopUpState> {
 
   render() {
     return (
-      <div className={cn.PopUpApp}>
-        <div className={cn.headerContainer}>
-          <header className={cn.header} onClick={this.tabOnClickHandler}>
+      <div className="relative h-full w-full">
+        <div className={headerContainerClass}>
+          <header className={headerClass} onClick={this.tabOnClickHandler}>
             <RippleTab
               className={
-                this.state.selectedType === "update" ? cn.tabActive : cn.tab
+                this.state.selectedType === "update"
+                  ? tabActiveClass
+                  : tabBaseClass
               }
               type={"update"}
             />
             <RippleTab
               className={
-                this.state.selectedType === "subscribe" ? cn.tabActive : cn.tab
+                this.state.selectedType === "subscribe"
+                  ? tabActiveClass
+                  : tabBaseClass
               }
               type={"subscribe"}
             />
             <RippleTab
               className={
-                this.state.selectedType === "history" ? cn.tabActive : cn.tab
+                this.state.selectedType === "history"
+                  ? tabActiveClass
+                  : tabBaseClass
               }
               type={"history"}
             />
@@ -356,7 +394,7 @@ class PopUpApp extends Component<any, PopUpState> {
           className={getContainerClass(this.state.selectedType)}
           onTransitionEnd={this.transitionEndHandler}
         >
-          <div>
+          <div className={cardColumnClass}>
             {map(this.props.update, (item, i) => (
               <ComicCard
                 key={`update_${item.comicsID}_${item.chapterID}`}
@@ -372,7 +410,7 @@ class PopUpApp extends Component<any, PopUpState> {
               />
             ))}
           </div>
-          <div>
+          <div className={cardColumnClass}>
             {map(this.props.subscribe, (item, i) => (
               <ComicCard
                 key={`subscribe_${item.comicsID}`}
@@ -386,7 +424,7 @@ class PopUpApp extends Component<any, PopUpState> {
               />
             ))}
           </div>
-          <div>
+          <div className={cardColumnClass}>
             {map(this.props.history, (item, i) => (
               <ComicCard
                 key={`history_${item.comicsID}`}

@@ -1,5 +1,4 @@
 import { PureComponent } from "react";
-import cn from "./RippleCircle.module.css";
 
 type Props = {
   removeRippleHandler: Function;
@@ -15,11 +14,11 @@ type State = {
 };
 
 function getRippleClass(active: boolean, opacity: boolean): string {
-  if (active) {
-    if (opacity) return cn.RippleCircleOpacity;
-    return cn.RippleCircleActive;
-  }
-  return cn.RippleCircle;
+  const base =
+    "pointer-events-none absolute left-0 top-0 z-[1000] rounded-full bg-[#808080] opacity-30 origin-center transition-[transform,opacity] duration-[350ms] ease-in-out";
+  if (active && opacity) return `${base} opacity-0`;
+  if (active) return base;
+  return base;
 }
 
 class RippleCircle extends PureComponent<Props, State> {

@@ -7,7 +7,6 @@ import NextIcon from "@imgs/circle-right.svg?react";
 import PrevIcon from "@imgs/circle-left.svg?react";
 import TagIcon from "@imgs/tag.svg?react";
 import IconButton from "../../component/IconButton";
-import cn from "./App.module.css";
 import ImgContainer from "../ImgContainer";
 import ChapterList from "../ChapterList";
 import {
@@ -26,9 +25,11 @@ const ImgContainerAny: any = ImgContainer;
 const ChapterListAny: any = ChapterList;
 
 function getTagIconClass(chapterTitle: any, subscribe: any) {
-  if (chapterTitle === "") return cn.icon_deactive;
-  if (subscribe) return cn.icon_subscribe;
-  return cn.icon;
+  if (chapterTitle === "")
+    return "fill-current text-[#808080]";
+  if (subscribe)
+    return "fill-current text-[#ffff00] cursor-pointer";
+  return "fill-current text-grey-300 cursor-pointer";
 }
 
 class App extends Component<any, any> {
@@ -178,33 +179,48 @@ class App extends Component<any, any> {
   render() {
     const { prevable, nextable, chapterTitle, subscribe } = this.props;
     return (
-      <div className={cn.App}>
-        <header className={cn.Header}>
-          <span className={cn.leftContainer}>
+      <div className="min-h-screen">
+        <header className="fixed left-0 top-0 z-[900] flex h-12 w-full items-center justify-between bg-grey-800 px-6 text-[20px] text-grey-300 will-change-[scroll-position]">
+          <span className="flex items-center">
             <IconButton onClickHandler={this.showChapterListHandler}>
-              <MenuIcon className={cn.icon} />
+              <MenuIcon className="fill-current text-grey-300 cursor-pointer" />
             </IconButton>
-            <span>Comics Scroller</span>
-            <a target="_blank" rel="noreferrer" href={this.props.url}>{`${
-              this.props.title
-            }`}</a>
-            <span>&gt;</span>
-            <span>
+            <span className="mx-2">Comics Scroller</span>
+            <a
+              className="mx-2 underline"
+              target="_blank"
+              rel="noreferrer"
+              href={this.props.url}
+            >{`${this.props.title}`}</a>
+            <span className="mx-2">&gt;</span>
+            <span className="mx-2">
               {this.props.chapterList.length > 0
                 ? this.props.chapterTitle
                 : "Loading ..."}
             </span>
           </span>
-          <span className={cn.rigthtContainer}>
+          <span className="mr-9 flex items-center">
             <IconButton
               onClickHandler={prevable ? this.prevChapterHandler : undefined}
             >
-              <PrevIcon className={prevable ? cn.icon : cn.icon_deactive} />
+              <PrevIcon
+                className={
+                  prevable
+                    ? "fill-current text-grey-300 cursor-pointer"
+                    : "fill-current text-[#808080]"
+                }
+              />
             </IconButton>
             <IconButton
               onClickHandler={nextable ? this.nextChapterHandler : undefined}
             >
-              <NextIcon className={nextable ? cn.icon : cn.icon_deactive} />
+              <NextIcon
+                className={
+                  nextable
+                    ? "fill-current text-grey-300 cursor-pointer"
+                    : "fill-current text-[#808080]"
+                }
+              />
             </IconButton>
             <IconButton
               onClickHandler={

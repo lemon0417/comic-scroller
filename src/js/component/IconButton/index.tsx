@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-import cn from "./IconButton.module.css";
 import ripple from "../Ripple";
 
 type Props = {
@@ -30,7 +29,7 @@ class IconButton extends Component<Props> {
   render() {
     return (
       <span
-        className={cn.IconButton}
+        className="relative inline-flex items-center justify-center overflow-hidden rounded-full p-2"
         ref={this.refHandler}
         onClick={this.onClickHandler}
         onMouseDown={this.onMouseDownHandler}

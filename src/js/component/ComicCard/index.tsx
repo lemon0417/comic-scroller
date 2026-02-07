@@ -10,14 +10,19 @@ import {
   removeCard,
   shiftCards,
 } from "../../container/PopUpApp/reducers/popup";
-import cn from "./ComicCard.module.css";
 
 declare var chrome: any;
 
 function getComicCardClass(shift: boolean, move: boolean) {
-  if (move) return cn.ComicCard_move;
-  if (shift) return cn.ComicCard_shift;
-  return cn.ComicCard;
+  const base =
+    "relative m-2 flex h-[180px] bg-white shadow-paper-1 transition-none opacity-100";
+  if (move) {
+    return `${base} transition-[transform,opacity] duration-300 ease-in-out -translate-x-[calc(100%+8px)] scale-0 opacity-0`;
+  }
+  if (shift) {
+    return `${base} transition-transform duration-300 ease-in-out -translate-y-[calc(100%+8px)]`;
+  }
+  return base;
 }
 
 type Props = {
@@ -128,31 +133,52 @@ class ComicCard extends Component<Props> {
         data-move={this.props.move}
         data-shift={this.props.shift}
       >
-        <img src={this.props.cover} alt={"cover"} />
-        <div className={cn.trash} onClick={this.removeHandler}>
-          <TrashTopIcon className={cn.trashTop} />
-          <TrashBodyIcon className={cn.trashBody} />
+        <img
+          className="h-[180px] min-w-[120px] flex-none"
+          src={this.props.cover}
+          alt={"cover"}
+        />
+        <div
+          className="group absolute right-4 top-4 cursor-pointer"
+          onClick={this.removeHandler}
+        >
+          <TrashTopIcon className="absolute right-0 top-0 fill-current text-[#808080] transition-transform duration-300 ease-in-out origin-top-left group-hover:-rotate-[20deg]" />
+          <TrashBodyIcon className="absolute right-0 top-0 fill-current text-[#616161]" />
         </div>
-        <div className={cn.infor}>
-          <h1 onClick={this.pageClickHandler}>{this.props.title}</h1>
-          <div className={cn.itemContainer}>
+        <div className="flex flex-1 flex-col px-4">
+          <h1
+            className="mr-6 text-[18px] text-deep-orange-500 cursor-pointer"
+            onClick={this.pageClickHandler}
+          >
+            {this.props.title}
+          </h1>
+          <div>
             {this.props.updateChapter ? (
-              <div>
-                <span>更新章節</span>
-                <span onClick={this.updateChapterHandler}>
+              <div className="text-sm leading-6">
+                <span className="mr-2">更新章節</span>
+                <span
+                  className="mr-2 cursor-pointer text-deep-orange-500"
+                  onClick={this.updateChapterHandler}
+                >
                   {this.props.updateChapter.title}
                 </span>
               </div>
             ) : undefined}
-            <div>
-              <span>上次看到</span>
-              <span onClick={this.lastReadHandler}>
+            <div className="text-sm leading-6">
+              <span className="mr-2">上次看到</span>
+              <span
+                className="mr-2 cursor-pointer text-deep-orange-500"
+                onClick={this.lastReadHandler}
+              >
                 {this.props.lastRead.title}
               </span>
             </div>
-            <div>
-              <span>最新一話</span>
-              <span onClick={this.lastChapterHandler}>
+            <div className="text-sm leading-6">
+              <span className="mr-2">最新一話</span>
+              <span
+                className="mr-2 cursor-pointer text-deep-orange-500"
+                onClick={this.lastChapterHandler}
+              >
                 {this.props.lastChapter.title}
               </span>
             </div>

@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    color: #616161;
+    font-family: "Noto Sans", Arial, Helvetica, sans-serif;
+  }
+
+  .app-body {
+    overflow-y: scroll;
+  }
+
+  .popup-body {
+    background: #eeeeee;
+    overflow-x: hidden;
+    width: 500px;
+    height: 400px;
+  }
+
+  a {
+    text-decoration: none !important;
+    color: inherit;
+  }
+
+  a:visited {
+    color: inherit;
+  }
+}
+
+@layer utilities {
+  .popup-scrollbar::-webkit-scrollbar {
+    background: transparent;
+    width: 6px;
+  }
+
+  .popup-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(117, 117, 117, 0.5);
+    border-radius: 3px;
+  }
+}
