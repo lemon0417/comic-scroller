@@ -1,6 +1,6 @@
 {
   "name": "comic-scroller",
-  "version": "4.0.51",
+  "version": "4.0.52",
   "private": true,
   "packageManager": "yarn@4.0.2",
   "engines": {
