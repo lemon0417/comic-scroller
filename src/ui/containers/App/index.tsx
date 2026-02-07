@@ -1,7 +1,6 @@
 import { Component } from "react";
 import { connect } from "react-redux";
 import some from "lodash/some";
-import filter from "lodash/filter";
 import MenuIcon from "@imgs/menu.svg?react";
 import NextIcon from "@imgs/circle-right.svg?react";
 import PrevIcon from "@imgs/circle-left.svg?react";
@@ -9,19 +8,14 @@ import TagIcon from "@imgs/tag.svg?react";
 import IconButton from "@components/IconButton";
 import ImageContainer from "@containers/ImageContainer";
 import ChapterList from "@containers/ChapterList";
-import {
-  resetImg,
-  updateChapterLatestIndex,
-  updateSubscribe,
-} from "@domain/reducers/comics";
+import { updateSubscribe } from "@domain/reducers/comics";
 import {
   fetchChapter,
-  fetchImgList,
+  navigateChapter,
   startResize,
-  stopScroll,
-  updateRead,
+  toggleSubscribe,
 } from "@domain/actions/reader";
-import { storageGet, storageSet } from "@infra/services/storage";
+import { storageGet } from "@infra/services/storage";
 
 declare var chrome: any;
 
@@ -82,100 +76,16 @@ class App extends Component<any, any> {
 
   prevChapterHandler = () => {
     const index = this.props.chapterNowIndex + 1;
-    this.props.stopScroll();
-    this.props.resetImg();
-    this.props.updateRead(index);
-    this.props.updateChapterLatestIndex(index);
-    this.props.fetchImgList(index);
+    this.props.navigateChapter(index);
   };
 
   nextChapterHandler = () => {
     const index = this.props.chapterNowIndex - 1;
-    this.props.stopScroll();
-    this.props.resetImg();
-    this.props.updateRead(index);
-    this.props.updateChapterLatestIndex(index);
-    this.props.fetchImgList(index);
+    this.props.navigateChapter(index);
   };
 
   subscribeHandler = () => {
-    const { site: propSite, comicsID: propComicsID } = this.props;
-    const params = new URLSearchParams(window.location.search);
-    const chapterParam = params.get("chapter") || "";
-    const inferSite = () => {
-      if (/^m\d+$/i.test(chapterParam)) return "dm5";
-      if (/^comic-\d+\.html\?ch=/i.test(chapterParam)) return "comicbus";
-      if (chapterParam.startsWith("HTML/")) return "sf";
-      return "";
-    };
-    const resolveSiteAndId = (store: any) => {
-      const rawKey = String(propComicsID ?? "");
-      const tryKeys = (bucket: any, baseKey: string) => {
-        if (!bucket) return null;
-        if (baseKey && bucket[baseKey]) return baseKey;
-        const withPrefix = baseKey ? `m${baseKey}` : "";
-        if (withPrefix && bucket[withPrefix]) return withPrefix;
-        if (baseKey.startsWith("m")) {
-          const stripped = baseKey.slice(1);
-          if (stripped && bucket[stripped]) return stripped;
-        }
-        return null;
-      };
-
-      if (propSite) {
-        const resolvedKey = tryKeys(store[propSite], rawKey) || rawKey;
-        return { site: propSite, comicsID: resolvedKey };
-      }
-
-      const candidates = ["dm5", "sf", "comicbus"];
-      for (const candidate of candidates) {
-        const resolvedKey = tryKeys(store[candidate], rawKey);
-        if (resolvedKey) {
-          return { site: candidate, comicsID: resolvedKey };
-        }
-      }
-
-      const inferred = inferSite();
-      if (inferred) {
-        return { site: inferred, comicsID: rawKey };
-      }
-      return { site: "", comicsID: rawKey };
-    };
-
-    storageGet((item: any) => {
-      const { site, comicsID } = resolveSiteAndId(item);
-      if (!site) return;
-      if (item.subscribe) {
-        let newItem = {};
-        if (
-          some(
-            item.subscribe,
-            (citem) => citem.site === site && citem.comicsID === comicsID,
-          )
-        ) {
-          newItem = {
-            ...item,
-            subscribe: filter(
-              item.subscribe,
-              (citem) => citem.site !== site || citem.comicsID !== comicsID,
-            ),
-          };
-          storageSet(newItem, () => this.props.updateSubscribe(false));
-        } else {
-          newItem = {
-            ...item,
-            subscribe: [
-              {
-                site,
-                comicsID,
-              },
-              ...item.subscribe,
-            ],
-          };
-          storageSet(newItem, () => this.props.updateSubscribe(true));
-        }
-      }
-    });
+    this.props.toggleSubscribe();
   };
 
   render() {
@@ -280,13 +190,10 @@ function mapStateToProps(state: any) {
 
 const connectedApp = connect(mapStateToProps, {
   fetchChapter,
-  stopScroll,
   startResize,
-  resetImg,
-  updateRead,
-  updateChapterLatestIndex,
+  navigateChapter,
   updateSubscribe,
-  fetchImgList,
+  toggleSubscribe,
 })(App);
 
 export default connectedApp as any;

@@ -1,12 +1,7 @@
 import { Component } from "react";
 import { connect } from "react-redux";
 import map from "lodash/map";
-import {
-  resetImg,
-  updateChapterLatestIndex,
-  updateRenderIndex,
-} from "@domain/reducers/comics";
-import { fetchImgList, stopScroll, updateRead } from "@domain/actions/reader";
+import { navigateChapter } from "@domain/actions/reader";
 
 class ChapterList extends Component<any, any> {
   node!: HTMLDivElement;
@@ -26,12 +21,7 @@ class ChapterList extends Component<any, any> {
     const indexAttr = target?.dataset?.index;
     if (indexAttr) {
       const index = parseInt(indexAttr, 10);
-      this.props.stopScroll();
-      this.props.resetImg();
-      this.props.updateRead(index);
-      this.props.updateChapterLatestIndex(index);
-      this.props.updateRenderIndex(0, 6);
-      this.props.fetchImgList(index);
+      this.props.navigateChapter(index);
     }
   };
 
@@ -90,10 +80,5 @@ function mapStateToProps(state: any) {
 }
 
 export default connect(mapStateToProps, {
-  stopScroll,
-  resetImg,
-  updateRead,
-  updateRenderIndex,
-  updateChapterLatestIndex,
-  fetchImgList,
+  navigateChapter,
 })(ChapterList as any);
