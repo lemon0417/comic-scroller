@@ -33,17 +33,23 @@ export default defineConfig(({ mode }) => ({
   plugins: [react(), svgr({ exportAsDefault: true }), copyManifest(mode)],
   resolve: {
     alias: {
-      css: path.join(srcDir, 'css'),
-      '@css': path.join(srcDir, 'css'),
-      imgs: path.join(srcDir, 'imgs'),
-      '@imgs': path.join(srcDir, 'imgs'),
-      cmp: path.join(srcDir, 'js', 'component'),
+      '@styles': path.join(srcDir, 'styles'),
+      '@assets': path.join(srcDir, 'assets'),
+      '@imgs': path.join(srcDir, 'assets', 'imgs'),
+      '@ui': path.join(srcDir, 'ui'),
+      '@components': path.join(srcDir, 'ui', 'components'),
+      '@containers': path.join(srcDir, 'ui', 'containers'),
+      '@domain': path.join(srcDir, 'domain'),
+      '@epics': path.join(srcDir, 'epics'),
+      '@infra': path.join(srcDir, 'infra'),
+      '@utils': path.join(srcDir, 'utils'),
+      '@background': path.join(srcDir, 'background'),
     },
   },
   css: {
     modules: {
       scopeBehaviour: 'local',
-      globalModulePaths: [/node_modules/, /src\/css\//],
+      globalModulePaths: [/node_modules/, /src\/styles\//],
       generateScopedName: '[name]__[local]__[hash:base64:5]',
       localsConvention: name => name,
     },
@@ -58,7 +64,7 @@ export default defineConfig(({ mode }) => ({
       input: {
         app: path.join(rootDir, 'app.html'),
         popup: path.join(rootDir, 'popup.html'),
-        background: path.join(rootDir, 'src', 'js', 'background.ts'),
+        background: path.join(rootDir, 'src', 'background', 'index.ts'),
       },
       output: {
         entryFileNames: 'js/[name].js',

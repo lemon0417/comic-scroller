@@ -3,8 +3,8 @@ module.exports = {
   content: [
     "./app.html",
     "./popup.html",
-    "./src/js/**/*.{js,jsx,ts,tsx}",
-    "./src/css/**/*.css",
+    "./src/**/*.{js,jsx,ts,tsx}",
+    "./src/styles/**/*.css",
   ],
   theme: {
     extend: {

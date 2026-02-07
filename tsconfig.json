@@ -22,14 +22,20 @@
     "types": ["jest", "node", "vite/client"],
     "typeRoots": ["./node_modules/@types"],
     "paths": {
-      "@imgs": ["imgs"],
-      "@imgs/*": ["imgs/*"],
-      "imgs/*": ["imgs/*"],
-      "@css": ["css"],
-      "css/*": ["css/*"],
-      "cmp": ["js/component"],
-      "cmp/*": ["js/component/*"]
-    },
+      "@styles": ["styles"],
+      "@styles/*": ["styles/*"],
+      "@assets": ["assets"],
+      "@assets/*": ["assets/*"],
+      "@imgs/*": ["assets/imgs/*"],
+      "@ui/*": ["ui/*"],
+      "@components/*": ["ui/components/*"],
+      "@containers/*": ["ui/containers/*"],
+      "@domain/*": ["domain/*"],
+      "@epics/*": ["epics/*"],
+      "@infra/*": ["infra/*"],
+      "@utils/*": ["utils/*"],
+      "@background/*": ["background/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "build", "dist", "scripts"]

@@ -59,11 +59,17 @@ export default [
       'import/resolver': {
         alias: {
           map: [
-            ['css', './src/css'],
-            ['@css', './src/css'],
-            ['imgs', './src/imgs'],
-            ['@imgs', './src/imgs'],
-            ['cmp', './src/js/component'],
+            ['@styles', './src/styles'],
+            ['@assets', './src/assets'],
+            ['@imgs', './src/assets/imgs'],
+            ['@ui', './src/ui'],
+            ['@components', './src/ui/components'],
+            ['@containers', './src/ui/containers'],
+            ['@domain', './src/domain'],
+            ['@epics', './src/epics'],
+            ['@infra', './src/infra'],
+            ['@utils', './src/utils'],
+            ['@background', './src/background'],
           ],
           extensions: ['.js', '.jsx', '.ts', '.tsx', '.json', '.css'],
         },

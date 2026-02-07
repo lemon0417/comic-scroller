@@ -17,7 +17,7 @@
     "typecheck:emit": "tsc -p tsconfig.build.json",
     "zip": "node scripts/zip-release.mjs",
     "release": "yarn verify:release && yarn lint && yarn test && yarn build && yarn zip",
-    "format": "prettier --trailing-comma=all --write 'src/js/**/*.{js,jsx,ts,tsx}'",
+    "format": "prettier --trailing-comma=all --write 'src/**/*.{js,jsx,ts,tsx}'",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{js,jsx,ts,tsx}\" --fix",
     "test": "jest"
@@ -39,12 +39,20 @@
       "^undici$": "<rootDir>/node_modules/empty/index.js",
       "^parse5-parser-stream$": "<rootDir>/node_modules/empty/index.js",
       "^node:(.*)$": "$1",
-      "\\.svg\\?react$": "<rootDir>/src/js/__mocks__/svgMock.tsx",
-      "\\.(svg)$": "<rootDir>/src/js/__mocks__/svgMock.tsx",
+      "\\.svg\\?react$": "<rootDir>/src/__mocks__/svgMock.tsx",
+      "\\.(svg)$": "<rootDir>/src/__mocks__/svgMock.tsx",
       "\\.(css)$": "identity-obj-proxy",
-      "^css/(.*)$": "<rootDir>/src/css/$1",
-      "^imgs/(.*)$": "<rootDir>/src/imgs/$1",
-      "^cmp/(.*)$": "<rootDir>/src/js/component/$1"
+      "^@styles/(.*)$": "<rootDir>/src/styles/$1",
+      "^@assets/(.*)$": "<rootDir>/src/assets/$1",
+      "^@imgs/(.*)$": "<rootDir>/src/assets/imgs/$1",
+      "^@ui/(.*)$": "<rootDir>/src/ui/$1",
+      "^@components/(.*)$": "<rootDir>/src/ui/components/$1",
+      "^@containers/(.*)$": "<rootDir>/src/ui/containers/$1",
+      "^@domain/(.*)$": "<rootDir>/src/domain/$1",
+      "^@epics/(.*)$": "<rootDir>/src/epics/$1",
+      "^@infra/(.*)$": "<rootDir>/src/infra/$1",
+      "^@utils/(.*)$": "<rootDir>/src/utils/$1",
+      "^@background/(.*)$": "<rootDir>/src/background/$1"
     },
     "testEnvironment": "jsdom",
     "transform": {
@@ -71,7 +79,7 @@
       "**/?(*.)+(spec|test).(js|jsx|ts|tsx)"
     ],
     "setupFilesAfterEnv": [
-      "<rootDir>/src/js/setupTests.ts"
+      "<rootDir>/src/setupTests.ts"
     ],
     "verbose": true
   },
