@@ -4,10 +4,14 @@ import map from "lodash/map";
 import MoreIcon from "@imgs/more_vert.svg?react";
 import ComicCard from "@components/ComicCard";
 import ripple from "@components/Ripple";
-import { updatePopupData, shiftCards } from "./reducers/popup";
-import initObject from "@utils/initObject";
+import { clearExportConfig, shiftCards } from "./reducers/popup";
 import filter from "lodash/filter";
-import { storageGet, storageSet, storageClear } from "@infra/services/storage";
+import {
+  requestExportConfig,
+  requestImportConfig,
+  requestPopupData,
+  requestResetConfig,
+} from "@domain/actions/popup";
 
 declare var chrome: any;
 const isDev = import.meta.env.MODE !== "production";
@@ -204,9 +208,20 @@ class PopupApp extends Component<any, PopupState> {
   };
 
   componentDidMount() {
-    storageGet((item: any) => {
-      this.props.updatePopupData(item);
-    });
+    this.props.requestPopupData();
+  }
+
+  componentDidUpdate(prevProps: any) {
+    if (this.props.exportUrl && this.props.exportUrl !== prevProps.exportUrl) {
+      if (this.aRef) {
+        this.aRef.href = this.props.exportUrl;
+        this.aRef.download =
+          this.props.exportFilename || "comic-scroller-config.json";
+        this.aRef.click();
+        window.URL.revokeObjectURL(this.props.exportUrl);
+        this.props.clearExportConfig();
+      }
+    }
   }
 
   componentWillUnmount() {
@@ -232,14 +247,10 @@ class PopupApp extends Component<any, PopupState> {
       if (len > 1) {
         this.props.shiftCards(category, index);
       } else {
-        storageGet((item: any) => {
-          this.props.updatePopupData(item);
-        });
+        this.props.requestPopupData();
       }
     } else if (shift === "true" && index === len - 1) {
-      storageGet((item: any) => {
-        this.props.updatePopupData(item);
-      });
+      this.props.requestPopupData();
     }
   };
 
@@ -273,18 +284,13 @@ class PopupApp extends Component<any, PopupState> {
     const fr = new FileReader();
     fr.onload = (e) => {
       const raw = e.target && (e.target as FileReader).result;
-      const result = JSON.parse(String(raw || "{}"));
-      storageSet(result, (err) => {
-        if (!err) {
-          storageGet((item: { update: string | any[] }) => {
-            this.props.updatePopupData(item);
-            chrome.action.setBadgeText({
-              text: `${item.update.length === 0 ? "" : item.update.length}`,
-            });
-            chrome.runtime.sendMessage({ msg: "UPDATE" });
-          });
-        }
-      });
+      let result: any = {};
+      try {
+        result = JSON.parse(String(raw || "{}"));
+      } catch {
+        return;
+      }
+      this.props.requestImportConfig(result);
     };
     const file = this.fileInput.files.item(0);
     if (file) fr.readAsText(file);
@@ -295,17 +301,7 @@ class PopupApp extends Component<any, PopupState> {
   };
 
   downloadHandler = () => {
-    storageGet((item: any) => {
-      const json = JSON.stringify(item);
-      const blob = new Blob([json], { type: "octet/stream" });
-      const url = window.URL.createObjectURL(blob);
-      if (this.aRef) {
-        this.aRef.href = url;
-        this.aRef.download = "comic-scroller-config.json";
-        this.aRef.click();
-        window.URL.revokeObjectURL(url);
-      }
-    });
+    this.props.requestExportConfig();
   };
 
   backgroundCheckHandler = () => {
@@ -334,16 +330,7 @@ class PopupApp extends Component<any, PopupState> {
   };
 
   resetHandler = () => {
-    storageClear();
-    storageSet(initObject, () => {
-      storageGet((item: { update: string | any[] }) => {
-        this.props.updatePopupData(item);
-        chrome.action.setBadgeText({
-          text: `${item.update.length === 0 ? "" : item.update.length}`,
-        });
-        chrome.runtime.sendMessage({ msg: "UPDATE" });
-      });
-    });
+    this.props.requestResetConfig();
   };
 
   render() {
@@ -496,10 +483,16 @@ function mapStateToProps(state: any) {
     update: normalizeList(state.popup.update),
     subscribe: normalizeList(state.popup.subscribe),
     history: normalizeList(state.popup.history),
+    exportUrl: state.popup.exportUrl,
+    exportFilename: state.popup.exportFilename,
   };
 }
 
 export default connect(mapStateToProps, {
-  updatePopupData,
   shiftCards,
+  clearExportConfig,
+  requestPopupData,
+  requestImportConfig,
+  requestResetConfig,
+  requestExportConfig,
 })(PopupApp);

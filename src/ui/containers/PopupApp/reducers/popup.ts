@@ -23,6 +23,8 @@ type State = {
   update: Array<any>;
   subscribe: Array<any>;
   history: Array<any>;
+  exportUrl: string;
+  exportFilename: string;
   dm5: {
     baseURL: string;
   };
@@ -39,6 +41,8 @@ const initialState = {
   update: [],
   subscribe: [],
   history: [],
+  exportUrl: "",
+  exportFilename: "",
   dm5: {
     baseURL: "https://www.dm5.com",
   },
@@ -54,6 +58,8 @@ const UPDATE_POPUP_DATA = "UPDATE_POPUP_DATA";
 const REMOVE_CARD = "REMOVE_CARD";
 const SHIFT_CARDS = "SHIFT_CARDS";
 const MOVE_CARD = "MOVE_CARD";
+const SET_EXPORT_CONFIG = "SET_EXPORT_CONFIG";
+const CLEAR_EXPORT_CONFIG = "CLEAR_EXPORT_CONFIG";
 
 export default function popup(state: State = initialState, action: Action) {
   switch (action.type) {
@@ -67,6 +73,8 @@ export default function popup(state: State = initialState, action: Action) {
         comicbus: {},
       };
       return {
+        exportUrl: state.exportUrl,
+        exportFilename: state.exportFilename,
         update: map(data.update || [], (item) => ({
           ...item,
           shift: false,
@@ -96,6 +104,18 @@ export default function popup(state: State = initialState, action: Action) {
         },
       };
     }
+    case SET_EXPORT_CONFIG:
+      return {
+        ...state,
+        exportUrl: action.url || "",
+        exportFilename: action.filename || "",
+      };
+    case CLEAR_EXPORT_CONFIG:
+      return {
+        ...state,
+        exportUrl: "",
+        exportFilename: "",
+      };
     case REMOVE_CARD: {
       const category = action.category;
       if (!category) return state;
@@ -174,4 +194,12 @@ export function shiftCards(category: string, index: number) {
 
 export function moveCard(category: string, index: number) {
   return { type: MOVE_CARD, category, index };
+}
+
+export function setExportConfig(url: string, filename: string) {
+  return { type: SET_EXPORT_CONFIG, url, filename };
+}
+
+export function clearExportConfig() {
+  return { type: CLEAR_EXPORT_CONFIG };
 }
