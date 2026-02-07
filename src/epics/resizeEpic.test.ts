@@ -1,5 +1,6 @@
 import { of } from "rxjs";
-import resizeEpic, { startResize } from "./resizeEpic";
+import resizeEpic from "./resizeEpic";
+import { startResize } from "@domain/actions/reader";
 import { updateInnerHeight } from "@domain/reducers/comics";
 
 describe("resizeEpic", () => {

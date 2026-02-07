@@ -6,8 +6,7 @@ import {
   updateChapterLatestIndex,
   updateRenderIndex,
 } from "@domain/reducers/comics";
-import { fetchImgList, updateRead } from "@epics/getAction";
-import { stopScroll } from "@epics/scrollEpic";
+import { fetchImgList, stopScroll, updateRead } from "@domain/actions/reader";
 
 class ChapterList extends Component<any, any> {
   node!: HTMLDivElement;

@@ -3,17 +3,17 @@ import {
   Tuple,
 } from "@reduxjs/toolkit";
 import { createEpicMiddleware } from "redux-observable";
-import { createLogger } from "redux-logger";
 import rootReducer from "../reducers";
 import rootEpic from "@epics";
+import { getDebugLogger } from "./debugLogger";
 
 const epicDependencies: { store: any } = { store: null };
 const epicMiddleware = createEpicMiddleware({ dependencies: epicDependencies });
 
-const buildMiddleware = () =>
-  process.env.NODE_ENV !== "production"
-    ? new Tuple(epicMiddleware, createLogger())
-    : new Tuple(epicMiddleware);
+const buildMiddleware = () => {
+  const logger = getDebugLogger();
+  return logger ? new Tuple(epicMiddleware, logger) : new Tuple(epicMiddleware);
+};
 
 export default function configureStore(initialState?: any) {
   const store = configureToolkitStore({

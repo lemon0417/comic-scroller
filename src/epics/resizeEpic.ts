@@ -1,9 +1,8 @@
 import { fromEvent } from "rxjs";
 import { mergeMap, throttleTime } from "rxjs/operators";
 import { ofType } from "redux-observable";
+import { START_RESIZE_EPIC } from "@domain/actions/reader";
 import { updateInnerHeight } from "@domain/reducers/comics";
-
-const START_RESIZE_EPIC = "START_RESIZE_EPIC";
 
 function fromResizeEvent() {
   return fromEvent(window, "resize").pipe(
@@ -17,8 +16,4 @@ export default function resizeEpic(action$: any) {
     ofType(START_RESIZE_EPIC),
     mergeMap(() => fromResizeEvent()),
   );
-}
-
-export function startResize() {
-  return { type: START_RESIZE_EPIC };
 }

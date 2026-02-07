@@ -11,9 +11,13 @@ function setup() {
     writable: true,
   });
 
-  const { default: scrollEpic, startScroll } = require("./scrollEpic");
+  const { default: scrollEpic } = require("./scrollEpic");
   const { updateRenderIndex } = require("@domain/reducers/comics");
-  const { fetchImgSrc, updateRead } = require("./getAction");
+  const {
+    fetchImgSrc,
+    startScroll,
+    updateRead,
+  } = require("@domain/actions/reader");
 
   return {
     scrollEpic,

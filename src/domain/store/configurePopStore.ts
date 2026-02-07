@@ -2,13 +2,13 @@ import {
   configureStore as configureToolkitStore,
   Tuple,
 } from "@reduxjs/toolkit";
-import { createLogger } from "redux-logger";
 import rootReducer from "../reducers/popup";
+import { getDebugLogger } from "./debugLogger";
 
-const buildMiddleware = () =>
-  process.env.NODE_ENV !== "production"
-    ? new Tuple(createLogger())
-    : new Tuple();
+const buildMiddleware = () => {
+  const logger = getDebugLogger();
+  return logger ? new Tuple(logger) : new Tuple();
+};
 
 export default function configureStore(initialState?: any) {
   const store = configureToolkitStore({

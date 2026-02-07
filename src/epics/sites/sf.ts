@@ -8,6 +8,15 @@ import filter from "lodash/filter";
 import reduce from "lodash/reduce";
 import some from "lodash/some";
 import {
+  FETCH_CHAPTER,
+  FETCH_IMAGE_SRC,
+  FETCH_IMG_LIST,
+  UPDATE_READ,
+  fetchImgSrc,
+  fetchImgList,
+  startScroll,
+} from "@domain/actions/reader";
+import {
   updateTitle,
   updateComicsID,
   updateChapters,
@@ -20,14 +29,9 @@ import {
   updateReadChapters,
   updateSubscribe,
 } from "@domain/reducers/comics";
-import { startScroll } from "../scrollEpic";
 import { storageGet, storageSet } from "@infra/services/storage";
 
 const baseURL = "http://comic.sfacg.com";
-const FETCH_CHAPTER = "FETCH_CHAPTER";
-const FETCH_IMAGE_SRC = "FETCH_IMAGE_SRC";
-const FETCH_IMG_LIST = "FETCH_IMG_LIST";
-const UPDATE_READ = "UPDATE_READ";
 declare var chrome: any;
 
 function fetchImgs$(chapter: any) {
@@ -119,10 +123,6 @@ export function fetchImgSrcEpic(action$: any, state$: { value: any }) {
   );
 }
 
-export function fetchImgSrc(begin: number, end: number) {
-  return { type: FETCH_IMAGE_SRC, begin, end };
-}
-
 export function fetchChapterPage$(url: string) {
   return ajax({
     url,
@@ -189,10 +189,6 @@ export function fetchImgListEpic(action$: any, state$: { value: any }) {
       );
     }),
   );
-}
-
-export function fetchImgList(index: number) {
-  return { type: FETCH_IMG_LIST, index };
 }
 
 export function fetchChapterEpic(action$: any) {
@@ -313,10 +309,6 @@ export function fetchChapterEpic(action$: any) {
   );
 }
 
-export function fetchChapter(chapter: string) {
-  return { type: FETCH_CHAPTER, chapter };
-}
-
 export function updateReadEpic(action$: any, state$: { value: any }) {
   return action$.pipe(
     ofType(UPDATE_READ),
@@ -357,8 +349,4 @@ export function updateReadEpic(action$: any, state$: { value: any }) {
       ),
     ),
   );
-}
-
-export function updateRead(index: number) {
-  return { type: UPDATE_READ, index };
 }

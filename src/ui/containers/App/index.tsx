@@ -14,9 +14,13 @@ import {
   updateChapterLatestIndex,
   updateSubscribe,
 } from "@domain/reducers/comics";
-import { fetchImgList, fetchChapter, updateRead } from "@epics/getAction";
-import { stopScroll } from "@epics/scrollEpic";
-import { startResize } from "@epics/resizeEpic";
+import {
+  fetchChapter,
+  fetchImgList,
+  startResize,
+  stopScroll,
+  updateRead,
+} from "@domain/actions/reader";
 import { storageGet, storageSet } from "@infra/services/storage";
 
 declare var chrome: any;

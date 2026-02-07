@@ -4,12 +4,6 @@ import { dm5, sf, comicbus } from "./sites";
 type SiteAdapter = {
   key: string;
   baseURL: string;
-  actions: {
-    fetchChapter: Function;
-    fetchImgSrc: Function;
-    fetchImgList: Function;
-    updateRead: Function;
-  };
   epics: {
     fetchChapterEpic: Function;
     fetchImgSrcEpic: Function;
@@ -22,12 +16,6 @@ const siteAdapters: Record<string, SiteAdapter> = {
   dm5: {
     key: "dm5",
     baseURL: "https://www.dm5.com",
-    actions: {
-      fetchChapter: dm5.fetchChapter,
-      fetchImgSrc: dm5.fetchImgSrc,
-      fetchImgList: dm5.fetchImgList,
-      updateRead: dm5.updateRead,
-    },
     epics: {
       fetchChapterEpic: dm5.fetchChapterEpic,
       fetchImgSrcEpic: dm5.fetchImgSrcEpic,
@@ -38,12 +26,6 @@ const siteAdapters: Record<string, SiteAdapter> = {
   sf: {
     key: "sf",
     baseURL: "http://comic.sfacg.com",
-    actions: {
-      fetchChapter: sf.fetchChapter,
-      fetchImgSrc: sf.fetchImgSrc,
-      fetchImgList: sf.fetchImgList,
-      updateRead: sf.updateRead,
-    },
     epics: {
       fetchChapterEpic: sf.fetchChapterEpic,
       fetchImgSrcEpic: sf.fetchImgSrcEpic,
@@ -54,12 +36,6 @@ const siteAdapters: Record<string, SiteAdapter> = {
   comicbus: {
     key: "comicbus",
     baseURL: "http://www.comicbus.com",
-    actions: {
-      fetchChapter: comicbus.fetchChapter,
-      fetchImgSrc: comicbus.fetchImgSrc,
-      fetchImgList: comicbus.fetchImgList,
-      updateRead: comicbus.updateRead,
-    },
     epics: {
       fetchChapterEpic: comicbus.fetchChapterEpic,
       fetchImgSrcEpic: comicbus.fetchImgSrcEpic,
@@ -87,9 +63,6 @@ const adapter = siteAdapters[_site];
 
 export const site = adapter?.key || "";
 export const baseURL = adapter?.baseURL || "";
-
-export const { fetchChapter, fetchImgSrc, fetchImgList, updateRead } =
-  adapter?.actions || {};
 
 export const {
   fetchChapterEpic = noopEpic,

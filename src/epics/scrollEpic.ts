@@ -2,14 +2,18 @@ import { fromEvent } from "rxjs";
 import { mergeMap, takeUntil, throttleTime } from "rxjs/operators";
 import { ofType } from "redux-observable";
 import findIndex from "lodash/findIndex";
-import { fetchImgSrc, fetchImgList, updateRead } from "./getAction";
+import {
+  START_SCROLL_EPIC,
+  STOP_SCROLL_EPIC,
+  fetchImgSrc,
+  fetchImgList,
+  updateRead,
+} from "@domain/actions/reader";
 import {
   updateChapterLatestIndex,
   updateRenderIndex,
 } from "@domain/reducers/comics";
 
-const START_SCROLL_EPIC = "START_SCROLL_EPIC";
-const STOP_SCROLL_EPIC = "STOP_SCROLL_EPIC";
 declare var document: Document;
 // function getImageIndexOnScreen(entity, begin, end) {
 //   if (end <= begin) {
@@ -106,10 +110,4 @@ export default function scrollEpic(action$: any, state$: { value: any }) {
   );
 }
 
-export function startScroll() {
-  return { type: START_SCROLL_EPIC };
-}
-
-export function stopScroll() {
-  return { type: STOP_SCROLL_EPIC };
-}
+// action creators live in domain/actions/reader
