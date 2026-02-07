@@ -1,8 +1,8 @@
-# Comics Scroller
-ComicsScroller is a chrome extension which makes the comics websites show all images of one chapter in the single page. And it will append all the images in the next chapter in the end of pages automatically when users scroll to the bottom of the page. It also can subscribe comics and notify you when there is an update.  
+# Comic Scroller
+ComicScroller is a chrome extension which makes the comics websites show all images of one chapter in the single page. And it will append all the images in the next chapter in the end of pages automatically when users scroll to the bottom of the page. It also can subscribe comics and notify you when there is an update.  
 
 厭倦不斷跳出廣告跟要一張一張圖片往下點的漫畫網站了嘛？  
-Comics Scroller 是一個 chrome extenstion 的開源專案  
+Comic Scroller 是一個 chrome extenstion 的開源專案  
 基於 react & redux-observable 的技術  
 在漫畫網站點進章節以後可以一次把一話的圖片全部秀出來，  
 看完一話之後也會自動載入下一話的圖片，你只需要一直捲動頁面就好，  
@@ -26,7 +26,7 @@ https://chrome.google.com/webstore/detail/comics-scroller/mccpalfmlnjadfnojmphff
 # Official Site
 http://zeroshine.github.io/ComicsScroller/
 
-# Developing ComicsScroller
+# Developing ComicScroller
 Use Vite + React + Redux-Observable. This repo is Yarn-first.  
 ## Install modules  
 ```

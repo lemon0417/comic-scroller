@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { Component, type SyntheticEvent } from 'react';
 import { connect } from 'react-redux';
 import cn from './ComicImage.module.css';
 import { updateImgType } from '../../reducers/comics';
@@ -40,7 +40,7 @@ export class ComicImage extends Component<Props, State> {
     showImage: false,
   };
 
-  imgLoadHandler = (e: React.SyntheticEvent<HTMLImageElement>) => {
+  imgLoadHandler = (e: SyntheticEvent<HTMLImageElement>) => {
     if (this.props.type === 'image' && e.currentTarget) {
       const target = e.currentTarget;
       this.w = target.naturalWidth;

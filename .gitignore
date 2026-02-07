@@ -73,6 +73,9 @@ web_modules/
 # Output of 'npm pack'
 *.tgz
 
+# Corepack local cache (when enabled with custom HOME)
+.corepack/
+
 # Yarn Integrity file
 .yarn-integrity
 .yarn-cache

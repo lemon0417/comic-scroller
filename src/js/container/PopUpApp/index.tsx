@@ -253,7 +253,7 @@ class PopUpApp extends Component<any, PopUpState> {
       const url = window.URL.createObjectURL(blob);
       if (this.aRef) {
         this.aRef.href = url;
-        this.aRef.download = 'ComicsScroller_config.json';
+        this.aRef.download = 'comic-scroller-config.json';
         this.aRef.click();
         window.URL.revokeObjectURL(url);
       }
