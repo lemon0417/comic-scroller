@@ -2,12 +2,16 @@ import {
   configureStore as configureToolkitStore,
   Tuple,
 } from "@reduxjs/toolkit";
+import { createEpicMiddleware } from "redux-observable";
 import rootReducer from "../reducers/popup";
 import { getDebugLogger } from "./debugLogger";
+import popupEpic from "@epics/popup";
+
+const epicMiddleware = createEpicMiddleware();
 
 const buildMiddleware = () => {
   const logger = getDebugLogger();
-  return logger ? new Tuple(logger) : new Tuple();
+  return logger ? new Tuple(epicMiddleware, logger) : new Tuple(epicMiddleware);
 };
 
 export default function configureStore(initialState?: any) {
@@ -17,6 +21,8 @@ export default function configureStore(initialState?: any) {
     preloadedState: initialState,
     devTools: process.env.NODE_ENV !== "production",
   });
+
+  epicMiddleware.run(popupEpic);
 
   if (import.meta.hot) {
     import.meta.hot.accept("../reducers/popup", (module) => {

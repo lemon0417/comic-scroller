@@ -1,15 +1,8 @@
 import { Component } from "react";
 import { connect } from "react-redux";
-import filter from "lodash/filter";
-import pickBy from "lodash/pickBy";
 import TrashTopIcon from "@imgs/bin_top.svg?react";
 import TrashBodyIcon from "@imgs/bin_body.svg?react";
-import { storageGet, storageSet } from "@infra/services/storage";
-import {
-  moveCard,
-  removeCard,
-  shiftCards,
-} from "@containers/PopupApp/reducers/popup";
+import { requestRemoveCard } from "@domain/actions/popup";
 
 declare var chrome: any;
 
@@ -29,14 +22,14 @@ type Props = {
   url: string;
   category: string;
   comicsID: string;
-  chapterID: string;
+  chapterID?: string;
   cover: string;
   title: string;
   site: string;
   index: number | string;
   move: boolean;
   shift: boolean;
-  moveCard: Function;
+  requestRemoveCard: Function;
   lastRead: {
     href: string;
     title: string;
@@ -69,59 +62,12 @@ class ComicCard extends Component<Props> {
   };
 
   removeHandler = () => {
-    storageGet((store: any) => {
-      let newStore: any = { update: [] };
-      if (this.props.category === "history") {
-        newStore = {
-          history: filter(
-            store.history,
-            (item) => item.comicsID !== this.props.comicsID,
-          ),
-          subscribe: filter(
-            store.subscribe,
-            (item) => item.comicsID !== this.props.comicsID,
-          ),
-          update: filter(
-            store.update,
-            (item) => item.comicsID !== this.props.comicsID,
-          ),
-          [this.props.site]: pickBy(
-            store[this.props.site],
-            (_item, key) => key !== this.props.comicsID,
-          ),
-        };
-      } else if (this.props.category === "subscribe") {
-        newStore = {
-          subscribe: filter(
-            store.subscribe,
-            (_item, i) => String(i) !== String(this.props.index),
-          ),
-          update: filter(
-            store.update,
-            (item) => item.comicsID !== this.props.comicsID,
-          ),
-        };
-      } else if (this.props.category === "update") {
-        newStore = {
-          update: filter(
-            store.update,
-            (item) =>
-              item.comicsID !== this.props.comicsID ||
-              item.chapterID !== this.props.chapterID,
-          ),
-        };
-      }
-      storageSet(newStore, (err: any) => {
-        if (!err) {
-          chrome.action.setBadgeText({
-            text: `${
-              newStore.update.length === 0 ? "" : newStore.update.length
-            }`,
-          });
-          this.props.moveCard(this.props.category, this.props.index);
-          chrome.runtime.sendMessage({ msg: "UPDATE" });
-        }
-      });
+    this.props.requestRemoveCard({
+      category: this.props.category,
+      index: this.props.index,
+      comicsID: this.props.comicsID,
+      chapterID: this.props.chapterID,
+      site: this.props.site,
     });
   };
 
@@ -215,7 +161,5 @@ function mapStateToProps(state: any, ownProps: any) {
 }
 
 export default connect(mapStateToProps, {
-  moveCard,
-  shiftCards,
-  removeCard,
+  requestRemoveCard,
 })(ComicCard);
