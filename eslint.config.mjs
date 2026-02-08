@@ -67,6 +67,7 @@ export default [
             ['@containers', './src/ui/containers'],
             ['@domain', './src/domain'],
             ['@epics', './src/epics'],
+            ['@sites', './src/sites'],
             ['@infra', './src/infra'],
             ['@utils', './src/utils'],
             ['@background', './src/background'],

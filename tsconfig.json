@@ -32,6 +32,7 @@
       "@containers/*": ["ui/containers/*"],
       "@domain/*": ["domain/*"],
       "@epics/*": ["epics/*"],
+      "@sites/*": ["sites/*"],
       "@infra/*": ["infra/*"],
       "@utils/*": ["utils/*"],
       "@background/*": ["background/*"]

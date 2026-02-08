@@ -41,6 +41,7 @@ export default defineConfig(({ mode }) => ({
       '@containers': path.join(srcDir, 'ui', 'containers'),
       '@domain': path.join(srcDir, 'domain'),
       '@epics': path.join(srcDir, 'epics'),
+      '@sites': path.join(srcDir, 'sites'),
       '@infra': path.join(srcDir, 'infra'),
       '@utils': path.join(srcDir, 'utils'),
       '@background': path.join(srcDir, 'background'),

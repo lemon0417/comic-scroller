@@ -1,8 +1,6 @@
 import forEach from "lodash/forEach";
 import initObject from "@utils/initObject";
-import * as dm5 from "./sites/dm5";
-import * as sf from "./sites/sf";
-import * as comicbus from "./sites/comicbus";
+import { getSiteAdapter } from "@sites/registry";
 import { storageGet, storageSet, storageClear } from "@infra/services/storage";
 
 const dm5Regex = /https\:\/\/(tel||www)\.dm5\.com\/(m\d+)\//;
@@ -14,11 +12,8 @@ const isDev = import.meta.env.MODE !== "production";
 declare var chrome: any;
 // declare var ga: any;
 
-const fetchChapterPage$ = {
-  sf: sf.fetchChapterPage$,
-  dm5: dm5.fetchChapterPage$,
-  comicbus: comicbus.fetchChapterPage$,
-};
+const getFetchChapterPage = (site: string) =>
+  getSiteAdapter(site)?.background?.fetchChapterPage$;
 
 async function storageGetAsync() {
   return new Promise<any>((resolve) =>
@@ -69,7 +64,11 @@ async function comicsQuerySummary() {
       checked += 1;
       try {
         const { url } = before[site][comicsID];
-        const fetchChapterPage = (fetchChapterPage$ as any)[site];
+        const fetchChapterPage = getFetchChapterPage(site);
+        if (!fetchChapterPage) {
+          errors += 1;
+          continue;
+        }
         const result$ =
           site === "comicbus"
             ? fetchChapterPage(url, comicsID)
@@ -150,7 +149,11 @@ function comicsQuery() {
           console.log(item, `comicsID: ${comicsID}`);
           return;
         }
-        const fetchChapterPage = (fetchChapterPage$ as any)[site];
+        const fetchChapterPage = getFetchChapterPage(site);
+        if (!fetchChapterPage) {
+          console.log(item, `comicsID: ${comicsID}`);
+          return;
+        }
         const result$ =
           site === "comicbus"
             ? fetchChapterPage(url, comicsID)
