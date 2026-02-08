@@ -12,8 +12,7 @@ const isDev = import.meta.env.MODE !== "production";
 declare var chrome: any;
 // declare var ga: any;
 
-const getFetchChapterPage = (site: string) =>
-  getSiteAdapter(site)?.background?.fetchChapterPage$;
+const getFetchChapterPage = (site: string) => getSiteAdapter(site)?.fetchMeta;
 
 async function storageGetAsync() {
   return new Promise<any>((resolve) =>

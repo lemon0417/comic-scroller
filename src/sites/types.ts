@@ -8,7 +8,4 @@ export type SiteAdapter = {
     fetchImgListEpic: Function;
     updateReadEpic: Function;
   };
-  background: {
-    fetchChapterPage$: (...args: any[]) => any;
-  };
 };
