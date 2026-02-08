@@ -70,7 +70,6 @@ export default [
             ['@sites', './src/sites'],
             ['@infra', './src/infra'],
             ['@utils', './src/utils'],
-            ['@background', './src/background'],
           ],
           extensions: ['.js', '.jsx', '.ts', '.tsx', '.json', '.css'],
         },

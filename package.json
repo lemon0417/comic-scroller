@@ -52,8 +52,7 @@
       "^@epics/(.*)$": "<rootDir>/src/epics/$1",
       "^@sites/(.*)$": "<rootDir>/src/sites/$1",
       "^@infra/(.*)$": "<rootDir>/src/infra/$1",
-      "^@utils/(.*)$": "<rootDir>/src/utils/$1",
-      "^@background/(.*)$": "<rootDir>/src/background/$1"
+      "^@utils/(.*)$": "<rootDir>/src/utils/$1"
     },
     "testEnvironment": "jsdom",
     "transform": {

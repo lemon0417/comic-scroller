@@ -44,7 +44,6 @@ export default defineConfig(({ mode }) => ({
       '@sites': path.join(srcDir, 'sites'),
       '@infra': path.join(srcDir, 'infra'),
       '@utils': path.join(srcDir, 'utils'),
-      '@background': path.join(srcDir, 'background'),
     },
   },
   css: {
@@ -65,7 +64,7 @@ export default defineConfig(({ mode }) => ({
       input: {
         app: path.join(rootDir, 'app.html'),
         popup: path.join(rootDir, 'popup.html'),
-        background: path.join(rootDir, 'src', 'background', 'index.ts'),
+        background: path.join(rootDir, 'src', 'background.ts'),
       },
       output: {
         entryFileNames: 'js/[name].js',

@@ -34,8 +34,7 @@
       "@epics/*": ["epics/*"],
       "@sites/*": ["sites/*"],
       "@infra/*": ["infra/*"],
-      "@utils/*": ["utils/*"],
-      "@background/*": ["background/*"]
+      "@utils/*": ["utils/*"]
     }
   },
   "include": ["src/**/*"],
