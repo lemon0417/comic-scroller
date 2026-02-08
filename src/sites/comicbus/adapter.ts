@@ -1,11 +1,12 @@
 import * as reader from "@epics/sites/comicbus";
 import * as background from "@background/sites/comicbus";
+import { fetchMeta$ } from "./meta";
 import type { SiteAdapter } from "../types";
 
 const comicbusAdapter: SiteAdapter = {
   key: "comicbus",
   baseURL: "http://www.comicbus.com",
-  fetchMeta: reader.fetchChapterPage$,
+  fetchMeta: fetchMeta$,
   epics: {
     fetchChapterEpic: reader.fetchChapterEpic,
     fetchImgSrcEpic: reader.fetchImgSrcEpic,

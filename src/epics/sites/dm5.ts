@@ -2,10 +2,8 @@ import { from, merge, of } from "rxjs";
 import { ajax } from "rxjs/ajax";
 import { filter as rxFilter, map as rxMap, mergeMap } from "rxjs/operators";
 import { ofType } from "redux-observable";
-import map from "lodash/map";
 import findIndex from "lodash/findIndex";
 import filter from "lodash/filter";
-import reduce from "lodash/reduce";
 import some from "lodash/some";
 import {
   FETCH_CHAPTER,
@@ -16,6 +14,7 @@ import {
   fetchImgList,
   startScroll,
 } from "@domain/actions/reader";
+import { fetchMeta$ } from "@sites/dm5/meta";
 import {
   updateTitle,
   updateComicsID,
@@ -314,51 +313,6 @@ export function fetchImgSrcEpic(action$: any, state$: { value: any }) {
   );
 }
 
-export function fetchChapterPage$(url: string) {
-  return ajax({
-    url,
-    responseType: "document",
-  }).pipe(
-    mergeMap(function fetchChapterPageHandler({ response }) {
-      const doc = response as Document;
-      const chapterNodes = doc.querySelectorAll<HTMLAnchorElement>(
-        "#chapterlistload li > a",
-      );
-      const title = (
-        doc.querySelector(".banner_detail .info > .title")?.textContent || ""
-      )
-        .trim()
-        .split(/\s+/)[0];
-      const cover =
-        (
-          doc.querySelector(
-            ".banner_detail .cover > img",
-          ) as HTMLImageElement | null
-        )?.src || "";
-      const chapterList = map(chapterNodes, (n) => {
-        const href = n.getAttribute("href") || "";
-        return href ? href.replace(/\//g, "") : null;
-      }).filter(Boolean);
-      const chapters = reduce(
-        chapterNodes,
-        (acc, n) => {
-          const href = n.getAttribute("href") || "";
-          if (!href) return acc;
-          return {
-            ...acc,
-            [href.replace(/\//g, "")]: {
-              title: n.textContent.trim().replaceAll(/\s+/g, " "),
-              href: n.href,
-            },
-          };
-        },
-        {},
-      );
-      return of({ title, cover, chapterList, chapters });
-    }),
-  );
-}
-
 export function fetchImgListEpic(action$: any, state$: { value: any }) {
   return action$.pipe(
     ofType(FETCH_IMG_LIST),
@@ -400,7 +354,7 @@ export function fetchChapterEpic(
             of(updateRenderIndex(0, 6)),
             of(fetchImgSrc(0, 6)),
             of(startScroll()),
-            fetchChapterPage$(comicUrl).pipe(
+            fetchMeta$(comicUrl).pipe(
               mergeMap(({ title, cover, chapterList, chapters }) => {
                 const chapterIndex = findIndex(
                   chapterList,

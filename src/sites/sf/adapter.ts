@@ -1,11 +1,12 @@
 import * as reader from "@epics/sites/sf";
 import * as background from "@background/sites/sf";
+import { fetchMeta$ } from "./meta";
 import type { SiteAdapter } from "../types";
 
 const sfAdapter: SiteAdapter = {
   key: "sf",
   baseURL: "http://comic.sfacg.com",
-  fetchMeta: reader.fetchChapterPage$,
+  fetchMeta: fetchMeta$,
   epics: {
     fetchChapterEpic: reader.fetchChapterEpic,
     fetchImgSrcEpic: reader.fetchImgSrcEpic,
