@@ -202,3 +202,26 @@ dist/
 build/
 # macOS system files
 .DS_Store
+
+### AI Agents ###
+# OpenCode / Sisyphus
+.agent/
+.agents/
+.codex/
+.opencode/
+
+# Aider
+.aider*
+
+# Cline
+.cline/
+
+# Cursor
+.cursor/
+
+# Repomix / LLM Context
+repomix-output.*
+
+# Local
+CLAUDE.local.md
+AGENTS.local.md
