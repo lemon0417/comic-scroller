@@ -71,7 +71,7 @@ describe("popupConfigEpic", () => {
     const actions: any[] = [];
     output$.subscribe((action: any) => actions.push(action));
 
-    expect(actions).toEqual([updatePopupData(data)]);
+    expect(actions).toEqual([updatePopupData(data, "load")]);
   });
 
   it("imports config and updates badge", () => {
@@ -87,7 +87,7 @@ describe("popupConfigEpic", () => {
     const actions: any[] = [];
     output$.subscribe((action: any) => actions.push(action));
 
-    expect(actions).toEqual([updatePopupData(data)]);
+    expect(actions).toEqual([updatePopupData(data, "import")]);
     expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "2" });
     expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ msg: "UPDATE" });
   });
@@ -106,7 +106,7 @@ describe("popupConfigEpic", () => {
     const actions: any[] = [];
     output$.subscribe((action: any) => actions.push(action));
 
-    expect(actions).toEqual([updatePopupData(data)]);
+    expect(actions).toEqual([updatePopupData(data, "reset")]);
     expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "" });
     expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ msg: "UPDATE" });
   });

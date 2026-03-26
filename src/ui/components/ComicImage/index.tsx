@@ -1,6 +1,7 @@
 import { Component, type SyntheticEvent } from "react";
 import { connect } from "react-redux";
 import { updateImgType } from "@domain/reducers/comics";
+import { getImageRenderMetrics } from "@domain/utils/readerLayout";
 
 type Props = {
   loading?: boolean;
@@ -8,6 +9,11 @@ type Props = {
   type?: string;
   height?: number;
   innerHeight?: number;
+  innerWidth?: number;
+  naturalWidth?: number;
+  naturalHeight?: number;
+  renderHeight?: number;
+  renderWidth?: number;
   index?: number;
   updateImgType?: Function;
 };
@@ -15,23 +21,6 @@ type Props = {
 type State = {
   showImage: boolean;
 };
-
-function getImgClass(type: string) {
-  const base =
-    "my-[5px] flex max-w-[100vw] items-center justify-center border-2 border-comic-paper text-center text-comic-paper";
-  switch (type) {
-    case "normal":
-      return base;
-    case "wide":
-      return `${base} min-w-[980px]`;
-    case "natural":
-      return base;
-    case "end":
-      return "my-5 text-center font-display text-[36px] leading-[72px] text-comic-accent";
-    default:
-      return `${base} w-[980px]`;
-  }
-}
 
 export class ComicImage extends Component<Props, State> {
   w = 0;
@@ -46,45 +35,57 @@ export class ComicImage extends Component<Props, State> {
       const target = e.currentTarget;
       this.w = target.naturalWidth;
       this.h = target.naturalHeight;
-      const innerHeight = this.props.innerHeight || 0;
-      if (this.h > innerHeight - 48) {
-        if (this.w > this.h) {
-          this.props.updateImgType &&
-            this.props.updateImgType(
-              innerHeight - 68,
-              this.props.index,
-              "wide",
-            );
-        } else {
-          this.props.updateImgType &&
-            this.props.updateImgType(this.h + 4, this.props.index, "natural");
-        }
-      } else {
-        this.props.updateImgType &&
-          this.props.updateImgType(this.h + 4, this.props.index, "natural");
-      }
+      const layout = getImageRenderMetrics({
+        type: target.naturalWidth > target.naturalHeight ? "wide" : "natural",
+        height: this.h,
+        naturalWidth: this.w,
+        naturalHeight: this.h,
+        innerWidth: this.props.innerWidth,
+        innerHeight: this.props.innerHeight,
+      });
+      this.props.updateImgType &&
+        this.props.updateImgType(
+          layout.height,
+          this.props.index,
+          layout.type,
+          this.w,
+          this.h,
+        );
     }
     this.setState({ showImage: true });
   };
 
   render() {
+    const variant = this.props.type || "init";
+    const pageStyle =
+      this.props.type === "end"
+        ? undefined
+        : {
+            width: this.props.renderWidth,
+            height: this.props.renderHeight,
+          };
+
     return (
       <div
-        className={getImgClass(this.props.type || "")}
-        data-variant={this.props.type || "init"}
-        style={{
-          minHeight: this.props.height,
-        }}
+        className={
+          this.props.type === "end"
+            ? "reader-end-marker"
+            : "reader-page-surface"
+        }
+        data-variant={variant}
+        style={pageStyle}
       >
         {!this.state.showImage && this.props.type !== "end" ? (
-          <div className="w-[900px] text-center font-display text-[40px] text-comic-paper">
-            Loading...
+          <div className="reader-page-loading">
+            <span className="text-sm font-medium text-comic-ink/45">
+              Loading...
+            </span>
           </div>
         ) : undefined}
         {!this.props.loading && this.props.type !== "end" ? (
           <img
             style={this.state.showImage ? undefined : { display: "none" }}
-            className="h-full object-contain"
+            className="block h-full w-full object-contain"
             src={this.props.src}
             onLoad={this.imgLoadHandler}
             alt={String(this.props.index ?? "")}
@@ -99,8 +100,35 @@ export class ComicImage extends Component<Props, State> {
 function makeMapStateToProps(_state: any, props: any) {
   const { index } = props;
   return function mapStateToProps({ comics }: any) {
-    const { src, loading, type, height } = comics.imageList.entity[index];
-    return { src, loading, type, height, innerHeight: comics.innerHeight };
+    const {
+      src,
+      loading,
+      type,
+      height,
+      naturalWidth,
+      naturalHeight,
+    } = comics.imageList.entity[index];
+    const layout = getImageRenderMetrics({
+      type,
+      height,
+      naturalWidth,
+      naturalHeight,
+      innerWidth: comics.innerWidth,
+      innerHeight: comics.innerHeight,
+    });
+
+    return {
+      src,
+      loading,
+      type,
+      height,
+      naturalWidth,
+      naturalHeight,
+      innerHeight: comics.innerHeight,
+      innerWidth: comics.innerWidth,
+      renderHeight: layout.height,
+      renderWidth: layout.width,
+    };
   };
 }
 

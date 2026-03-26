@@ -10,15 +10,15 @@ import resizeEpic from "./resizeEpic";
 import navigationEpic from "./navigationEpic";
 import subscribeEpic from "./subscribeEpic";
 
-const rootEpic = combineEpics(
-  fetchChapterEpic,
-  fetchImgSrcEpic,
-  scrollEpic,
-  resizeEpic,
-  navigationEpic,
-  subscribeEpic,
-  fetchImgListEpic,
-  updateReadEpic,
+const rootEpic = combineEpics<any, any, any, any>(
+  fetchChapterEpic as any,
+  fetchImgSrcEpic as any,
+  scrollEpic as any,
+  resizeEpic as any,
+  navigationEpic as any,
+  subscribeEpic as any,
+  fetchImgListEpic as any,
+  updateReadEpic as any,
 );
 
 export default rootEpic;

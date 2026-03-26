@@ -3,12 +3,35 @@ import { connect } from "react-redux";
 import map from "lodash/map";
 import { navigateChapter } from "@domain/actions/reader";
 
-class ChapterList extends Component<any, any> {
+export class ChapterList extends Component<any, any> {
   node!: HTMLDivElement;
+  closeButton!: HTMLButtonElement | null;
+
+  componentDidMount() {
+    document.addEventListener("keydown", this.keydownHandler);
+  }
+
+  componentDidUpdate(prevProps: any) {
+    if (!prevProps.show && this.props.show) {
+      this.closeButton?.focus();
+    }
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener("keydown", this.keydownHandler);
+  }
 
   onClickHandler = () => {
-    this.node.scrollTop = 0;
+    if (this.node) {
+      this.node.scrollTop = 0;
+    }
     this.props.showChapterListHandler();
+  };
+
+  keydownHandler = (event: KeyboardEvent) => {
+    if (event.key === "Escape" && this.props.show) {
+      this.onClickHandler();
+    }
   };
 
   refHandler = (node: HTMLDivElement | null) => {
@@ -16,52 +39,73 @@ class ChapterList extends Component<any, any> {
     this.node = node;
   };
 
-  chapterClickHandler = (e: any) => {
-    const target = e.target as HTMLElement;
-    const indexAttr = target?.dataset?.index;
-    if (indexAttr) {
-      const index = parseInt(indexAttr, 10);
-      this.props.navigateChapter(index);
-    }
+  closeButtonRefHandler = (node: HTMLButtonElement | null) => {
+    this.closeButton = node;
   };
 
+  chapterSelectHandler = (index: number) => {
+    this.props.navigateChapter(index);
+    this.onClickHandler();
+  };
+
+  getChapterClass(item: any) {
+    if (item.current) {
+      return "reader-chapter-item reader-chapter-item-active";
+    }
+    if (item.read) {
+      return "reader-chapter-item reader-chapter-item-read";
+    }
+    return "reader-chapter-item reader-chapter-item-default";
+  }
+
   render() {
-    const modalBase =
-      "fixed inset-0 z-[1000] flex h-screen items-center justify-center bg-[rgba(17,24,39,0.55)] opacity-0 transition-opacity duration-300 ease-in-out pointer-events-none will-change-[scroll-position]";
-    const modalClass = this.props.show
-      ? `${modalBase} opacity-100 pointer-events-auto`
-      : modalBase;
-    const panelBase =
-      "relative flex h-[90vh] w-[50vw] min-w-[900px] scale-0 flex-col items-center justify-center rounded-lg border-2 border-comic-ink bg-comic-paper shadow-comic-sm transition-transform duration-300 ease-in-out will-change-[scroll-position]";
-    const panelClass = this.props.show ? `${panelBase} scale-100` : panelBase;
-    const contentClass =
-      "flex h-[calc(90vh-48px)] w-full flex-wrap content-start items-start overflow-y-auto bg-comic-paper py-3";
-    const itemBase =
-      "m-0.5 h-10 w-[200px] flex-[1_0_auto] max-w-[calc(25%-8px)] rounded-md border-2 border-comic-ink bg-comic-paper text-center text-[15px] leading-9 shadow-comic-sm transition-transform duration-150 ease-out hover:-translate-y-0.5";
-    const chapterBase = "cursor-pointer overflow-hidden";
-    const chapterClass = `${itemBase} ${chapterBase} text-comic-ink hover:bg-comic-accent hover:text-white`;
-    const chapterReadClass = `${itemBase} ${chapterBase} bg-comic-paper2 text-comic-ink/60 hover:bg-comic-accent hover:text-white`;
+    if (!this.props.show) {
+      return null;
+    }
 
     return (
       <div
-        className={modalClass}
-        onClick={this.props.show ? this.onClickHandler : undefined}
+        className="fixed inset-0 z-[1000] flex items-center justify-center bg-[rgba(15,23,42,0.18)] px-4 py-6 backdrop-blur-sm"
+        onClick={this.onClickHandler}
+        role="presentation"
       >
-        <div className={panelClass} ref={this.refHandler}>
-          <div className="h-12 w-full border-b-2 border-comic-ink bg-comic-paper2 text-center font-display text-[19px] uppercase tracking-[0.16em] leading-[48px] text-comic-ink">
-            章節
+        <div
+          className="ds-panel relative max-h-[88vh] w-full max-w-[960px] rounded-[24px]"
+          ref={this.refHandler}
+          onClick={(event) => event.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="chapter-list-title"
+        >
+          <div className="flex items-center justify-between gap-3 border-b border-comic-ink/10 px-5 py-4">
+            <h2
+              id="chapter-list-title"
+              className="text-[16px] font-semibold tracking-[-0.01em] text-comic-ink"
+            >
+              章節
+            </h2>
+            <button
+              ref={this.closeButtonRefHandler}
+              type="button"
+              className="ds-btn-secondary"
+              onClick={this.onClickHandler}
+            >
+              Close
+            </button>
           </div>
-          <div className={contentClass} onClick={this.chapterClickHandler}>
-            {map(this.props.chapterList, (item, i) => (
-              <div
-                className={item.read ? chapterReadClass : chapterClass}
-                key={i}
-                data-chapter={item.chapter}
-                data-index={i}
-              >
-                {item.title}
-              </div>
-            ))}
+          <div className="min-h-0 overflow-y-auto px-5 py-5 popup-scrollbar scrollbar-stable">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {map(this.props.chapterList, (item, i) => (
+                <button
+                  type="button"
+                  className={this.getChapterClass(item)}
+                  key={item.chapter || i}
+                  onClick={() => this.chapterSelectHandler(i)}
+                >
+                  <span className="truncate">{item.title}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -70,11 +114,12 @@ class ChapterList extends Component<any, any> {
 }
 
 function mapStateToProps(state: any) {
-  const { read, chapterList, chapters } = state.comics;
+  const { read, chapterList, chapters, chapterNowIndex } = state.comics;
   return {
-    chapterList: map(chapterList, (item) => ({
+    chapterList: map(chapterList, (item, index) => ({
       ...chapters[item],
       read: read.includes(item),
+      current: index === chapterNowIndex,
     })),
   };
 }

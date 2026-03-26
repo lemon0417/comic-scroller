@@ -4,7 +4,7 @@ import { ofType } from "redux-observable";
 import filter from "lodash/filter";
 import pickBy from "lodash/pickBy";
 import { REQUEST_REMOVE_CARD } from "@domain/actions/popup";
-import { moveCard } from "@containers/PopupApp/reducers/popup";
+import { updatePopupData } from "@containers/PopupApp/reducers/popup";
 import { storageGet, storageSet } from "@infra/services/storage";
 
 declare var chrome: any;
@@ -85,18 +85,15 @@ export default function removeCardEpic(action$: any) {
 
           return storageSet$(newStore).pipe(
             mergeMap(() => {
-              const parsedIndex =
-                typeof index === "number"
-                  ? index
-                  : parseInt(String(index ?? ""), 10);
-              const moveIndex = Number.isFinite(parsedIndex) ? parsedIndex : -1;
               chrome.action.setBadgeText({
                 text: `${
                   newStore.update.length === 0 ? "" : newStore.update.length
                 }`,
               });
               chrome.runtime.sendMessage({ msg: "UPDATE" });
-              return [moveCard(category, moveIndex)];
+              return storageGet$().pipe(
+                mergeMap((item: any) => [updatePopupData(item, "load")]),
+              );
             }),
           );
         }),

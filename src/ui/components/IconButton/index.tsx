@@ -3,20 +3,33 @@ import ripple from "../Ripple";
 
 type Props = {
   children?: React.ReactNode;
-  onClickHandler?: Function;
-  onMouseDownHandler?: Function;
+  onClickHandler?: () => void;
+  onMouseDownHandler?: (e: React.MouseEvent<HTMLButtonElement>, node: any) => void;
+  ariaLabel?: string;
+  className?: string;
+  disabled?: boolean;
 };
+
+function mergeClasses(...classes: Array<string | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
 
 class IconButton extends Component<Props> {
   node: any;
 
-  onMouseDownHandler = (e: any) => {
+  onMouseDownHandler = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (this.props.disabled) {
+      return;
+    }
     if (this.props.onMouseDownHandler) {
       this.props.onMouseDownHandler(e, this.node);
     }
   };
 
   onClickHandler = () => {
+    if (this.props.disabled) {
+      return;
+    }
     if (this.props.onClickHandler) {
       this.props.onClickHandler();
     }
@@ -28,14 +41,17 @@ class IconButton extends Component<Props> {
 
   render() {
     return (
-      <span
-        className="relative inline-flex h-9 w-9 cursor-pointer items-center justify-center overflow-hidden rounded-none border-2 border-comic-ink bg-comic-paper p-1 shadow-comic-sm transition-transform duration-150 ease-out hover:-translate-y-0.5 active:translate-y-0"
+      <button
+        type="button"
+        className={mergeClasses("ds-icon-button", this.props.className)}
         ref={this.refHandler}
+        aria-label={this.props.ariaLabel}
+        disabled={this.props.disabled}
         onClick={this.onClickHandler}
         onMouseDown={this.onMouseDownHandler}
       >
         {this.props.children}
-      </span>
+      </button>
     );
   }
 }

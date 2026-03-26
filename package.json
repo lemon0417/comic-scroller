@@ -2,7 +2,7 @@
   "name": "comic-scroller",
   "version": "4.0.52",
   "private": true,
-  "packageManager": "yarn@4.0.2",
+  "packageManager": "yarn@4.13.0",
   "engines": {
     "node": ">=22.22.0",
     "yarn": ">=4.0.0"
@@ -86,7 +86,6 @@
   "dependencies": {
     "@reduxjs/toolkit": "2.11.0",
     "lodash": "^4.17.5",
-    "normalize.css": "^8.0.0",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "react-redux": "9.2.0",

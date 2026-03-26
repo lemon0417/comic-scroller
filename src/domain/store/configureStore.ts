@@ -4,7 +4,7 @@ import {
 } from "@reduxjs/toolkit";
 import { createEpicMiddleware } from "redux-observable";
 import rootReducer from "../reducers";
-import rootEpic from "@epics";
+import rootEpic from "../../epics";
 import { getDebugLogger } from "./debugLogger";
 
 const epicDependencies: { store: any } = { store: null };

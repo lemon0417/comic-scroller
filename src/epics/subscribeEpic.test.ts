@@ -31,7 +31,7 @@ describe("subscribeEpic", () => {
     const output$ = subscribeEpic(action$, state$ as any);
 
     const actions: any[] = [];
-    output$.subscribe((action) => actions.push(action));
+    output$.subscribe((action: any) => actions.push(action));
 
     expect(actions).toEqual([updateSubscribe(true)]);
   });

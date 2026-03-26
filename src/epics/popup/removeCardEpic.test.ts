@@ -1,7 +1,7 @@
 import { of } from "rxjs";
 import removeCardEpic from "./removeCardEpic";
 import { requestRemoveCard } from "@domain/actions/popup";
-import { moveCard } from "@containers/PopupApp/reducers/popup";
+import { updatePopupData } from "@containers/PopupApp/reducers/popup";
 
 jest.mock("@infra/services/storage", () => ({
   storageGet: jest.fn(),
@@ -19,8 +19,10 @@ describe("removeCardEpic", () => {
     };
   });
 
-  it("removes update card and moves UI card", () => {
+  it("removes update card and rehydrates popup state", () => {
     const store = {
+      history: [],
+      subscribe: [],
       update: [
         { site: "dm5", comicsID: "c1", chapterID: "ch1" },
         { site: "dm5", comicsID: "c2", chapterID: "ch2" },
@@ -42,9 +44,9 @@ describe("removeCardEpic", () => {
     );
     const output$ = removeCardEpic(action$);
     const actions: any[] = [];
-    output$.subscribe((action) => actions.push(action));
+    output$.subscribe((action: any) => actions.push(action));
 
-    expect(actions).toEqual([moveCard("update", 0)]);
+    expect(actions).toEqual([updatePopupData(store, "load")]);
     expect(chrome.action.setBadgeText).toHaveBeenCalled();
     expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ msg: "UPDATE" });
   });

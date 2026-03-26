@@ -14,7 +14,7 @@ describe("navigationEpic", () => {
     const output$ = navigationEpic(action$);
 
     const actions: any[] = [];
-    output$.subscribe((action) => actions.push(action));
+    output$.subscribe((action: any) => actions.push(action));
 
     expect(actions).toEqual([
       stopScroll(),

@@ -2,6 +2,7 @@ import reduce from "lodash/reduce";
 
 type State = {
   innerHeight: number;
+  innerWidth: number;
   site: string;
   comicsID: string;
   title: string;
@@ -29,12 +30,16 @@ type Action = {
   end?: number;
   height?: number;
   innerHeight?: number;
+  innerWidth?: number;
   imgType?: any;
+  naturalWidth?: number;
+  naturalHeight?: number;
   [key: string]: any;
 };
 
 const initialState: State = {
   innerHeight: typeof window === "undefined" ? 0 : window.innerHeight,
+  innerWidth: typeof window === "undefined" ? 0 : window.innerWidth,
   site: "",
   comicsID: "",
   title: "",
@@ -66,6 +71,7 @@ const CONCAT_IMAGE_LIST = "CONCAT_IMAGE_LIST";
 const LOAD_IMAGE_SRC = "LOAD_IMAGE_SRC";
 const UPDATE_IMAGE_TYPE = "UPDATE_IMAGE_TYPE";
 const UPDATE_INNER_HEIGHT = "UPDATE_INNER_HEIGHT";
+const UPDATE_INNER_WIDTH = "UPDATE_INNER_WIDTH";
 const RESET_IMAGE = "RESET_IMAGE";
 
 export default function comics(
@@ -103,6 +109,14 @@ export default function comics(
                 ...state.imageList.entity[action.index],
                 height: action.height,
                 type: action.imgType,
+                naturalWidth:
+                  typeof action.naturalWidth === "number"
+                    ? action.naturalWidth
+                    : state.imageList.entity[action.index].naturalWidth,
+                naturalHeight:
+                  typeof action.naturalHeight === "number"
+                    ? action.naturalHeight
+                    : state.imageList.entity[action.index].naturalHeight,
               },
             },
           },
@@ -134,6 +148,8 @@ export default function comics(
                     loading: true,
                     height: 1400,
                     type: "image",
+                    naturalWidth: 0,
+                    naturalHeight: 0,
                   },
                 }),
                 state.imageList.entity,
@@ -143,6 +159,8 @@ export default function comics(
                 chapter: data[0].chapter,
                 loading: false,
                 height: 72,
+                naturalWidth: 0,
+                naturalHeight: 0,
               },
             },
           },
@@ -224,6 +242,14 @@ export default function comics(
             ? action.innerHeight
             : state.innerHeight,
       };
+    case UPDATE_INNER_WIDTH:
+      return {
+        ...state,
+        innerWidth:
+          typeof action.innerWidth === "number"
+            ? action.innerWidth
+            : state.innerWidth,
+      };
     default:
       return state;
   }
@@ -273,8 +299,21 @@ export function loadImgSrc(src: string, index: number) {
   return { type: LOAD_IMAGE_SRC, src, index };
 }
 
-export function updateImgType(height: number, index: number, imgType: string) {
-  return { type: UPDATE_IMAGE_TYPE, height, index, imgType };
+export function updateImgType(
+  height: number,
+  index: number,
+  imgType: string,
+  naturalWidth?: number,
+  naturalHeight?: number,
+) {
+  return {
+    type: UPDATE_IMAGE_TYPE,
+    height,
+    index,
+    imgType,
+    naturalWidth,
+    naturalHeight,
+  };
 }
 
 export function resetImg() {
@@ -283,4 +322,8 @@ export function resetImg() {
 
 export function updateInnerHeight(innerHeight: number) {
   return { type: UPDATE_INNER_HEIGHT, innerHeight };
+}
+
+export function updateInnerWidth(innerWidth: number) {
+  return { type: UPDATE_INNER_WIDTH, innerWidth };
 }

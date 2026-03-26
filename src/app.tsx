@@ -1,6 +1,5 @@
 import { createRoot } from "react-dom/client";
 import { Provider } from "react-redux";
-import "normalize.css/normalize.css";
 import "@styles/tailwind.css";
 import App from "@containers/App";
 import configureStore from "@domain/store/configureStore";

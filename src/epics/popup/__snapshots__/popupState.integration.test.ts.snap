@@ -3,6 +3,7 @@
 exports[`popup state integration hydrates popup state from storage 1`] = `
 {
   "popup": {
+    "activeAction": null,
     "comicbus": {
       "baseURL": "http://www.comicbus.com",
     },
@@ -37,6 +38,8 @@ exports[`popup state integration hydrates popup state from storage 1`] = `
         "site": "dm5",
       },
     ],
+    "hydrationStatus": "ready",
+    "notice": null,
     "sf": {
       "baseURL": "http://comic.sfacg.com",
     },

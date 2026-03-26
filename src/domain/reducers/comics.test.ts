@@ -1,4 +1,4 @@
-import comics, { resetImg, updateInnerHeight } from "./comics";
+import comics, { resetImg, updateInnerHeight, updateInnerWidth } from "./comics";
 
 describe("comics reducer", () => {
   it("updates innerHeight", () => {
@@ -6,6 +6,13 @@ describe("comics reducer", () => {
     const nextState = comics(prevState, updateInnerHeight(720) as any);
 
     expect(nextState.innerHeight).toBe(720);
+  });
+
+  it("updates innerWidth", () => {
+    const prevState = comics(undefined, { type: "@@INIT" } as any) as any;
+    const nextState = comics(prevState, updateInnerWidth(1280) as any);
+
+    expect(nextState.innerWidth).toBe(1280);
   });
 
   it("resets imageList on resetImg", () => {

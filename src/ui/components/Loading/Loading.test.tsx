@@ -2,12 +2,13 @@ import { render } from "@testing-library/react";
 import Loading from "./index";
 
 test("Loading contains circle svg", () => {
-  const { container } = render(<Loading />);
+  const { container, getByText } = render(<Loading />);
   const circle = container.querySelector("svg circle");
   expect(circle).toBeInTheDocument();
-  expect(circle).toHaveAttribute("cx", "30");
-  expect(circle).toHaveAttribute("cy", "30");
-  expect(circle).toHaveAttribute("r", "25");
+  expect(circle).toHaveAttribute("cx", "22");
+  expect(circle).toHaveAttribute("cy", "22");
+  expect(circle).toHaveAttribute("r", "18");
+  expect(getByText("Loading pages...")).toBeInTheDocument();
 });
 
 test("Loading snapshot", () => {

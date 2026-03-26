@@ -1,5 +1,6 @@
 import { fireEvent, render } from "@testing-library/react";
 import { ComicImage } from ".";
+import { getImageRenderMetrics } from "@domain/utils/readerLayout";
 
 const defaultProps = {
   loading: false,
@@ -7,6 +8,7 @@ const defaultProps = {
   type: "",
   height: 0,
   innerHeight: 0,
+  innerWidth: 0,
   index: 0,
   updateImgType: () => {},
 };
@@ -51,6 +53,45 @@ describe("ComicImage Loading controls", () => {
     fireEvent.load(img);
     expect(queryByText("Loading...")).not.toBeInTheDocument();
   });
+
+  it("updates image metrics from viewport-aware sizing", () => {
+    const updateImgType = jest.fn();
+    const { container } = renderComicImage({
+      type: "image",
+      innerWidth: 1280,
+      innerHeight: 900,
+      updateImgType,
+    });
+    const img = container.querySelector("img");
+    if (!img) throw new Error("expected img element");
+    Object.defineProperty(img, "naturalWidth", {
+      value: 1200,
+      configurable: true,
+    });
+    Object.defineProperty(img, "naturalHeight", {
+      value: 1800,
+      configurable: true,
+    });
+
+    fireEvent.load(img);
+
+    const layout = getImageRenderMetrics({
+      type: "natural",
+      height: 1800,
+      naturalWidth: 1200,
+      naturalHeight: 1800,
+      innerWidth: 1280,
+      innerHeight: 900,
+    });
+
+    expect(updateImgType).toHaveBeenCalledWith(
+      layout.height,
+      0,
+      layout.type,
+      1200,
+      1800,
+    );
+  });
 });
 
 describe("ComicImage shows End", () => {
@@ -88,5 +129,16 @@ describe("ComicImage shows Image", () => {
   it("contains image when props { loading = false }", () => {
     const { container } = renderComicImage({ loading: false });
     expect(container.querySelector("img")).toBeInTheDocument();
+  });
+
+  it("does not use fixed 980px reader classes", () => {
+    const { container } = renderComicImage({
+      type: "natural",
+      renderWidth: 960,
+      renderHeight: 1440,
+    } as any);
+
+    expect(container.firstChild).not.toHaveClass("w-[980px]");
+    expect(container.firstChild).not.toHaveClass("min-w-[980px]");
   });
 });

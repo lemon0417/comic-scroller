@@ -54,6 +54,7 @@ describe("scrollEpic", () => {
           chapterNowIndex: 1,
           renderBeginIndex: 1,
           renderEndIndex: 1,
+          innerWidth: 1200,
           innerHeight: 800,
         },
       },

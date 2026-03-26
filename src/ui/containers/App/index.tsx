@@ -23,9 +23,20 @@ const ImageContainerAny: any = ImageContainer;
 const ChapterListAny: any = ChapterList;
 
 function getTagIconClass(chapterTitle: any, subscribe: any) {
-  if (chapterTitle === "") return "fill-current text-comic-ink/30";
-  if (subscribe) return "fill-current text-comic-accent cursor-pointer";
-  return "fill-current text-comic-ink cursor-pointer";
+  if (chapterTitle === "") {
+    return "fill-current text-comic-ink/25 transition-colors duration-150";
+  }
+  if (subscribe) {
+    return "fill-current text-comic-accent transition-colors duration-150";
+  }
+  return "fill-current text-comic-ink/60 transition-colors duration-150";
+}
+
+function getNavigationIconClass(enabled: boolean) {
+  if (!enabled) {
+    return "fill-current text-comic-ink/25 transition-colors duration-150";
+  }
+  return "fill-current text-comic-ink/60 transition-colors duration-150";
 }
 
 class App extends Component<any, any> {
@@ -91,59 +102,64 @@ class App extends Component<any, any> {
   render() {
     const { prevable, nextable, chapterTitle, subscribe } = this.props;
     return (
-      <div className="min-h-screen bg-comic-paper">
-        <header className="fixed left-0 top-0 z-[900] flex h-12 w-full items-center justify-between border-b-2 border-comic-ink bg-comic-paper px-3 text-comic-ink shadow-comic-sm will-change-[scroll-position]">
-          <span className="flex items-center">
-            <IconButton onClickHandler={this.showChapterListHandler}>
-              <MenuIcon className="fill-current text-comic-ink" />
-            </IconButton>
-            <span className="mx-1 font-display text-[17px] uppercase tracking-[0.06em]">
-              Comics Scroller
-            </span>
-            <a
-              className="mx-1 font-display text-[15px] text-comic-accent underline decoration-[3px] decoration-comic-ink underline-offset-4"
-              target="_blank"
-              rel="noreferrer"
-              href={this.props.url}
-            >{`${this.props.title}`}</a>
-            <span className="mx-1">&gt;</span>
-            <span className="mx-1 font-display text-[15px]">
-              {this.props.chapterList.length > 0
-                ? this.props.chapterTitle
-                : "Loading ..."}
-            </span>
-          </span>
-          <span className="mr-3 flex items-center gap-1.5">
+      <div className="reader-shell">
+        <header className="fixed left-0 top-0 z-[900] flex h-12 w-full items-center justify-between border-b border-comic-ink/10 bg-white/88 px-3 text-comic-ink backdrop-blur-md will-change-[scroll-position] sm:px-4">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <IconButton
+              ariaLabel="Open chapter list"
+              onClickHandler={this.showChapterListHandler}
+            >
+              <MenuIcon className="fill-current text-comic-ink/60" />
+            </IconButton>
+            <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+              <span className="hidden shrink-0 text-[11px] font-medium text-comic-ink/40 sm:inline">
+                Comic Scroller
+              </span>
+              <span
+                className="hidden h-4 w-px shrink-0 bg-comic-ink/10 sm:inline-block"
+                aria-hidden="true"
+              />
+              <a
+                className="min-w-0 shrink truncate text-[14px] font-semibold text-comic-ink transition-colors duration-150 hover:text-comic-accent"
+                target="_blank"
+                rel="noreferrer"
+                href={this.props.url}
+              >{`${this.props.title}`}</a>
+              <span className="shrink-0 text-comic-ink/20" aria-hidden="true">
+                /
+              </span>
+              <span className="min-w-0 shrink truncate text-[13px] text-comic-ink/60">
+                {this.props.chapterList.length > 0
+                  ? this.props.chapterTitle
+                  : "Loading..."}
+              </span>
+            </div>
+          </div>
+          <div className="ml-3 flex shrink-0 items-center gap-1.5">
+            <IconButton
+              ariaLabel="Go to previous chapter"
+              disabled={!prevable}
               onClickHandler={prevable ? this.prevChapterHandler : undefined}
             >
-              <PrevIcon
-                className={
-                  prevable
-                    ? "fill-current text-comic-ink"
-                    : "fill-current text-comic-ink/30"
-                }
-              />
+              <PrevIcon className={getNavigationIconClass(prevable)} />
             </IconButton>
             <IconButton
+              ariaLabel="Go to next chapter"
+              disabled={!nextable}
               onClickHandler={nextable ? this.nextChapterHandler : undefined}
             >
-              <NextIcon
-                className={
-                  nextable
-                    ? "fill-current text-comic-ink"
-                    : "fill-current text-comic-ink/30"
-                }
-              />
+              <NextIcon className={getNavigationIconClass(nextable)} />
             </IconButton>
             <IconButton
+              ariaLabel={subscribe ? "Unfollow series" : "Follow series"}
+              disabled={chapterTitle === ""}
               onClickHandler={
                 chapterTitle !== "" ? this.subscribeHandler : undefined
               }
             >
               <TagIcon className={getTagIconClass(chapterTitle, subscribe)} />
             </IconButton>
-          </span>
+          </div>
         </header>
         <ImageContainerAny />
         <ChapterListAny
@@ -197,3 +213,4 @@ const connectedApp = connect(mapStateToProps, {
 })(App);
 
 export default connectedApp as any;
+export { App };

@@ -1,0 +1,76 @@
+import { render, screen } from "@testing-library/react";
+import { App } from "./index";
+
+jest.mock("@containers/ImageContainer", () => ({
+  __esModule: true,
+  default: () => <div data-testid="image-container" />,
+}));
+
+jest.mock("@containers/ChapterList", () => ({
+  __esModule: true,
+  default: () => <div data-testid="chapter-list" />,
+}));
+
+jest.mock("@infra/services/storage", () => ({
+  storageGet: jest.fn(),
+}));
+
+describe("App", () => {
+  beforeEach(() => {
+    (global as any).chrome = {
+      runtime: {
+        onMessage: {
+          addListener: jest.fn(),
+        },
+      },
+      tabs: {
+        getCurrent: jest.fn(),
+        remove: jest.fn(),
+      },
+    };
+    window.history.replaceState({}, "", "/app.html");
+  });
+
+  it("renders accessible reader header controls", () => {
+    const startResize = jest.fn();
+
+    render(
+      <App
+        startResize={startResize}
+        fetchChapter={jest.fn()}
+        updateSubscribe={jest.fn()}
+        toggleSubscribe={jest.fn()}
+        navigateChapter={jest.fn()}
+        prevable={true}
+        nextable={false}
+        chapterTitle="Ch 1123"
+        chapterList={["chapter-1123"]}
+        title="One Piece"
+        subscribe={true}
+        url="https://dm5.com/one-piece"
+        chapterNowIndex={0}
+        site="dm5"
+        comicsID="123"
+      />,
+    );
+
+    expect(startResize).toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Open chapter list" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Go to previous chapter" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Go to next chapter" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Unfollow series" }),
+    ).toBeEnabled();
+    expect(screen.getByRole("link", { name: "One Piece" })).toHaveAttribute(
+      "href",
+      "https://dm5.com/one-piece",
+    );
+    expect(screen.getByText("Ch 1123")).toBeInTheDocument();
+  });
+});

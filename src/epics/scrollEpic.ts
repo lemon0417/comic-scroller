@@ -13,6 +13,10 @@ import {
   updateChapterLatestIndex,
   updateRenderIndex,
 } from "@domain/reducers/comics";
+import {
+  READER_IMAGE_GAP,
+  getImageBlockHeight,
+} from "@domain/utils/readerLayout";
 
 declare var document: Document;
 // function getImageIndexOnScreen(entity, begin, end) {
@@ -40,8 +44,6 @@ declare var document: Document;
 //   return { begin: -1, end: -1 };
 // }
 
-const margin = 20;
-
 function fromScrollEvent(state$: { value: any }, cancel$: any) {
   return fromEvent(document, "scroll").pipe(
     throttleTime(100),
@@ -53,19 +55,18 @@ function fromScrollEvent(state$: { value: any }, cancel$: any) {
         chapterNowIndex,
         renderBeginIndex,
         renderEndIndex,
+        innerWidth,
         innerHeight,
       } = state$.value.comics;
-      let accHeight = margin;
+      let accHeight = READER_IMAGE_GAP;
       let viewIndex = 0;
       // $FlowFixMe
       const scrollTop = window.pageYOffset + 0.75 * innerHeight;
       const len = result.length;
       for (let i = 0; i < len; i += 1) {
-        if (entity[result[i]].type === "wide") {
-          accHeight += innerHeight - 68 + 2 * margin;
-        } else {
-          accHeight += entity[result[i]].height + 2 * margin;
-        }
+        accHeight +=
+          getImageBlockHeight(entity[result[i]], innerWidth, innerHeight) +
+          2 * READER_IMAGE_GAP;
         if (accHeight > scrollTop) {
           viewIndex = i;
           break;

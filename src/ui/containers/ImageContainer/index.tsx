@@ -6,15 +6,24 @@ import reduce from "lodash/reduce";
 import filter from "lodash/filter";
 import Loading from "@components/Loading";
 import ConnectedComicImage from "@components/ComicImage";
+import {
+  READER_BOTTOM_PADDING,
+  READER_HEADER_HEIGHT,
+  READER_IMAGE_GAP,
+  READER_TOP_PADDING,
+  getImageBlockHeight,
+} from "@domain/utils/readerLayout";
 
 class ImageContainer extends Component<any, any> {
   render() {
     return (
-      <div
-        className="flex min-h-screen flex-col items-center justify-center bg-comic-ink overflow-y-hidden"
+      <main
+        className="reader-canvas"
+        aria-label="Comic pages"
         style={{
-          paddingTop: this.props.paddingTop + 48,
-          paddingBottom: this.props.paddingBottom,
+          paddingTop:
+            this.props.paddingTop + READER_HEADER_HEIGHT + READER_TOP_PADDING,
+          paddingBottom: this.props.paddingBottom + READER_BOTTOM_PADDING,
         }}
       >
         {this.props.renderResult.length > 0 ? (
@@ -24,7 +33,7 @@ class ImageContainer extends Component<any, any> {
         ) : (
           <Loading />
         )}
-      </div>
+      </main>
     );
   }
 }
@@ -37,20 +46,21 @@ const getRenderResult = createSelector(
     filter(result, (item) => item >= begin && item <= end),
 );
 
-const margin = 20;
-
 const getPaddingTop = createSelector(
   (comics: any) => comics.imageList.result,
   (comics: any) => comics.imageList.entity,
   (comics: any) => comics.renderBeginIndex,
+  (comics: any) => comics.innerWidth,
   (comics: any) => comics.innerHeight,
-  (result, entity, begin, innerHeight) =>
+  (result, entity, begin, innerWidth, innerHeight) =>
     reduce(
       filter(result, (item) => item < begin),
       (acc, i) => {
-        if (entity[i].type === "wide")
-          return acc + (innerHeight - 68) + 2 * margin;
-        return acc + entity[i].height + 2 * margin;
+        return (
+          acc +
+          getImageBlockHeight(entity[i], innerWidth, innerHeight) +
+          2 * READER_IMAGE_GAP
+        );
       },
       0,
     ),
@@ -60,14 +70,17 @@ const getPaddingBottom = createSelector(
   (comics: any) => comics.imageList.result,
   (comics: any) => comics.imageList.entity,
   (comics: any) => comics.renderEndIndex,
+  (comics: any) => comics.innerWidth,
   (comics: any) => comics.innerHeight,
-  (result, entity, end, innerHeight) =>
+  (result, entity, end, innerWidth, innerHeight) =>
     reduce(
       filter(result, (item) => item > end),
       (acc, i) => {
-        if (entity[i].type === "wide")
-          return acc + (innerHeight - 68) + 2 * margin;
-        return acc + entity[i].height + 2 * margin;
+        return (
+          acc +
+          getImageBlockHeight(entity[i], innerWidth, innerHeight) +
+          2 * READER_IMAGE_GAP
+        );
       },
       0,
     ),

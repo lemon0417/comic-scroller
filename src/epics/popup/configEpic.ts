@@ -36,7 +36,7 @@ export default function popupConfigEpic(action$: any) {
     mergeMap((action: any) => {
       if (action.type === REQUEST_POPUP_DATA) {
         return storageGet$().pipe(
-          mergeMap((item: any) => [updatePopupData(item)]),
+          mergeMap((item: any) => [updatePopupData(item, "load")]),
         );
       }
 
@@ -47,7 +47,7 @@ export default function popupConfigEpic(action$: any) {
               mergeMap((item: any) => {
                 updateBadge(item?.update);
                 chrome.runtime.sendMessage({ msg: "UPDATE" });
-                return [updatePopupData(item)];
+                return [updatePopupData(item, "import")];
               }),
             ),
           ),
@@ -63,7 +63,7 @@ export default function popupConfigEpic(action$: any) {
                   mergeMap((item: any) => {
                     updateBadge(item?.update);
                     chrome.runtime.sendMessage({ msg: "UPDATE" });
-                    return [updatePopupData(item)];
+                    return [updatePopupData(item, "reset")];
                   }),
                 ),
               ),

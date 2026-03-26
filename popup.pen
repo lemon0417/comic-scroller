@@ -1,0 +1,520 @@
+{
+  "version": "2.7",
+  "children": [
+    {
+      "type": "frame",
+      "id": "bi8Au",
+      "x": 0,
+      "y": 0,
+      "name": "Frame",
+      "clip": true,
+      "width": 800,
+      "height": 600,
+      "fill": "#F5F2E9",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "G5oBb",
+          "name": "Popup Panel",
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "#F5F2E9",
+          "stroke": {
+            "thickness": 2,
+            "fill": "#111827"
+          },
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "YmkRe",
+              "name": "Header",
+              "width": "fill_container",
+              "height": 48,
+              "fill": "#F5F2E9",
+              "stroke": {
+                "thickness": {
+                  "bottom": 2
+                },
+                "fill": "#111827"
+              },
+              "gap": 6,
+              "padding": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "LTwlY",
+                  "name": "Tab Bar",
+                  "width": "fill_container",
+                  "height": 32,
+                  "fill": "#EAE3D6",
+                  "cornerRadius": 6,
+                  "stroke": {
+                    "thickness": 2,
+                    "fill": "#111827"
+                  },
+                  "padding": 2,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "iNRgo",
+                      "name": "Tab Update",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#111827",
+                      "cornerRadius": 4,
+                      "layout": "vertical",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "HzBrs",
+                          "fill": "#F5F2E9",
+                          "content": "UPDATE",
+                          "fontFamily": "Comic Neue",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "CIhzY",
+                      "name": "Tab Divider",
+                      "width": 2,
+                      "height": "fill_container",
+                      "fill": "#11182766"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "iT3ze",
+                      "name": "Tab Subscribe",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#EAE3D6",
+                      "cornerRadius": 4,
+                      "layout": "vertical",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "DL5if",
+                          "fill": "#111827",
+                          "content": "SUBSCRIBE",
+                          "fontFamily": "Comic Neue",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "tgazs",
+                      "name": "Tab Divider",
+                      "width": 2,
+                      "height": "fill_container",
+                      "fill": "#11182766"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "twI9x",
+                      "name": "Tab History",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#EAE3D6",
+                      "cornerRadius": 4,
+                      "layout": "vertical",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "JgC3i",
+                          "fill": "#111827",
+                          "content": "HISTORY",
+                          "fontFamily": "Comic Neue",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "D2iYl",
+                  "name": "Header Divider",
+                  "width": 2,
+                  "height": 28,
+                  "fill": "#11182766"
+                },
+                {
+                  "type": "frame",
+                  "id": "HnArk",
+                  "name": "Menu",
+                  "width": 32,
+                  "height": 32,
+                  "fill": "#EAE3D6",
+                  "cornerRadius": 6,
+                  "stroke": {
+                    "thickness": 2,
+                    "fill": "#111827"
+                  },
+                  "layout": "vertical",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "S2GcG",
+                      "name": "menuText",
+                      "fill": "#111827",
+                      "content": "⋮",
+                      "fontFamily": "Noto Sans",
+                      "fontSize": 18,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "W1Jde",
+              "name": "Content",
+              "clip": true,
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "#F5F2E9",
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "d8Po9",
+                  "name": "Comic Card",
+                  "width": "fill_container",
+                  "height": 140,
+                  "fill": "#F5F2E9",
+                  "cornerRadius": 6,
+                  "stroke": {
+                    "thickness": 2,
+                    "fill": "#111827"
+                  },
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "qW2BX",
+                      "name": "Cover",
+                      "width": 96,
+                      "height": "fill_container",
+                      "fill": "#EAE3D6",
+                      "stroke": {
+                        "thickness": {
+                          "right": 2
+                        },
+                        "fill": "#111827"
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "N1Vmq",
+                      "name": "Card Body",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": 10,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "6o8nQ",
+                          "name": "Card Top",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "VjHu8",
+                              "fill": "#2563EB",
+                              "content": "雷霆彈丸",
+                              "fontFamily": "Noto Sans",
+                              "fontSize": 14,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "IHLED",
+                              "name": "Trash",
+                              "width": 18,
+                              "height": 18,
+                              "fill": "#F5F2E9",
+                              "cornerRadius": 3,
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": "#111827"
+                              },
+                              "layout": "vertical",
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "BadvM",
+                                  "fill": "#111827",
+                                  "content": "×",
+                                  "fontFamily": "Noto Sans",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "29Azh",
+                          "fill": "#111827",
+                          "content": "上次看到  第49話 (6P)",
+                          "fontFamily": "Noto Sans",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Ply6n",
+                          "fill": "#111827",
+                          "content": "最新一話  第56話 (6P)",
+                          "fontFamily": "Noto Sans",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "DmZv6",
+                  "name": "Comic Card",
+                  "width": "fill_container",
+                  "height": 140,
+                  "fill": "#F5F2E9",
+                  "cornerRadius": 6,
+                  "stroke": {
+                    "thickness": 2,
+                    "fill": "#111827"
+                  },
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "9W9gS",
+                      "name": "Cover",
+                      "width": 96,
+                      "height": "fill_container",
+                      "fill": "#EAE3D6",
+                      "stroke": {
+                        "thickness": {
+                          "right": 2
+                        },
+                        "fill": "#111827"
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hSHhv",
+                      "name": "Card Body",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": 10,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "wjgLQ",
+                          "name": "Card Top",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "s5JFR",
+                              "fill": "#2563EB",
+                              "content": "執法之魔術師",
+                              "fontFamily": "Noto Sans",
+                              "fontSize": 14,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "tpesR",
+                              "name": "Trash",
+                              "width": 18,
+                              "height": 18,
+                              "fill": "#F5F2E9",
+                              "cornerRadius": 3,
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": "#111827"
+                              },
+                              "layout": "vertical",
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Uuphi",
+                                  "fill": "#111827",
+                                  "content": "×",
+                                  "fontFamily": "Noto Sans",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "2P1ED",
+                          "fill": "#111827",
+                          "content": "上次看到  第4話 (29P)",
+                          "fontFamily": "Noto Sans",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "YMRzU",
+                          "fill": "#111827",
+                          "content": "最新一話  第5話 (16P)",
+                          "fontFamily": "Noto Sans",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "0jig6",
+                  "name": "Comic Card",
+                  "width": "fill_container",
+                  "height": 140,
+                  "fill": "#F5F2E9",
+                  "cornerRadius": 6,
+                  "stroke": {
+                    "thickness": 2,
+                    "fill": "#111827"
+                  },
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "dfwfX",
+                      "name": "Cover",
+                      "width": 96,
+                      "height": "fill_container",
+                      "fill": "#EAE3D6",
+                      "stroke": {
+                        "thickness": {
+                          "right": 2
+                        },
+                        "fill": "#111827"
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Yf41n",
+                      "name": "Card Body",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": 10,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Xnwqp",
+                          "name": "Card Top",
+                          "width": "fill_container",
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "W6Zq5",
+                              "fill": "#2563EB",
+                              "content": "百煉成神",
+                              "fontFamily": "Noto Sans",
+                              "fontSize": 14,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "acBWk",
+                              "name": "Trash",
+                              "width": 18,
+                              "height": 18,
+                              "fill": "#F5F2E9",
+                              "cornerRadius": 3,
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": "#111827"
+                              },
+                              "layout": "vertical",
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "SoSf0",
+                                  "fill": "#111827",
+                                  "content": "×",
+                                  "fontFamily": "Noto Sans",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "c857a",
+                          "fill": "#111827",
+                          "content": "上次看到  第1話 (22P)",
+                          "fontFamily": "Noto Sans",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "tTwdv",
+                          "fill": "#111827",
+                          "content": "最新一話  第1話 (22P)",
+                          "fontFamily": "Noto Sans",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
