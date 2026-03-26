@@ -20,13 +20,13 @@ jest.mock("@infra/services/library", () => ({
     history: [],
     updates: [],
   })),
+  exportLibraryDump: jest.fn(),
+  importLibraryDump: jest.fn(),
   loadLibrary: jest.fn(),
-  saveLibrary: jest.fn(),
   resetLibrary: jest.fn(),
-  migrateLibrary: jest.fn((value) => value),
 }));
 
-const { loadLibrary, saveLibrary, resetLibrary } = jest.requireMock(
+const { exportLibraryDump, importLibraryDump, loadLibrary, resetLibrary } = jest.requireMock(
   "@infra/services/library",
 );
 
@@ -82,7 +82,7 @@ describe("popupConfigEpic", () => {
         { seriesKey: "dm5:m2", chapterID: "m2", createdAt: 2 },
       ],
     };
-    saveLibrary.mockResolvedValue(data);
+    importLibraryDump.mockResolvedValue(data);
 
     const actions = await lastValueFrom(
       popupConfigEpic(of(requestImportConfig({}))).pipe(toArray()),
@@ -104,14 +104,26 @@ describe("popupConfigEpic", () => {
   });
 
   it("exports config url", async () => {
-    loadLibrary.mockResolvedValue(emptyLibrary);
+    exportLibraryDump.mockResolvedValue({
+      format: "comic-scroller-db-dump",
+      formatVersion: 1,
+      exportedAt: 1,
+      dbSchemaVersion: 1,
+      data: {
+        series: [],
+        chapters: [],
+        subscriptions: [],
+        history: [],
+        updates: [],
+      },
+    });
 
     const actions = await lastValueFrom(
       popupConfigEpic(of(requestExportConfig())).pipe(toArray()),
     );
 
     expect(actions).toEqual([
-      setExportConfig("blob:mock", "comic-scroller-config.json"),
+      setExportConfig("blob:mock", "comic-scroller-library.json"),
     ]);
   });
 });

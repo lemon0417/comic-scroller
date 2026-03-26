@@ -22,3 +22,7 @@ export function storageSet(items: any, cb?: ErrorCallback) {
 export function storageClear(cb?: ErrorCallback) {
   return chrome.storage.local.clear(cb);
 }
+
+export function storageRemove(keys: string | string[], cb?: ErrorCallback) {
+  return chrome.storage.local.remove(keys, cb);
+}

@@ -1,4 +1,10 @@
-import { storageGet, storageGetAll, storageSet, storageClear } from "./storage";
+import {
+  storageGet,
+  storageGetAll,
+  storageSet,
+  storageClear,
+  storageRemove,
+} from "./storage";
 
 describe("storage service", () => {
   beforeEach(() => {
@@ -8,6 +14,7 @@ describe("storage service", () => {
           get: jest.fn((_keys, cb) => cb && cb({})),
           set: jest.fn((_items, cb) => cb && cb(null)),
           clear: jest.fn((cb) => cb && cb(null)),
+          remove: jest.fn((_keys, cb) => cb && cb(null)),
         },
       },
     };
@@ -44,5 +51,14 @@ describe("storage service", () => {
     const cb = jest.fn();
     storageClear(cb);
     expect((global as any).chrome.storage.local.clear).toHaveBeenCalledWith(cb);
+  });
+
+  it("calls chrome.storage.local.remove", () => {
+    const cb = jest.fn();
+    storageRemove(["a", "b"], cb);
+    expect((global as any).chrome.storage.local.remove).toHaveBeenCalledWith(
+      ["a", "b"],
+      cb,
+    );
   });
 });

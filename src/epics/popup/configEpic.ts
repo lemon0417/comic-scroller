@@ -12,10 +12,10 @@ import {
   setExportConfig,
 } from "@domain/reducers/popupState";
 import {
+  exportLibraryDump,
+  importLibraryDump,
   loadLibrary,
-  migrateLibrary,
   resetLibrary,
-  saveLibrary,
 } from "@infra/services/library";
 
 declare var chrome: any;
@@ -41,7 +41,7 @@ export default function popupConfigEpic(action$: any) {
       }
 
       if (action.type === REQUEST_IMPORT_CONFIG) {
-        return from(saveLibrary(migrateLibrary(action.payload || {}))).pipe(
+        return from(importLibraryDump(action.payload || {})).pipe(
           mergeMap((library) => {
             updateBadge(library.updates);
             return [hydratePopupLibrary(library, "import")];
@@ -59,12 +59,12 @@ export default function popupConfigEpic(action$: any) {
       }
 
       if (action.type === REQUEST_EXPORT_CONFIG) {
-        return from(loadLibrary()).pipe(
-          mergeMap((library) => {
-            const json = JSON.stringify(library);
+        return from(exportLibraryDump()).pipe(
+          mergeMap((dump) => {
+            const json = JSON.stringify(dump);
             const blob = new Blob([json], { type: "octet/stream" });
             const url = window.URL.createObjectURL(blob);
-            return [setExportConfig(url, "comic-scroller-config.json")];
+            return [setExportConfig(url, "comic-scroller-library.json")];
           }),
         );
       }

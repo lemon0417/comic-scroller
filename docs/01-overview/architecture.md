@@ -1,21 +1,29 @@
 # 資料流與模組邊界
 
 ## 核心資料流
-- `chrome.storage.local` 是唯一持久化資料來源（source of truth）
+- `IndexedDB` 是主要持久化資料來源（source of truth）
+- `chrome.storage.local` 只承擔跨 context 同步 signal 與小型設定
 - UI 觸發 action
 - reducers 同步更新頁面內 state（session / view state）
 - epics 處理非同步（網路 / storage / location sync）並回寫 action
 - UI 根據 store 更新
-- popup / manage / reader 之間的持久化同步，統一透過 `chrome.storage.onChanged`
+- popup / manage / reader 之間的持久化同步，統一透過 `chrome.storage.onChanged` 監聽 `librarySignal`
 
 簡寫：
 UI → Actions → Reducers → State → UI
 副作用：
-UI → Actions → Epics → Services → Storage/Network → Actions
+UI → Actions → Epics → Services → IndexedDB/Network → Actions
 
 ## 持久化模型
 - 共享持久化模型位於 `src/infra/services/library.ts`
-- 目前使用 `LibrarySnapshotV2`
+- 對外仍使用 `LibrarySnapshotV2` 作為 repository 載入後的快照格式
+- 底層以 IndexedDB 結構化 stores 持久化：
+  - `series`
+  - `chapters`
+  - `subscriptions`
+  - `history`
+  - `updates`
+- `chrome.storage.local.librarySignal` 用於跨 context 通知資料已變更
 - 核心欄位：
   - `seriesByKey`
   - `subscriptions`
@@ -25,7 +33,8 @@ UI → Actions → Epics → Services → Storage/Network → Actions
 - `comicsID` 使用站點原生 canonical 格式：
   - DM5 一律使用 `m123`
   - SF / ComicBus 維持原站點 ID
-- 舊版 storage schema 會在載入時自動 migration 到 V2
+- 舊版 storage schema 會在載入時自動 migration 到 IndexedDB
+- 匯出格式改為 DB dump JSON；匯入同時支援新 dump 與舊版 JSON
 
 ## 模組位置
 - Actions：`src/domain/actions/`
@@ -39,6 +48,6 @@ UI → Actions → Epics → Services → Storage/Network → Actions
 - Reducer 必須純函式
 - Side effects 一律放 epics 或 services
 - 站點解析邏輯集中在 `src/epics/sites/`
-- 不得在 component、reducer、background 中直接拼接舊 schema 讀寫
+- 不得在 component、reducer、background 中直接讀寫 IndexedDB 或拼接舊 schema
 - 所有持久化更新優先走 `library.ts`
 - Reader store 與 Popup store 只保存頁面需要的 state，不作為跨頁面持久化真實來源
