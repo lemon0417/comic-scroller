@@ -1,10 +1,8 @@
-import { bindCallback, from, merge, of } from "rxjs";
+import { from, merge, of } from "rxjs";
 import { ajax } from "rxjs/ajax";
 import { filter as rxFilter, map as rxMap, mergeMap } from "rxjs/operators";
 import { ofType } from "redux-observable";
 import findIndex from "lodash/findIndex";
-import filter from "lodash/filter";
-import some from "lodash/some";
 import {
   FETCH_CHAPTER,
   FETCH_IMAGE_SRC,
@@ -16,6 +14,7 @@ import {
 } from "@domain/actions/reader";
 import { fetchMeta$ } from "@sites/sf/meta";
 import {
+  updateSiteInfo,
   updateTitle,
   updateComicsID,
   updateChapters,
@@ -28,7 +27,16 @@ import {
   updateReadChapters,
   updateSubscribe,
 } from "@domain/reducers/comics";
-import { storageGet, storageSet } from "@infra/services/storage";
+import {
+  addHistoryEntry,
+  dismissUpdate,
+  getSeries,
+  isSubscribed,
+  loadLibrary,
+  saveLibrary,
+  updateSeriesReadProgress,
+  upsertSeries,
+} from "@infra/services/library";
 
 const baseURL = "http://comic.sfacg.com";
 declare var chrome: any;
@@ -172,90 +180,59 @@ export function fetchChapterEpic(action$: any) {
                   chapterList,
                   (item) => item === chapter,
                 );
-                return bindCallback(storageGet)().pipe(
-                  mergeMap((item: any) => {
-                    const newItem = {
-                      ...item,
-                      update: filter(
-                        item.update,
-                        (updateItem) =>
-                          updateItem.site !== "sf" ||
-                          updateItem.chapterID !== chapter,
-                      ),
-                      history: [
-                        {
-                          site: "sf",
-                          comicsID,
-                        },
-                        ...filter(
-                          item.history,
-                          (historyItem) =>
-                            historyItem.site !== "sf" ||
-                            historyItem.comicsID !== comicsID,
-                        ),
-                      ],
-                      sf: {
-                        ...item.sf,
-                        [comicsID]: {
-                          title,
-                          chapters,
-                          chapterList,
-                          cover,
-                          url: `${baseURL}/${comicsID}`,
-                          lastRead: chapter,
-                          read: [
-                            ...(item.sf[comicsID]
-                              ? item.sf[comicsID].read
-                              : []),
-                            chapter,
-                          ],
-                        },
-                      },
-                    };
-                    const subscribe = some(
-                      item.subscribe,
-                      (citem) =>
-                        citem.site === "sf" && citem.comicsID === comicsID,
-                    );
-                    chrome.action.setBadgeText({
-                      text: `${
-                        newItem.update.length === 0 ? "" : newItem.update.length
-                      }`,
+                return from(loadLibrary()).pipe(
+                  mergeMap((library: any) => {
+                    let nextLibrary = upsertSeries(library, "sf", comicsID, {
+                      title: title || "",
+                      chapters,
+                      chapterList,
+                      cover,
+                      url: `${baseURL}/${comicsID}`,
                     });
-                    const save$ = bindCallback((items: any, cb: any) =>
-                      storageSet(items, cb),
-                    )(newItem);
-                    return merge(
-                      of(updateSubscribe(subscribe)),
-                      save$.pipe(
-                        mergeMap(() => {
-                          chrome.action.setBadgeText({
-                            text: `${
-                              newItem.update.length === 0
-                                ? ""
-                                : newItem.update.length
-                            }`,
-                          });
-                          const result$: any[] = [
-                            updateTitle(title || ""),
-                            updateReadChapters(newItem.sf[comicsID].read),
-                            updateChapters(chapters),
-                            updateChapterList(chapterList),
-                            updateChapterNowIndex(chapterIndex),
-                          ];
-                          if (chapterIndex > 0) {
-                            result$.push(
-                              fetchImgList(chapterIndex - 1),
-                              updateChapterLatestIndex(chapterIndex - 1),
-                            );
-                          } else {
-                            result$.push(
-                              updateChapterLatestIndex(chapterIndex - 1),
-                            );
-                          }
-                          return result$;
-                        }),
-                      ),
+                    nextLibrary = updateSeriesReadProgress(
+                      nextLibrary,
+                      "sf",
+                      comicsID,
+                      chapter,
+                    );
+                    nextLibrary = addHistoryEntry(nextLibrary, "sf", comicsID);
+                    nextLibrary = dismissUpdate(
+                      nextLibrary,
+                      "sf",
+                      comicsID,
+                      chapter,
+                    );
+                    const subscribe = isSubscribed(nextLibrary, "sf", comicsID);
+                    return from(saveLibrary(nextLibrary)).pipe(
+                      mergeMap((savedLibrary) => {
+                        chrome.action.setBadgeText({
+                          text: `${
+                            savedLibrary.updates.length === 0
+                              ? ""
+                              : savedLibrary.updates.length
+                          }`,
+                        });
+                        const savedSeries = getSeries(savedLibrary, "sf", comicsID);
+                        const result$: any[] = [
+                          updateSiteInfo("sf", baseURL),
+                          updateComicsID(comicsID),
+                          updateSubscribe(subscribe),
+                          updateTitle(title || ""),
+                          updateReadChapters(savedSeries?.read || []),
+                          updateChapters(chapters),
+                          updateChapterList(chapterList),
+                          updateChapterNowIndex(chapterIndex),
+                        ];
+                        if (chapterIndex > 0) {
+                          result$.push(
+                            fetchImgList(chapterIndex - 1),
+                            updateChapterLatestIndex(chapterIndex - 1),
+                          );
+                        } else {
+                          result$.push(updateChapterLatestIndex(chapterIndex - 1));
+                        }
+                        return result$;
+                      }),
                     );
                   }),
                 );
@@ -272,34 +249,22 @@ export function updateReadEpic(action$: any, state$: { value: any }) {
   return action$.pipe(
     ofType(UPDATE_READ),
     mergeMap((action: { index: number }) =>
-      bindCallback(storageGet)().pipe(
-        mergeMap((item: any) => {
+      from(loadLibrary()).pipe(
+        mergeMap((library: any) => {
           const { comicsID, chapterList } = state$.value.comics;
           const chapterID = chapterList[action.index];
-          const newItem = {
-            ...item,
-            update: filter(
-              item.update,
-              (uitem) => uitem.site !== "sf" || uitem.chapterID !== chapterID,
-            ),
-            sf: {
-              ...item.sf,
-              [comicsID]: {
-                ...item.sf[comicsID],
-                lastRead: chapterID,
-                read: [...item.sf[comicsID].read, chapterID],
-              },
-            },
-          };
-          return bindCallback((items: any, cb: any) => storageSet(items, cb))(
-            newItem,
-          ).pipe(
-            mergeMap(() => {
+          let nextLibrary = updateSeriesReadProgress(library, "sf", comicsID, chapterID);
+          nextLibrary = dismissUpdate(nextLibrary, "sf", comicsID, chapterID);
+          return from(saveLibrary(nextLibrary)).pipe(
+            mergeMap((savedLibrary) => {
               chrome.action.setBadgeText({
-                text: `${newItem.update.length === 0 ? "" : newItem.update.length}`,
+                text: `${
+                  savedLibrary.updates.length === 0 ? "" : savedLibrary.updates.length
+                }`,
               });
+              const savedSeries = getSeries(savedLibrary, "sf", comicsID);
               return [
-                updateReadChapters(newItem.sf[comicsID].read),
+                updateReadChapters(savedSeries?.read || []),
                 updateChapterNowIndex(action.index),
               ];
             }),

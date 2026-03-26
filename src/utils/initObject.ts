@@ -1,11 +1,5 @@
-const initObject = {
-  history: [],
-  subscribe: [],
-  update: [],
-  dm5: {},
-  sf: {},
-  comicbus: {},
-  version: chrome.runtime.getManifest().version,
-};
+import { createEmptyLibrarySnapshot } from "@infra/services/library";
+
+const initObject = createEmptyLibrarySnapshot();
 
 export default initObject;

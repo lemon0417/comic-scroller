@@ -1,4 +1,5 @@
-import { of } from "rxjs";
+import { lastValueFrom, of } from "rxjs";
+import { toArray } from "rxjs/operators";
 import {
   requestExportConfig,
   requestImportConfig,
@@ -6,32 +7,37 @@ import {
   requestResetConfig,
 } from "@domain/actions/popup";
 import {
+  hydratePopupLibrary,
   setExportConfig,
-  updatePopupData,
-} from "@containers/PopupApp/reducers/popup";
+} from "@domain/reducers/popupState";
 
-jest.mock("@utils/initObject", () => ({
-  __esModule: true,
-  default: {
-    history: [],
-    subscribe: [],
-    update: [],
-    dm5: {},
-    sf: {},
-    comicbus: {},
+jest.mock("@infra/services/library", () => ({
+  createEmptyLibrarySnapshot: jest.fn(() => ({
+    schemaVersion: 2,
     version: "0.0.0",
-  },
+    seriesByKey: {},
+    subscriptions: [],
+    history: [],
+    updates: [],
+  })),
+  loadLibrary: jest.fn(),
+  saveLibrary: jest.fn(),
+  resetLibrary: jest.fn(),
+  migrateLibrary: jest.fn((value) => value),
 }));
 
-jest.mock("@infra/services/storage", () => ({
-  storageGet: jest.fn(),
-  storageSet: jest.fn(),
-  storageClear: jest.fn(),
-}));
-
-const { storageGet, storageSet, storageClear } = jest.requireMock(
-  "@infra/services/storage",
+const { loadLibrary, saveLibrary, resetLibrary } = jest.requireMock(
+  "@infra/services/library",
 );
+
+const emptyLibrary = {
+  schemaVersion: 2 as const,
+  version: "0.0.0",
+  seriesByKey: {},
+  subscriptions: [],
+  history: [],
+  updates: [],
+};
 
 describe("popupConfigEpic", () => {
   let popupConfigEpic: any;
@@ -40,7 +46,6 @@ describe("popupConfigEpic", () => {
     jest.clearAllMocks();
     (global as any).chrome = {
       action: { setBadgeText: jest.fn() },
-      runtime: { sendMessage: jest.fn() },
     };
     if (!window.URL.createObjectURL) {
       window.URL.createObjectURL = jest.fn(() => "blob:mock");
@@ -59,69 +64,51 @@ describe("popupConfigEpic", () => {
     jest.restoreAllMocks();
   });
 
-  it("loads popup data", () => {
-    const data = { update: [], subscribe: [], history: [] };
-    storageGet.mockImplementation((keys: any, cb?: any) => {
-      if (typeof keys === "function") return keys(data);
-      return cb?.(data);
-    });
+  it("loads popup data", async () => {
+    loadLibrary.mockResolvedValue(emptyLibrary);
 
-    const action$ = of(requestPopupData());
-    const output$ = popupConfigEpic(action$);
-    const actions: any[] = [];
-    output$.subscribe((action: any) => actions.push(action));
+    const actions = await lastValueFrom(
+      popupConfigEpic(of(requestPopupData())).pipe(toArray()),
+    );
 
-    expect(actions).toEqual([updatePopupData(data, "load")]);
+    expect(actions).toEqual([hydratePopupLibrary(emptyLibrary, "load")]);
   });
 
-  it("imports config and updates badge", () => {
-    const data = { update: [1, 2], subscribe: [], history: [] };
-    storageSet.mockImplementation((_items: any, cb?: any) => cb?.());
-    storageGet.mockImplementation((keys: any, cb?: any) => {
-      if (typeof keys === "function") return keys(data);
-      return cb?.(data);
-    });
+  it("imports config and updates badge", async () => {
+    const data = {
+      ...emptyLibrary,
+      updates: [
+        { seriesKey: "dm5:m1", chapterID: "m1", createdAt: 1 },
+        { seriesKey: "dm5:m2", chapterID: "m2", createdAt: 2 },
+      ],
+    };
+    saveLibrary.mockResolvedValue(data);
 
-    const action$ = of(requestImportConfig({}));
-    const output$ = popupConfigEpic(action$);
-    const actions: any[] = [];
-    output$.subscribe((action: any) => actions.push(action));
+    const actions = await lastValueFrom(
+      popupConfigEpic(of(requestImportConfig({}))).pipe(toArray()),
+    );
 
-    expect(actions).toEqual([updatePopupData(data, "import")]);
+    expect(actions).toEqual([hydratePopupLibrary(data, "import")]);
     expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "2" });
-    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ msg: "UPDATE" });
   });
 
-  it("resets config and updates badge", () => {
-    const data = { update: [], subscribe: [], history: [] };
-    storageClear.mockImplementation((cb?: any) => cb?.());
-    storageSet.mockImplementation((_items: any, cb?: any) => cb?.());
-    storageGet.mockImplementation((keys: any, cb?: any) => {
-      if (typeof keys === "function") return keys(data);
-      return cb?.(data);
-    });
+  it("resets config and updates badge", async () => {
+    resetLibrary.mockResolvedValue(emptyLibrary);
 
-    const action$ = of(requestResetConfig());
-    const output$ = popupConfigEpic(action$);
-    const actions: any[] = [];
-    output$.subscribe((action: any) => actions.push(action));
+    const actions = await lastValueFrom(
+      popupConfigEpic(of(requestResetConfig())).pipe(toArray()),
+    );
 
-    expect(actions).toEqual([updatePopupData(data, "reset")]);
+    expect(actions).toEqual([hydratePopupLibrary(emptyLibrary, "reset")]);
     expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "" });
-    expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({ msg: "UPDATE" });
   });
 
-  it("exports config url", () => {
-    const data = { update: [], subscribe: [], history: [] };
-    storageGet.mockImplementation((keys: any, cb?: any) => {
-      if (typeof keys === "function") return keys(data);
-      return cb?.(data);
-    });
+  it("exports config url", async () => {
+    loadLibrary.mockResolvedValue(emptyLibrary);
 
-    const action$ = of(requestExportConfig());
-    const output$ = popupConfigEpic(action$);
-    const actions: any[] = [];
-    output$.subscribe((action: any) => actions.push(action));
+    const actions = await lastValueFrom(
+      popupConfigEpic(of(requestExportConfig())).pipe(toArray()),
+    );
 
     expect(actions).toEqual([
       setExportConfig("blob:mock", "comic-scroller-config.json"),

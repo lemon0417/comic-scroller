@@ -9,6 +9,7 @@ import scrollEpic from "./scrollEpic";
 import resizeEpic from "./resizeEpic";
 import navigationEpic from "./navigationEpic";
 import subscribeEpic from "./subscribeEpic";
+import readerLocationEpic from "./readerLocationEpic";
 
 const rootEpic = combineEpics<any, any, any, any>(
   fetchChapterEpic as any,
@@ -17,6 +18,7 @@ const rootEpic = combineEpics<any, any, any, any>(
   resizeEpic as any,
   navigationEpic as any,
   subscribeEpic as any,
+  readerLocationEpic as any,
   fetchImgListEpic as any,
   updateReadEpic as any,
 );

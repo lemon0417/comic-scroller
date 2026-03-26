@@ -1,27 +1,27 @@
-import { bindCallback } from "rxjs";
+import { from } from "rxjs";
 import { mergeMap } from "rxjs/operators";
 import { ofType } from "redux-observable";
-import filter from "lodash/filter";
-import pickBy from "lodash/pickBy";
 import { REQUEST_REMOVE_CARD } from "@domain/actions/popup";
-import { updatePopupData } from "@containers/PopupApp/reducers/popup";
-import { storageGet, storageSet } from "@infra/services/storage";
+import { hydratePopupLibrary } from "@domain/reducers/popupState";
+import {
+  dismissUpdate,
+  loadLibrary,
+  removeSeries,
+  saveLibrary,
+  setSubscription,
+} from "@infra/services/library";
 
 declare var chrome: any;
-
-const storageGet$ = bindCallback(storageGet);
-const storageSet$ = bindCallback(storageSet);
 
 export default function removeCardEpic(action$: any) {
   return action$.pipe(
     ofType(REQUEST_REMOVE_CARD),
     mergeMap((action: any) =>
-      storageGet$().pipe(
+      from(loadLibrary()).pipe(
         mergeMap((store: any) => {
           const payload = action?.payload || {};
           const {
             category,
-            index,
             comicsID,
             chapterID,
             site,
@@ -37,63 +37,29 @@ export default function removeCardEpic(action$: any) {
             return [];
           }
 
-          let newStore: any = { update: [] };
+          let newStore: any = store;
           if (category === "history") {
-            newStore = {
-              history: filter(
-                store.history,
-                (item) => item.comicsID !== comicsID,
-              ),
-              subscribe: filter(
-                store.subscribe,
-                (item) => item.comicsID !== comicsID,
-              ),
-              update: filter(
-                store.update,
-                (item) => item.comicsID !== comicsID,
-              ),
-              ...(site
-                ? {
-                    [site]: pickBy(
-                      store[site],
-                      (_item, key) => key !== comicsID,
-                    ),
-                  }
-                : {}),
-            };
+            newStore = site ? removeSeries(store, site, comicsID) : store;
           } else if (category === "subscribe") {
-            const indexKey = String(index ?? "");
-            newStore = {
-              subscribe: filter(
-                store.subscribe,
-                (_item, i) => String(i) !== indexKey,
-              ),
-              update: filter(
-                store.update,
-                (item) => item.comicsID !== comicsID,
-              ),
-            };
+            newStore = site
+              ? dismissUpdate(
+                  setSubscription(store, site, comicsID, false),
+                  site,
+                  comicsID,
+                )
+              : store;
           } else if (category === "update") {
-            newStore = {
-              update: filter(
-                store.update,
-                (item) =>
-                  item.comicsID !== comicsID || item.chapterID !== chapterID,
-              ),
-            };
+            newStore = site
+              ? dismissUpdate(store, site, comicsID, chapterID)
+              : store;
           }
 
-          return storageSet$(newStore).pipe(
-            mergeMap(() => {
+          return from(saveLibrary(newStore)).pipe(
+            mergeMap((library) => {
               chrome.action.setBadgeText({
-                text: `${
-                  newStore.update.length === 0 ? "" : newStore.update.length
-                }`,
+                text: `${library.updates.length === 0 ? "" : library.updates.length}`,
               });
-              chrome.runtime.sendMessage({ msg: "UPDATE" });
-              return storageGet$().pipe(
-                mergeMap((item: any) => [updatePopupData(item, "load")]),
-              );
+              return [hydratePopupLibrary(library, "load")];
             }),
           );
         }),

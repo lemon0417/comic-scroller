@@ -1,4 +1,4 @@
-import { bindCallback } from "rxjs";
+import { from } from "rxjs";
 import { mergeMap } from "rxjs/operators";
 import { ofType } from "redux-observable";
 import {
@@ -8,19 +8,19 @@ import {
   REQUEST_RESET_CONFIG,
 } from "@domain/actions/popup";
 import {
+  hydratePopupLibrary,
   setExportConfig,
-  updatePopupData,
-} from "@containers/PopupApp/reducers/popup";
-import initObject from "@utils/initObject";
-import { storageGet, storageSet, storageClear } from "@infra/services/storage";
+} from "@domain/reducers/popupState";
+import {
+  loadLibrary,
+  migrateLibrary,
+  resetLibrary,
+  saveLibrary,
+} from "@infra/services/library";
 
 declare var chrome: any;
 
-const storageGet$ = bindCallback(storageGet);
-const storageSet$ = bindCallback(storageSet);
-const storageClear$ = bindCallback(storageClear);
-
-function updateBadge(update: any[] | undefined) {
+function updateBadge(update: Array<any> | undefined) {
   const count = Array.isArray(update) ? update.length : 0;
   chrome.action.setBadgeText({ text: `${count === 0 ? "" : count}` });
 }
@@ -35,47 +35,33 @@ export default function popupConfigEpic(action$: any) {
     ),
     mergeMap((action: any) => {
       if (action.type === REQUEST_POPUP_DATA) {
-        return storageGet$().pipe(
-          mergeMap((item: any) => [updatePopupData(item, "load")]),
+        return from(loadLibrary()).pipe(
+          mergeMap((library) => [hydratePopupLibrary(library, "load")]),
         );
       }
 
       if (action.type === REQUEST_IMPORT_CONFIG) {
-        return storageSet$(action.payload || {}).pipe(
-          mergeMap(() =>
-            storageGet$().pipe(
-              mergeMap((item: any) => {
-                updateBadge(item?.update);
-                chrome.runtime.sendMessage({ msg: "UPDATE" });
-                return [updatePopupData(item, "import")];
-              }),
-            ),
-          ),
+        return from(saveLibrary(migrateLibrary(action.payload || {}))).pipe(
+          mergeMap((library) => {
+            updateBadge(library.updates);
+            return [hydratePopupLibrary(library, "import")];
+          }),
         );
       }
 
       if (action.type === REQUEST_RESET_CONFIG) {
-        return storageClear$().pipe(
-          mergeMap(() =>
-            storageSet$(initObject).pipe(
-              mergeMap(() =>
-                storageGet$().pipe(
-                  mergeMap((item: any) => {
-                    updateBadge(item?.update);
-                    chrome.runtime.sendMessage({ msg: "UPDATE" });
-                    return [updatePopupData(item, "reset")];
-                  }),
-                ),
-              ),
-            ),
-          ),
+        return from(resetLibrary()).pipe(
+          mergeMap((library) => {
+            updateBadge(library.updates);
+            return [hydratePopupLibrary(library, "reset")];
+          }),
         );
       }
 
       if (action.type === REQUEST_EXPORT_CONFIG) {
-        return storageGet$().pipe(
-          mergeMap((item: any) => {
-            const json = JSON.stringify(item);
+        return from(loadLibrary()).pipe(
+          mergeMap((library) => {
+            const json = JSON.stringify(library);
             const blob = new Blob([json], { type: "octet/stream" });
             const url = window.URL.createObjectURL(blob);
             return [setExportConfig(url, "comic-scroller-config.json")];

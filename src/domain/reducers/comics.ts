@@ -12,7 +12,7 @@ type State = {
   subscribe: boolean;
   chapters: Record<number, any>;
   chapterList: Array<any>;
-  read: [];
+  read: string[];
   renderBeginIndex: number;
   renderEndIndex: number;
   imageList: {
@@ -64,7 +64,7 @@ const UPDATE_TITLE = "UPDATE_TITLE";
 const UPDATE_CHAPTERS = "UPDATE_CHAPTERS";
 const UPDATE_CHAPTER_LIST = "UPDATE_CHAPTER_LIST";
 const UPDATE_CHAPTER_LATEST_INDEX = "UPDATE_CHAPTER_LATEST_INDEX";
-const UPDATE_CHAPTER_NOW_INDEX = "UPDATE_CHAPTER_NOW_INDEX";
+export const UPDATE_CHAPTER_NOW_INDEX = "UPDATE_CHAPTER_NOW_INDEX";
 const UPDATE_RENDER_INDEX = "UPDATE_RENDER_INDEX";
 const UPDATE_READ_CHAPTERS = "UPDATE_READ_CHAPTERS";
 const CONCAT_IMAGE_LIST = "CONCAT_IMAGE_LIST";
@@ -73,6 +73,7 @@ const UPDATE_IMAGE_TYPE = "UPDATE_IMAGE_TYPE";
 const UPDATE_INNER_HEIGHT = "UPDATE_INNER_HEIGHT";
 const UPDATE_INNER_WIDTH = "UPDATE_INNER_WIDTH";
 const RESET_IMAGE = "RESET_IMAGE";
+const UPDATE_SITE_INFO = "UPDATE_SITE_INFO";
 
 export default function comics(
   state: State = initialState,
@@ -173,15 +174,6 @@ export default function comics(
         chapterLatestIndex: action.data,
       };
     case UPDATE_CHAPTER_NOW_INDEX:
-      if (state.chapterList && action.data >= 0) {
-        const chapter = state.chapterList[action.data];
-        document.title = `${state.title} ${state.chapters[chapter].title}`;
-        window.history.replaceState(
-          {},
-          document.title,
-          `?site=${state.site}&chapter=${chapter}`,
-        );
-      }
       return {
         ...state,
         chapterNowIndex: action.data,
@@ -250,6 +242,13 @@ export default function comics(
             ? action.innerWidth
             : state.innerWidth,
       };
+    case UPDATE_SITE_INFO:
+      return {
+        ...state,
+        site: typeof action.site === "string" ? action.site : state.site,
+        baseURL:
+          typeof action.baseURL === "string" ? action.baseURL : state.baseURL,
+      };
     default:
       return state;
   }
@@ -267,7 +266,7 @@ export function updateSubscribe(data: boolean) {
   return { type: UPDATE_SUBSCRIBE, data };
 }
 
-export function updateReadChapters(data: []) {
+export function updateReadChapters(data: string[]) {
   return { type: UPDATE_READ_CHAPTERS, data };
 }
 
@@ -326,4 +325,8 @@ export function updateInnerHeight(innerHeight: number) {
 
 export function updateInnerWidth(innerWidth: number) {
   return { type: UPDATE_INNER_WIDTH, innerWidth };
+}
+
+export function updateSiteInfo(site: string, baseURL: string) {
+  return { type: UPDATE_SITE_INFO, site, baseURL };
 }

@@ -1,37 +1,56 @@
-import { of } from "rxjs";
+import { lastValueFrom, of } from "rxjs";
+import { toArray } from "rxjs/operators";
 import subscribeEpic from "./subscribeEpic";
 import { toggleSubscribe } from "@domain/actions/reader";
 import { updateSubscribe } from "@domain/reducers/comics";
 
-jest.mock("@infra/services/storage", () => ({
-  storageGet: jest.fn(),
-  storageSet: jest.fn(),
-}));
+jest.mock("@infra/services/library", () => {
+  const actual = jest.requireActual("@infra/services/library");
+  return {
+    ...actual,
+    loadLibrary: jest.fn(),
+    saveLibrary: jest.fn(),
+  };
+});
 
-const { storageGet, storageSet } = jest.requireMock("@infra/services/storage");
+const { loadLibrary, saveLibrary } = jest.requireMock("@infra/services/library");
 
 describe("subscribeEpic", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("adds subscribe and updates state", () => {
+  it("adds subscribe and updates state", async () => {
     const store = {
-      subscribe: [],
-      dm5: { "123": { title: "t" } },
+      schemaVersion: 2,
+      version: "0.0.0",
+      subscriptions: [],
+      history: [],
+      updates: [],
+      seriesByKey: {
+        "dm5:m123": {
+          site: "dm5",
+          comicsID: "m123",
+          title: "t",
+          cover: "",
+          url: "",
+          chapterList: [],
+          chapters: {},
+          lastRead: "",
+          read: [],
+        },
+      },
     };
-    storageGet.mockImplementation((keys: any, cb?: any) => {
-      if (typeof keys === "function") return keys(store);
-      return cb?.(store);
+    loadLibrary.mockResolvedValue(store);
+    saveLibrary.mockResolvedValue({
+      ...store,
+      subscriptions: ["dm5:m123"],
     });
-    storageSet.mockImplementation((_items: any, cb?: any) => cb?.());
 
     const state$ = { value: { comics: { site: "dm5", comicsID: "123" } } };
-    const action$ = of(toggleSubscribe());
-    const output$ = subscribeEpic(action$, state$ as any);
-
-    const actions: any[] = [];
-    output$.subscribe((action: any) => actions.push(action));
+    const actions = await lastValueFrom(
+      subscribeEpic(of(toggleSubscribe()), state$ as any).pipe(toArray()),
+    );
 
     expect(actions).toEqual([updateSubscribe(true)]);
   });

@@ -4,66 +4,49 @@ exports[`popup state integration hydrates popup state from storage 1`] = `
 {
   "popup": {
     "activeAction": null,
-    "comicbus": {
-      "baseURL": "http://www.comicbus.com",
-    },
-    "dm5": {
-      "123": {
-        "chapterList": [
-          "m1",
-        ],
-        "chapters": {
-          "m1": {
-            "href": "https://dm5.com/m1",
-            "title": "Ch 1",
-          },
-        },
-        "cover": "cover.jpg",
-        "lastRead": "m1",
-        "read": [
-          "m1",
-        ],
-        "title": "Demo",
-        "url": "https://www.dm5.com/123/",
-      },
-      "baseURL": "https://www.dm5.com",
-    },
     "exportFilename": "",
     "exportUrl": "",
-    "history": [
-      {
-        "comicsID": "123",
-        "move": false,
-        "shift": false,
-        "site": "dm5",
-      },
-    ],
     "hydrationStatus": "ready",
-    "notice": null,
-    "sf": {
-      "baseURL": "http://comic.sfacg.com",
-    },
-    "subscribe": [
-      {
-        "comicsID": "123",
-        "move": false,
-        "shift": false,
-        "site": "dm5",
-      },
-    ],
-    "update": [
-      {
-        "chapterID": "m1",
-        "comicsID": "123",
-        "move": false,
-        "shift": false,
-        "site": "dm5",
-        "updateChapter": {
-          "href": "https://dm5.com/m1",
-          "title": "Ch 1",
+    "library": {
+      "history": [
+        "dm5:m123",
+      ],
+      "schemaVersion": 2,
+      "seriesByKey": {
+        "dm5:m123": {
+          "chapterList": [
+            "m1",
+          ],
+          "chapters": {
+            "m1": {
+              "href": "https://dm5.com/m1",
+              "title": "Ch 1",
+            },
+          },
+          "comicsID": "m123",
+          "cover": "cover.jpg",
+          "lastRead": "m1",
+          "read": [
+            "m1",
+          ],
+          "site": "dm5",
+          "title": "Demo",
+          "url": "https://www.dm5.com/m123/",
         },
       },
-    ],
+      "subscriptions": [
+        "dm5:m123",
+      ],
+      "updates": [
+        {
+          "chapterID": "m1",
+          "createdAt": 1,
+          "seriesKey": "dm5:m123",
+        },
+      ],
+      "version": "0.0.0",
+    },
+    "notice": null,
   },
 }
 `;

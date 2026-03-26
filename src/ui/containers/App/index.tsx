@@ -1,6 +1,5 @@
 import { Component } from "react";
 import { connect } from "react-redux";
-import some from "lodash/some";
 import MenuIcon from "@imgs/menu.svg?react";
 import NextIcon from "@imgs/circle-right.svg?react";
 import PrevIcon from "@imgs/circle-left.svg?react";
@@ -10,12 +9,16 @@ import ImageContainer from "@containers/ImageContainer";
 import ChapterList from "@containers/ChapterList";
 import { updateSubscribe } from "@domain/reducers/comics";
 import {
+  getSeries,
+  isSubscribed,
+  subscribeToLibraryChanges,
+} from "@infra/services/library";
+import {
   fetchChapter,
   navigateChapter,
   startResize,
   toggleSubscribe,
 } from "@domain/actions/reader";
-import { storageGet } from "@infra/services/storage";
 
 declare var chrome: any;
 
@@ -44,32 +47,32 @@ class App extends Component<any, any> {
     showChapterList: false,
   };
 
+  unsubscribeLibrary?: () => void;
+
   componentDidMount() {
     this.props.startResize();
-    chrome.runtime.onMessage.addListener(() => {
-      storageGet((item: any) => {
-        const { subscribe, site, comicsID } = this.props;
-        if (!item[this.props.site][comicsID]) {
-          chrome.tabs.getCurrent((tab: { id: any }) => {
+    this.unsubscribeLibrary = subscribeToLibraryChanges((library) => {
+      const { site, comicsID } = this.props;
+      if (!site || !comicsID) return;
+      if (!getSeries(library, site, comicsID)) {
+        chrome.tabs.getCurrent((tab: { id: any }) => {
+          if (tab?.id) {
             chrome.tabs.remove(tab.id);
-          });
-        }
-        if (
-          !some(
-            item.subscribe,
-            (citem) => citem.site === site && citem.comicsID === comicsID,
-          ) &&
-          subscribe
-        ) {
-          this.props.updateSubscribe(false);
-        }
-      });
+          }
+        });
+        return;
+      }
+      this.props.updateSubscribe(isSubscribed(library, site, comicsID));
     });
     const params = new URLSearchParams(window.location.search);
     const chapter = params.get("chapter") || "";
     if (chapter && this.props.fetchChapter) {
       this.props.fetchChapter(chapter);
     }
+  }
+
+  componentWillUnmount() {
+    this.unsubscribeLibrary?.();
   }
 
   showChapterListHandler = () => {

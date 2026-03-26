@@ -1,5 +1,5 @@
 import { combineReducers } from "redux";
-import popup from "@containers/PopupApp/reducers/popup";
+import popup from "./popupState";
 
 const rootReducer = combineReducers({
   popup,

@@ -11,7 +11,7 @@ import Tabs from "@components/Tabs";
 import {
   clearExportConfig,
   clearPopupNotice,
-} from "@containers/PopupApp/reducers/popup";
+} from "@domain/reducers/popupState";
 import {
   requestExportConfig,
   requestImportConfig,

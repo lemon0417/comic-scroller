@@ -1,20 +1,21 @@
-import { bindCallback } from "rxjs";
+import { from } from "rxjs";
 import { mergeMap } from "rxjs/operators";
 import { ofType } from "redux-observable";
-import filter from "lodash/filter";
-import some from "lodash/some";
 import { TOGGLE_SUBSCRIBE } from "@domain/actions/reader";
 import { updateSubscribe } from "@domain/reducers/comics";
-import { storageGet, storageSet } from "@infra/services/storage";
-
-const storageGet$ = bindCallback(storageGet);
-const storageSet$ = bindCallback(storageSet);
+import {
+  getSeries,
+  isSubscribed,
+  loadLibrary,
+  saveLibrary,
+  setSubscription,
+} from "@infra/services/library";
 
 export default function subscribeEpic(action$: any, state$: { value: any }) {
   return action$.pipe(
     ofType(TOGGLE_SUBSCRIBE),
     mergeMap(() =>
-      storageGet$().pipe(
+      from(loadLibrary()).pipe(
         mergeMap((item: any) => {
           const { site: propSite, comicsID: propComicsID } =
             state$?.value?.comics || {};
@@ -28,28 +29,20 @@ export default function subscribeEpic(action$: any, state$: { value: any }) {
           };
           const resolveSiteAndId = (store: any) => {
             const rawKey = String(propComicsID ?? "");
-            const tryKeys = (bucket: any, baseKey: string) => {
-              if (!bucket) return null;
-              if (baseKey && bucket[baseKey]) return baseKey;
-              const withPrefix = baseKey ? `m${baseKey}` : "";
-              if (withPrefix && bucket[withPrefix]) return withPrefix;
-              if (baseKey.startsWith("m")) {
-                const stripped = baseKey.slice(1);
-                if (stripped && bucket[stripped]) return stripped;
-              }
-              return null;
-            };
 
             if (propSite) {
-              const resolvedKey = tryKeys(store[propSite], rawKey) || rawKey;
-              return { site: propSite, comicsID: resolvedKey };
+              const fromLibrary = getSeries(store, propSite, rawKey);
+              return {
+                site: propSite,
+                comicsID: fromLibrary?.comicsID || rawKey,
+              };
             }
 
             const candidates = ["dm5", "sf", "comicbus"];
             for (const candidate of candidates) {
-              const resolvedKey = tryKeys(store[candidate], rawKey);
-              if (resolvedKey) {
-                return { site: candidate, comicsID: resolvedKey };
+              const fromLibrary = getSeries(store, candidate, rawKey);
+              if (fromLibrary) {
+                return { site: candidate, comicsID: fromLibrary.comicsID };
               }
             }
 
@@ -61,43 +54,14 @@ export default function subscribeEpic(action$: any, state$: { value: any }) {
           };
 
           const { site, comicsID } = resolveSiteAndId(item);
-          if (!site || !item?.subscribe) {
+          if (!site) {
             return [];
           }
 
-          let newItem = {};
-          let nextSubscribe = false;
-          if (
-            some(
-              item.subscribe,
-              (citem: any) =>
-                citem.site === site && citem.comicsID === comicsID,
-            )
-          ) {
-            newItem = {
-              ...item,
-              subscribe: filter(
-                item.subscribe,
-                (citem: any) =>
-                  citem.site !== site || citem.comicsID !== comicsID,
-              ),
-            };
-            nextSubscribe = false;
-          } else {
-            newItem = {
-              ...item,
-              subscribe: [
-                {
-                  site,
-                  comicsID,
-                },
-                ...item.subscribe,
-              ],
-            };
-            nextSubscribe = true;
-          }
+          const nextSubscribe = !isSubscribed(item, site, comicsID);
+          const newItem = setSubscription(item, site, comicsID, nextSubscribe);
 
-          return storageSet$(newItem).pipe(
+          return from(saveLibrary(newItem)).pipe(
             mergeMap(() => [updateSubscribe(nextSubscribe)]),
           );
         }),

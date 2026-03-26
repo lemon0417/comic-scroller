@@ -4,56 +4,41 @@ import popupReducer from "@domain/reducers/popup";
 import popupEpic from "@epics/popup";
 import { requestPopupData } from "@domain/actions/popup";
 
-jest.mock("@utils/initObject", () => ({
-  __esModule: true,
-  default: {
-    history: [],
-    subscribe: [],
-    update: [],
-    dm5: {},
-    sf: {},
-    comicbus: {},
+jest.mock("@infra/services/library", () => ({
+  createEmptyLibrarySnapshot: jest.fn(() => ({
+    schemaVersion: 2,
     version: "0.0.0",
-  },
+    seriesByKey: {},
+    subscriptions: [],
+    history: [],
+    updates: [],
+  })),
+  loadLibrary: jest.fn(),
+  saveLibrary: jest.fn(),
+  resetLibrary: jest.fn(),
+  migrateLibrary: jest.fn((value) => value),
+  subscribeToLibraryChanges: jest.fn(() => () => undefined),
 }));
 
-jest.mock("@infra/services/storage", () => ({
-  storageGet: jest.fn(),
-  storageSet: jest.fn(),
-  storageClear: jest.fn(),
-}));
-
-const { storageGet } = jest.requireMock("@infra/services/storage");
+const { loadLibrary } = jest.requireMock("@infra/services/library");
 
 describe("popup state integration", () => {
   it("hydrates popup state from storage", async () => {
     const data = {
-      update: [
-        {
-          site: "dm5",
-          comicsID: "123",
-          chapterID: "m1",
-          updateChapter: { title: "Ch 1", href: "https://dm5.com/m1" },
-        },
+      schemaVersion: 2,
+      version: "0.0.0",
+      updates: [
+        { seriesKey: "dm5:m123", chapterID: "m1", createdAt: 1 },
       ],
-      subscribe: [
-        {
+      subscriptions: ["dm5:m123"],
+      history: ["dm5:m123"],
+      seriesByKey: {
+        "dm5:m123": {
           site: "dm5",
-          comicsID: "123",
-        },
-      ],
-      history: [
-        {
-          site: "dm5",
-          comicsID: "123",
-        },
-      ],
-      dm5: {
-        baseURL: "https://www.dm5.com",
-        "123": {
+          comicsID: "m123",
           title: "Demo",
           cover: "cover.jpg",
-          url: "https://www.dm5.com/123/",
+          url: "https://www.dm5.com/m123/",
           lastRead: "m1",
           chapters: {
             m1: { title: "Ch 1", href: "https://dm5.com/m1" },
@@ -62,14 +47,9 @@ describe("popup state integration", () => {
           read: ["m1"],
         },
       },
-      sf: { baseURL: "http://comic.sfacg.com" },
-      comicbus: { baseURL: "http://www.comicbus.com" },
     };
 
-    storageGet.mockImplementation((keys: any, cb?: any) => {
-      if (typeof keys === "function") return keys(data);
-      return cb?.(data);
-    });
+    loadLibrary.mockResolvedValue(data);
 
     const epicMiddleware = createEpicMiddleware();
     const store = configureStore({
