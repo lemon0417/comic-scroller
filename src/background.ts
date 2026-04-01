@@ -3,11 +3,10 @@ import {
   applyBackgroundSeriesRefresh,
   getSeriesSnapshot,
   getUpdateCount,
-  loadLibrary,
   listSubscriptionKeys,
   parseSeriesKey,
   resetLibrary,
-  saveLibrary,
+  setLibraryVersion,
 } from "@infra/services/library";
 
 const dm5Regex = /https\:\/\/(tel||www)\.dm5\.com\/(m\d+)\//;
@@ -114,11 +113,7 @@ chrome.notifications.onClicked.addListener((id: any) => {
 
 chrome.runtime.onInstalled.addListener(async (details: any) => {
   if (details.reason === "update") {
-    const library = await loadLibrary();
-    await saveLibrary({
-      ...library,
-      version: chrome.runtime.getManifest().version,
-    });
+    await setLibraryVersion(chrome.runtime.getManifest().version);
     chrome.notifications.create("Comics Scroller Update", {
       type: "basic",
       iconUrl: chrome.runtime.getURL("imgs/comics-128.png"),
