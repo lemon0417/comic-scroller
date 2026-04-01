@@ -28,14 +28,8 @@ import {
   updateSubscribe,
 } from "@domain/reducers/comics";
 import {
-  addHistoryEntry,
-  dismissUpdate,
-  getSeries,
-  isSubscribed,
-  loadLibrary,
-  saveLibrary,
-  updateSeriesReadProgress,
-  upsertSeries,
+  applyReadProgress,
+  applyReaderSeriesState,
 } from "@infra/services/library";
 
 const baseURL = "http://www.comicbus.com";
@@ -195,72 +189,43 @@ export function fetchChapterEpic(action$: any) {
                   chapterList,
                   (item) => item === action.chapter,
                 );
-                return from(loadLibrary()).pipe(
-                  mergeMap((library: any) => {
-                    let nextLibrary = upsertSeries(library, "comicbus", comicsID, {
+                return from(
+                  applyReaderSeriesState(
+                    "comicbus",
+                    comicsID,
+                    {
                       title,
                       chapters,
                       chapterList,
                       cover,
                       url: `${baseURL}/html/${comicsID}.html`,
+                    },
+                    action.chapter,
+                  ),
+                ).pipe(
+                  mergeMap(({ series, subscribed, updatesCount }) => {
+                    chrome.action.setBadgeText({
+                      text: `${updatesCount === 0 ? "" : updatesCount}`,
                     });
-                    nextLibrary = updateSeriesReadProgress(
-                      nextLibrary,
-                      "comicbus",
-                      comicsID,
-                      action.chapter,
-                    );
-                    nextLibrary = addHistoryEntry(
-                      nextLibrary,
-                      "comicbus",
-                      comicsID,
-                    );
-                    nextLibrary = dismissUpdate(
-                      nextLibrary,
-                      "comicbus",
-                      comicsID,
-                      action.chapter,
-                    );
-                    const subscribe = isSubscribed(
-                      nextLibrary,
-                      "comicbus",
-                      comicsID,
-                    );
-                    return from(saveLibrary(nextLibrary)).pipe(
-                      mergeMap((savedLibrary) => {
-                        chrome.action.setBadgeText({
-                          text: `${
-                            savedLibrary.updates.length === 0
-                              ? ""
-                              : savedLibrary.updates.length
-                          }`,
-                        });
-                        const savedSeries = getSeries(
-                          savedLibrary,
-                          "comicbus",
-                          comicsID,
-                        );
-                        const result$: any[] = [
-                          updateSiteInfo("comicbus", baseURL),
-                          updateComicsID(comicsID),
-                          updateSubscribe(subscribe),
-                          updateTitle(title),
-                          updateReadChapters(savedSeries?.read || []),
-                          updateChapters(chapters),
-                          updateChapterList(chapterList),
-                          updateChapterNowIndex(chapterIndex),
-                        ];
-                        if (chapterIndex > 0) {
-                          result$.push(
-                            fetchImgList(chapterIndex - 1),
-                            updateChapterLatestIndex(chapterIndex - 1),
-                          );
-                        } else {
-                          result$.push(updateChapterLatestIndex(chapterIndex - 1));
-                        }
-                        return result$;
-                      }),
-                    );
+                    const result$: any[] = [
+                      updateSiteInfo("comicbus", baseURL),
+                      updateComicsID(comicsID),
+                      updateSubscribe(subscribed),
+                      updateTitle(title),
+                      updateReadChapters(series?.read || []),
+                      updateChapters(chapters),
+                      updateChapterList(chapterList),
+                      updateChapterNowIndex(chapterIndex),
+                    ];
+                    if (chapterIndex > 0) {
+                      result$.push(
+                        fetchImgList(chapterIndex - 1),
+                        updateChapterLatestIndex(chapterIndex - 1),
+                      );
+                    } else {
+                      result$.push(updateChapterLatestIndex(chapterIndex - 1));
+                    }
+                    return result$;
                   }),
                 );
               }),
@@ -276,36 +241,20 @@ export function updateReadEpic(action$: any, state$: { value: any }) {
   return action$.pipe(
     ofType(UPDATE_READ),
     mergeMap((action: { index: number }) =>
-      from(loadLibrary()).pipe(
-        mergeMap((library: any) => {
+      from(
+        (() => {
           const { comicsID, chapterList } = state$.value.comics;
-          const chapterID = chapterList[action.index];
-          let nextLibrary = updateSeriesReadProgress(
-            library,
-            "comicbus",
-            comicsID,
-            chapterID,
-          );
-          nextLibrary = dismissUpdate(
-            nextLibrary,
-            "comicbus",
-            comicsID,
-            chapterID,
-          );
-          return from(saveLibrary(nextLibrary)).pipe(
-            mergeMap((savedLibrary) => {
-              chrome.action.setBadgeText({
-                text: `${
-                  savedLibrary.updates.length === 0 ? "" : savedLibrary.updates.length
-                }`,
-              });
-              const savedSeries = getSeries(savedLibrary, "comicbus", comicsID);
-              return [
-                updateReadChapters(savedSeries?.read || []),
-                updateChapterNowIndex(action.index),
-              ];
-            }),
-          );
+          return applyReadProgress("comicbus", comicsID, chapterList[action.index]);
+        })(),
+      ).pipe(
+        mergeMap(({ series, updatesCount }) => {
+          chrome.action.setBadgeText({
+            text: `${updatesCount === 0 ? "" : updatesCount}`,
+          });
+          return [
+            updateReadChapters(series?.read || []),
+            updateChapterNowIndex(action.index),
+          ];
         }),
       ),
     ),

@@ -13,8 +13,8 @@ import {
 } from "@domain/reducers/popupState";
 import {
   exportLibraryDump,
+  getPopupFeedSnapshot,
   importLibraryDump,
-  loadLibrary,
   resetLibrary,
 } from "@infra/services/library";
 
@@ -35,26 +35,34 @@ export default function popupConfigEpic(action$: any) {
     ),
     mergeMap((action: any) => {
       if (action.type === REQUEST_POPUP_DATA) {
-        return from(loadLibrary()).pipe(
+        return from(getPopupFeedSnapshot()).pipe(
           mergeMap((library) => [hydratePopupLibrary(library, "load")]),
         );
       }
 
       if (action.type === REQUEST_IMPORT_CONFIG) {
         return from(importLibraryDump(action.payload || {})).pipe(
-          mergeMap((library) => {
-            updateBadge(library.updates);
-            return [hydratePopupLibrary(library, "import")];
-          }),
+          mergeMap(() =>
+            from(getPopupFeedSnapshot()).pipe(
+              mergeMap((library) => {
+                updateBadge(library.updates);
+                return [hydratePopupLibrary(library, "import")];
+              }),
+            ),
+          ),
         );
       }
 
       if (action.type === REQUEST_RESET_CONFIG) {
         return from(resetLibrary()).pipe(
-          mergeMap((library) => {
-            updateBadge(library.updates);
-            return [hydratePopupLibrary(library, "reset")];
-          }),
+          mergeMap(() =>
+            from(getPopupFeedSnapshot()).pipe(
+              mergeMap((library) => {
+                updateBadge(library.updates);
+                return [hydratePopupLibrary(library, "reset")];
+              }),
+            ),
+          ),
         );
       }
 

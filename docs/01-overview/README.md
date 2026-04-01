@@ -26,6 +26,7 @@
 ## 目前架構重點
 - 共享持久化模型：`src/infra/services/library.ts`
 - popup / manage / reader 的持久化同步：`chrome.storage.onChanged` + `librarySignal`
-- library repository 對外維持 `LibrarySnapshotV2`，底層改為 IndexedDB stores
+- library repository 對外仍保留 `LibrarySnapshotV2` compatibility shape，但主要流程已改為增量式 query / mutation API
+- popup / manage 走 `getPopupFeedSnapshot()`，reader 與 background 走系列級 mutation，不再每次全量重寫整包 snapshot
 - reducer 不負責 DOM / URL side effects，這類行為放在 epics
 - background 保持 MV3 service worker 限制下可用，不依賴 DOM API

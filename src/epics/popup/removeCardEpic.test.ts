@@ -9,12 +9,17 @@ jest.mock("@infra/services/library", () => {
   const actual = jest.requireActual("@infra/services/library");
   return {
     ...actual,
-    loadLibrary: jest.fn(),
-    saveLibrary: jest.fn(),
+    dismissSeriesUpdate: jest.fn(),
+    getPopupFeedSnapshot: jest.fn(),
+    removeSeriesCascade: jest.fn(),
+    setSeriesSubscription: jest.fn(),
   };
 });
 
-const { loadLibrary, saveLibrary } = jest.requireMock("@infra/services/library");
+const {
+  dismissSeriesUpdate,
+  getPopupFeedSnapshot,
+} = jest.requireMock("@infra/services/library");
 
 describe("removeCardEpic", () => {
   beforeEach(() => {
@@ -63,8 +68,8 @@ describe("removeCardEpic", () => {
       ...store,
       updates: [{ seriesKey: "dm5:c2", chapterID: "ch2", createdAt: 2 }],
     };
-    loadLibrary.mockResolvedValue(store);
-    saveLibrary.mockResolvedValue(nextStore);
+    dismissSeriesUpdate.mockResolvedValue(1);
+    getPopupFeedSnapshot.mockResolvedValue(nextStore);
 
     const actions = await lastValueFrom(
       removeCardEpic(

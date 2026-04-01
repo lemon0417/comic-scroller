@@ -8,6 +8,7 @@
 - epics 處理非同步（網路 / storage / location sync）並回寫 action
 - UI 根據 store 更新
 - popup / manage / reader 之間的持久化同步，統一透過 `chrome.storage.onChanged` 監聽 `librarySignal`
+- signal 只做 invalidation，不直接攜帶主資料；收到後由各入口依需求重新 query repository
 
 簡寫：
 UI → Actions → Reducers → State → UI
@@ -24,6 +25,9 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - `history`
   - `updates`
 - `chrome.storage.local.librarySignal` 用於跨 context 通知資料已變更
+- repository 目前分成兩層 API：
+  - compatibility：`loadLibrary`、`saveLibrary`、`exportLibraryDump`、`importLibraryDump`
+  - query / mutation：`getPopupFeedSnapshot`、`getSeriesSnapshot`、`listSubscriptionKeys`、`applyReaderSeriesState`、`applyReadProgress`、`setSeriesSubscription*`、`dismissSeriesUpdate`、`removeSeriesCascade`
 - 核心欄位：
   - `seriesByKey`
   - `subscriptions`
@@ -35,6 +39,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - SF / ComicBus 維持原站點 ID
 - 舊版 storage schema 會在載入時自動 migration 到 IndexedDB
 - 匯出格式改為 DB dump JSON；匯入同時支援新 dump 與舊版 JSON
+- 目前 `read` 仍保留在 `series` row 內；尚未拆成獨立 table
 
 ## 模組位置
 - Actions：`src/domain/actions/`
@@ -50,4 +55,5 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - 站點解析邏輯集中在 `src/epics/sites/`
 - 不得在 component、reducer、background 中直接讀寫 IndexedDB 或拼接舊 schema
 - 所有持久化更新優先走 `library.ts`
+- 新增業務流程時，優先使用 query / mutation API，不要新增 `loadLibrary → mutate snapshot → saveLibrary`
 - Reader store 與 Popup store 只保存頁面需要的 state，不作為跨頁面持久化真實來源

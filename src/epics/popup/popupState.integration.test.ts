@@ -13,14 +13,14 @@ jest.mock("@infra/services/library", () => ({
     history: [],
     updates: [],
   })),
-  loadLibrary: jest.fn(),
-  saveLibrary: jest.fn(),
+  getPopupFeedSnapshot: jest.fn(),
+  exportLibraryDump: jest.fn(),
+  importLibraryDump: jest.fn(),
   resetLibrary: jest.fn(),
-  migrateLibrary: jest.fn((value) => value),
-  subscribeToLibraryChanges: jest.fn(() => () => undefined),
+  subscribeToLibrarySignal: jest.fn(() => () => undefined),
 }));
 
-const { loadLibrary } = jest.requireMock("@infra/services/library");
+const { getPopupFeedSnapshot } = jest.requireMock("@infra/services/library");
 
 describe("popup state integration", () => {
   it("hydrates popup state from storage", async () => {
@@ -49,7 +49,7 @@ describe("popup state integration", () => {
       },
     };
 
-    loadLibrary.mockResolvedValue(data);
+    getPopupFeedSnapshot.mockResolvedValue(data);
 
     const epicMiddleware = createEpicMiddleware();
     const store = configureStore({

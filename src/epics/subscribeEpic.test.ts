@@ -8,12 +8,17 @@ jest.mock("@infra/services/library", () => {
   const actual = jest.requireActual("@infra/services/library");
   return {
     ...actual,
-    loadLibrary: jest.fn(),
-    saveLibrary: jest.fn(),
+    findExistingSeriesKey: jest.fn(),
+    isSeriesSubscribedByKey: jest.fn(),
+    setSeriesSubscriptionByKey: jest.fn(),
   };
 });
 
-const { loadLibrary, saveLibrary } = jest.requireMock("@infra/services/library");
+const {
+  findExistingSeriesKey,
+  isSeriesSubscribedByKey,
+  setSeriesSubscriptionByKey,
+} = jest.requireMock("@infra/services/library");
 
 describe("subscribeEpic", () => {
   beforeEach(() => {
@@ -21,31 +26,9 @@ describe("subscribeEpic", () => {
   });
 
   it("adds subscribe and updates state", async () => {
-    const store = {
-      schemaVersion: 2,
-      version: "0.0.0",
-      subscriptions: [],
-      history: [],
-      updates: [],
-      seriesByKey: {
-        "dm5:m123": {
-          site: "dm5",
-          comicsID: "m123",
-          title: "t",
-          cover: "",
-          url: "",
-          chapterList: [],
-          chapters: {},
-          lastRead: "",
-          read: [],
-        },
-      },
-    };
-    loadLibrary.mockResolvedValue(store);
-    saveLibrary.mockResolvedValue({
-      ...store,
-      subscriptions: ["dm5:m123"],
-    });
+    findExistingSeriesKey.mockResolvedValue("dm5:m123");
+    isSeriesSubscribedByKey.mockResolvedValue(false);
+    setSeriesSubscriptionByKey.mockResolvedValue(true);
 
     const state$ = { value: { comics: { site: "dm5", comicsID: "123" } } };
     const actions = await lastValueFrom(
@@ -53,5 +36,6 @@ describe("subscribeEpic", () => {
     );
 
     expect(actions).toEqual([updateSubscribe(true)]);
+    expect(setSeriesSubscriptionByKey).toHaveBeenCalledWith("dm5:m123", true);
   });
 });

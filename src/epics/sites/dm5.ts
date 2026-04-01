@@ -28,14 +28,8 @@ import {
   updateSubscribe,
 } from "@domain/reducers/comics";
 import {
-  addHistoryEntry,
-  dismissUpdate,
-  getSeries,
-  isSubscribed,
-  loadLibrary,
-  saveLibrary,
-  updateSeriesReadProgress,
-  upsertSeries,
+  applyReadProgress,
+  applyReaderSeriesState,
 } from "@infra/services/library";
 
 const baseURL = "https://www.dm5.com";
@@ -364,60 +358,43 @@ export function fetchChapterEpic(action$: any) {
                   chapterList,
                   (item) => item === chapter,
                 );
-                return from(loadLibrary()).pipe(
-                  mergeMap((library: any) => {
-                    let nextLibrary = upsertSeries(library, "dm5", comicsID, {
+                return from(
+                  applyReaderSeriesState(
+                    "dm5",
+                    comicsID,
+                    {
                       title,
                       chapters,
                       chapterList,
                       cover,
                       url: comicUrl,
+                    },
+                    chapter,
+                  ),
+                ).pipe(
+                  mergeMap(({ series, subscribed, updatesCount }) => {
+                    chrome.action.setBadgeText({
+                      text: `${updatesCount === 0 ? "" : updatesCount}`,
                     });
-                    nextLibrary = updateSeriesReadProgress(
-                      nextLibrary,
-                      "dm5",
-                      comicsID,
-                      chapter,
-                    );
-                    nextLibrary = addHistoryEntry(nextLibrary, "dm5", comicsID);
-                    nextLibrary = dismissUpdate(
-                      nextLibrary,
-                      "dm5",
-                      comicsID,
-                      chapter,
-                    );
-                    const subscribe = isSubscribed(nextLibrary, "dm5", comicsID);
-                    return from(saveLibrary(nextLibrary)).pipe(
-                      mergeMap((savedLibrary) => {
-                        chrome.action.setBadgeText({
-                          text: `${
-                            savedLibrary.updates.length === 0
-                              ? ""
-                              : savedLibrary.updates.length
-                          }`,
-                        });
-                        const savedSeries = getSeries(savedLibrary, "dm5", comicsID);
-                        const result$: any[] = [
-                          updateSiteInfo("dm5", baseURL),
-                          updateComicsID(comicsID),
-                          updateSubscribe(subscribe),
-                          updateTitle(title),
-                          updateReadChapters(savedSeries?.read || []),
-                          updateChapters(chapters),
-                          updateChapterList(chapterList),
-                          updateChapterNowIndex(chapterIndex),
-                        ];
-                        if (chapterIndex > 0) {
-                          result$.push(
-                            fetchImgList(chapterIndex - 1),
-                            updateChapterLatestIndex(chapterIndex - 1),
-                          );
-                        } else {
-                          result$.push(updateChapterLatestIndex(chapterIndex - 1));
-                        }
-                        return result$;
-                      }),
-                    );
+                    const result$: any[] = [
+                      updateSiteInfo("dm5", baseURL),
+                      updateComicsID(comicsID),
+                      updateSubscribe(subscribed),
+                      updateTitle(title),
+                      updateReadChapters(series?.read || []),
+                      updateChapters(chapters),
+                      updateChapterList(chapterList),
+                      updateChapterNowIndex(chapterIndex),
+                    ];
+                    if (chapterIndex > 0) {
+                      result$.push(
+                        fetchImgList(chapterIndex - 1),
+                        updateChapterLatestIndex(chapterIndex - 1),
+                      );
+                    } else {
+                      result$.push(updateChapterLatestIndex(chapterIndex - 1));
+                    }
+                    return result$;
                   }),
                 );
               }),
@@ -433,26 +410,20 @@ export function updateReadEpic(action$: any, state$: { value: any }) {
   return action$.pipe(
     ofType(UPDATE_READ),
     mergeMap((action: { index: number }) =>
-      from(loadLibrary()).pipe(
-        mergeMap((library: any) => {
+      from(
+        (() => {
           const { comicsID, chapterList } = state$.value.comics;
-          const chapterID = chapterList[action.index];
-          let nextLibrary = updateSeriesReadProgress(library, "dm5", comicsID, chapterID);
-          nextLibrary = dismissUpdate(nextLibrary, "dm5", comicsID, chapterID);
-          return from(saveLibrary(nextLibrary)).pipe(
-            mergeMap((savedLibrary) => {
-              chrome.action.setBadgeText({
-                text: `${
-                  savedLibrary.updates.length === 0 ? "" : savedLibrary.updates.length
-                }`,
-              });
-              const savedSeries = getSeries(savedLibrary, "dm5", comicsID);
-              return [
-                updateReadChapters(savedSeries?.read || []),
-                updateChapterNowIndex(action.index),
-              ];
-            }),
-          );
+          return applyReadProgress("dm5", comicsID, chapterList[action.index]);
+        })(),
+      ).pipe(
+        mergeMap(({ series, updatesCount }) => {
+          chrome.action.setBadgeText({
+            text: `${updatesCount === 0 ? "" : updatesCount}`,
+          });
+          return [
+            updateReadChapters(series?.read || []),
+            updateChapterNowIndex(action.index),
+          ];
         }),
       ),
     ),

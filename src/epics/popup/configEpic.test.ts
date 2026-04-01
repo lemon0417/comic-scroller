@@ -21,12 +21,12 @@ jest.mock("@infra/services/library", () => ({
     updates: [],
   })),
   exportLibraryDump: jest.fn(),
+  getPopupFeedSnapshot: jest.fn(),
   importLibraryDump: jest.fn(),
-  loadLibrary: jest.fn(),
   resetLibrary: jest.fn(),
 }));
 
-const { exportLibraryDump, importLibraryDump, loadLibrary, resetLibrary } = jest.requireMock(
+const { exportLibraryDump, getPopupFeedSnapshot, importLibraryDump, resetLibrary } = jest.requireMock(
   "@infra/services/library",
 );
 
@@ -65,7 +65,7 @@ describe("popupConfigEpic", () => {
   });
 
   it("loads popup data", async () => {
-    loadLibrary.mockResolvedValue(emptyLibrary);
+    getPopupFeedSnapshot.mockResolvedValue(emptyLibrary);
 
     const actions = await lastValueFrom(
       popupConfigEpic(of(requestPopupData())).pipe(toArray()),
@@ -83,6 +83,7 @@ describe("popupConfigEpic", () => {
       ],
     };
     importLibraryDump.mockResolvedValue(data);
+    getPopupFeedSnapshot.mockResolvedValue(data);
 
     const actions = await lastValueFrom(
       popupConfigEpic(of(requestImportConfig({}))).pipe(toArray()),
@@ -94,6 +95,7 @@ describe("popupConfigEpic", () => {
 
   it("resets config and updates badge", async () => {
     resetLibrary.mockResolvedValue(emptyLibrary);
+    getPopupFeedSnapshot.mockResolvedValue(emptyLibrary);
 
     const actions = await lastValueFrom(
       popupConfigEpic(of(requestResetConfig())).pipe(toArray()),

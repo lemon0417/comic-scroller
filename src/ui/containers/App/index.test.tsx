@@ -1,6 +1,23 @@
 import { render, screen } from "@testing-library/react";
 import { App } from "./index";
 
+jest.mock("@infra/services/library", () => ({
+  buildSeriesKey: jest.fn((site: string, comicsID: string) => `${site}:${comicsID}`),
+  getSeriesSnapshot: jest.fn(async () => ({
+    site: "dm5",
+    comicsID: "123",
+    title: "One Piece",
+    cover: "",
+    url: "https://dm5.com/one-piece",
+    chapterList: [],
+    chapters: {},
+    lastRead: "",
+    read: [],
+  })),
+  isSeriesSubscribedByKey: jest.fn(async () => true),
+  subscribeToLibrarySignal: jest.fn(() => () => undefined),
+}));
+
 jest.mock("@containers/ImageContainer", () => ({
   __esModule: true,
   default: () => <div data-testid="image-container" />,
@@ -9,10 +26,6 @@ jest.mock("@containers/ImageContainer", () => ({
 jest.mock("@containers/ChapterList", () => ({
   __esModule: true,
   default: () => <div data-testid="chapter-list" />,
-}));
-
-jest.mock("@infra/services/storage", () => ({
-  storageGet: jest.fn(),
 }));
 
 describe("App", () => {

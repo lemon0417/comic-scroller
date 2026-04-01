@@ -4,19 +4,17 @@ import { ofType } from "redux-observable";
 import { TOGGLE_SUBSCRIBE } from "@domain/actions/reader";
 import { updateSubscribe } from "@domain/reducers/comics";
 import {
-  getSeries,
-  isSubscribed,
-  loadLibrary,
-  saveLibrary,
-  setSubscription,
+  findExistingSeriesKey,
+  isSeriesSubscribedByKey,
+  setSeriesSubscriptionByKey,
 } from "@infra/services/library";
 
 export default function subscribeEpic(action$: any, state$: { value: any }) {
   return action$.pipe(
     ofType(TOGGLE_SUBSCRIBE),
     mergeMap(() =>
-      from(loadLibrary()).pipe(
-        mergeMap((item: any) => {
+      from(
+        (async () => {
           const { site: propSite, comicsID: propComicsID } =
             state$?.value?.comics || {};
           const params = new URLSearchParams(window.location.search);
@@ -27,44 +25,22 @@ export default function subscribeEpic(action$: any, state$: { value: any }) {
             if (chapterParam.startsWith("HTML/")) return "sf";
             return "";
           };
-          const resolveSiteAndId = (store: any) => {
-            const rawKey = String(propComicsID ?? "");
-
-            if (propSite) {
-              const fromLibrary = getSeries(store, propSite, rawKey);
-              return {
-                site: propSite,
-                comicsID: fromLibrary?.comicsID || rawKey,
-              };
-            }
-
-            const candidates = ["dm5", "sf", "comicbus"];
-            for (const candidate of candidates) {
-              const fromLibrary = getSeries(store, candidate, rawKey);
-              if (fromLibrary) {
-                return { site: candidate, comicsID: fromLibrary.comicsID };
-              }
-            }
-
-            const inferred = inferSite();
-            if (inferred) {
-              return { site: inferred, comicsID: rawKey };
-            }
-            return { site: "", comicsID: rawKey };
-          };
-
-          const { site, comicsID } = resolveSiteAndId(item);
-          if (!site) {
-            return [];
+          const rawKey = String(propComicsID ?? "");
+          const existingSeriesKey = await findExistingSeriesKey(rawKey, propSite);
+          const resolvedSeriesKey =
+            existingSeriesKey || (inferSite() ? `${inferSite()}:${rawKey}` : "");
+          if (!resolvedSeriesKey) {
+            return null;
           }
 
-          const nextSubscribe = !isSubscribed(item, site, comicsID);
-          const newItem = setSubscription(item, site, comicsID, nextSubscribe);
-
-          return from(saveLibrary(newItem)).pipe(
-            mergeMap(() => [updateSubscribe(nextSubscribe)]),
-          );
-        }),
+          const nextSubscribe = !(await isSeriesSubscribedByKey(resolvedSeriesKey));
+          await setSeriesSubscriptionByKey(resolvedSeriesKey, nextSubscribe);
+          return nextSubscribe;
+        })(),
+      ).pipe(
+        mergeMap((nextSubscribe) =>
+          typeof nextSubscribe === "boolean" ? [updateSubscribe(nextSubscribe)] : [],
+        ),
       ),
     ),
   );

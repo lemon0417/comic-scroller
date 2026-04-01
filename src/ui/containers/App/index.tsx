@@ -9,9 +9,10 @@ import ImageContainer from "@containers/ImageContainer";
 import ChapterList from "@containers/ChapterList";
 import { updateSubscribe } from "@domain/reducers/comics";
 import {
-  getSeries,
-  isSubscribed,
-  subscribeToLibraryChanges,
+  buildSeriesKey,
+  getSeriesSnapshot,
+  isSeriesSubscribedByKey,
+  subscribeToLibrarySignal,
 } from "@infra/services/library";
 import {
   fetchChapter,
@@ -49,20 +50,37 @@ class App extends Component<any, any> {
 
   unsubscribeLibrary?: () => void;
 
+  syncLibraryState = async () => {
+    const { site, comicsID } = this.props;
+    if (!site || !comicsID) return;
+    const seriesKey = buildSeriesKey(site, comicsID);
+    const series = await getSeriesSnapshot(seriesKey);
+    if (!series) {
+      chrome.tabs.getCurrent((tab: { id: any }) => {
+        if (tab?.id) {
+          chrome.tabs.remove(tab.id);
+        }
+      });
+      return;
+    }
+    this.props.updateSubscribe(await isSeriesSubscribedByKey(seriesKey));
+  };
+
   componentDidMount() {
     this.props.startResize();
-    this.unsubscribeLibrary = subscribeToLibraryChanges((library) => {
+    void this.syncLibraryState();
+    this.unsubscribeLibrary = subscribeToLibrarySignal((signal) => {
       const { site, comicsID } = this.props;
       if (!site || !comicsID) return;
-      if (!getSeries(library, site, comicsID)) {
-        chrome.tabs.getCurrent((tab: { id: any }) => {
-          if (tab?.id) {
-            chrome.tabs.remove(tab.id);
-          }
-        });
+      const seriesKey = buildSeriesKey(site, comicsID);
+      if (
+        signal.seriesKeys?.length &&
+        !signal.seriesKeys.includes(seriesKey) &&
+        !signal.scopes.includes("subscriptions")
+      ) {
         return;
       }
-      this.props.updateSubscribe(isSubscribed(library, site, comicsID));
+      void this.syncLibraryState();
     });
     const params = new URLSearchParams(window.location.search);
     const chapter = params.get("chapter") || "";

@@ -6,6 +6,7 @@
 - **維持資料流**：UI → actions → reducers → epics / services → persistence / network → actions。
 - **持久化唯一來源**：跨頁面主資料以 `IndexedDB` 為準，Redux 僅管理頁面內 state。
 - **同步訊號**：`chrome.storage.local` 僅可用於小型設定與 cross-context signal，不承載主 library 資料。
+- **優先增量更新**：新功能不得優先依賴 `loadLibrary → mutate snapshot → saveLibrary`，應直接新增 repository query / mutation API。
 
 ## Manifest 與權限
 - 使用 **MV3** service worker：`js/background.js`
@@ -24,4 +25,5 @@
 - background 不可依賴 `window`、`document`、`localStorage`
 - background 與 extension pages 的資料同步優先使用 `chrome.storage.onChanged`
 - service worker 必須可在每次喚醒時重新開啟 IndexedDB 並完成操作，不得假設先前記憶體狀態仍存在
+- `librarySignal` 只做 invalidation hint；背景或頁面不得把 signal 當資料載體
 - 站點 meta parser 必須支援無 DOM fallback，避免 service worker 環境失效

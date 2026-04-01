@@ -1,12 +1,13 @@
 import { getSiteAdapter } from "@sites/registry";
 import {
-  getSeries,
+  applyBackgroundSeriesRefresh,
+  getSeriesSnapshot,
+  getUpdateCount,
   loadLibrary,
+  listSubscriptionKeys,
   parseSeriesKey,
-  prependUpdate,
   resetLibrary,
   saveLibrary,
-  upsertSeries,
 } from "@infra/services/library";
 
 const dm5Regex = /https\:\/\/(tel||www)\.dm5\.com\/(m\d+)\//;
@@ -23,34 +24,17 @@ function setBadge(count: number) {
   chrome.action.setBadgeText({ text: `${count > 0 ? count : ""}` });
 }
 
-function computeUpdateDiff(before: any, after: any) {
-  const beforeSet = new Set(
-    (before?.updates || []).map((item: any) => `${item.seriesKey}:${item.chapterID}`),
-  );
-  const afterSet = new Set(
-    (after?.updates || []).map((item: any) => `${item.seriesKey}:${item.chapterID}`),
-  );
-  let added = 0;
-  afterSet.forEach((key) => {
-    if (!beforeSet.has(key)) added += 1;
-  });
-  return {
-    before: before?.updates?.length || 0,
-    after: after?.updates?.length || 0,
-    added,
-  };
-}
-
 async function comicsQuerySummary() {
-  const before = await loadLibrary();
+  const subscriptions = await listSubscriptionKeys();
+  const beforeCount = await getUpdateCount();
   let checked = 0;
   let updated = 0;
   let errors = 0;
-  let nextLibrary = before;
+  let latestUpdateCount = beforeCount;
 
-  for (const seriesKey of before.subscriptions) {
+  for (const seriesKey of subscriptions) {
     const { site, comicsID } = parseSeriesKey(seriesKey);
-    const comic = getSeries(nextLibrary, site, comicsID);
+    const comic = await getSeriesSnapshot(seriesKey);
     if (!site || !comicsID || !comic?.url) {
       continue;
     }
@@ -67,22 +51,32 @@ async function comicsQuerySummary() {
           : fetchChapterPage(comic.url);
       await new Promise<void>((resolve) => {
         result$.subscribe(
-          ({ title, chapterList, cover, chapters }: any) => {
-            const latest = getSeries(nextLibrary, site, comicsID) || comic;
-            for (const chapterID of chapterList || []) {
-              if (!latest.chapters?.[chapterID]) {
-                nextLibrary = upsertSeries(nextLibrary, site, comicsID, {
-                  title,
-                  chapterList,
-                  cover,
-                  chapters,
-                  url: comic.url,
-                });
-                nextLibrary = prependUpdate(nextLibrary, site, comicsID, chapterID);
-                updated += 1;
+          async ({ title, chapterList, cover, chapters }: any) => {
+            try {
+              const nextChapterIDs = (chapterList || []).filter(
+                (chapterID: string) => !comic.chapters?.[chapterID],
+              );
+              if (nextChapterIDs.length > 0) {
+                const { updatesCount } = await applyBackgroundSeriesRefresh(
+                  site,
+                  comicsID,
+                  {
+                    title,
+                    chapterList,
+                    cover,
+                    chapters,
+                    url: comic.url,
+                  },
+                  nextChapterIDs,
+                );
+                latestUpdateCount = updatesCount;
+                updated += nextChapterIDs.length;
               }
+            } catch {
+              errors += 1;
+            } finally {
+              resolve();
             }
-            resolve();
           },
           () => {
             errors += 1;
@@ -95,13 +89,17 @@ async function comicsQuerySummary() {
     }
   }
 
-  const after = await saveLibrary(nextLibrary);
-  setBadge(after.updates.length);
+  const afterCount = await getUpdateCount();
+  setBadge(latestUpdateCount || afterCount);
   return {
     checked,
     updated,
     errors,
-    diff: computeUpdateDiff(before, after),
+    diff: {
+      before: beforeCount,
+      after: afterCount,
+      added: Math.max(0, afterCount - beforeCount),
+    },
   };
 }
 
