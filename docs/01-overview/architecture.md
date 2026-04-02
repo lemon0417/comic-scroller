@@ -61,6 +61,9 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - Popup / Manage view state：
   - popup reducer 只保存 popup feed 與 UI 狀態
   - `getPopupFeedSnapshot()` 直接回傳 UI 所需的 feed model，不再把 `LibrarySnapshotV2` 放進 popup store
+- Reader view state：
+  - `comics` state 保存 canonical `seriesKey`
+  - reader UI 同步 library 狀態時，優先使用單一 query `getReaderSeriesState()`，不要拆成多次查詢再自行拼裝
 
 ## 重構原則
 - Reducer 必須純函式

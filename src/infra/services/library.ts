@@ -1,5 +1,4 @@
 export {
-  buildSeriesKey,
   parseSeriesKey,
 } from "./library/schema";
 
@@ -11,10 +10,10 @@ export {
 } from "./library/compat";
 
 export {
+  getReaderSeriesState,
   getSeriesSnapshot,
   getPopupFeedSnapshot,
   listSubscriptionKeys,
-  findExistingSeriesKey,
   isSeriesSubscribedByKey,
   getUpdateCount,
 } from "./library/queries";

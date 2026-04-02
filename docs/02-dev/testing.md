@@ -20,6 +20,7 @@
 - 若測的是 repository 實作，優先直接測 `queries.ts`、`mutations.ts`、`signal.ts`、`compat.ts` 的公開函式，不要只停在 barrel mock
 - repository 模組測試可以 mock `shared.ts` 的 IndexedDB primitive，重點驗證 query / mutation 語意與 signal payload
 - `queries.ts` 測試應優先驗證最終 query model，例如 popup feed，不要再用 `LibrarySnapshotV2` 當預期值
+- reader 測試若需要同步 library 狀態，優先 mock `getReaderSeriesState()`，不要再分別 mock `getSeriesSnapshot()` 和 `isSeriesSubscribedByKey()`
 - 若測試需要 schema constants / row types，直接從 `@infra/services/library/schema` 匯入，不要再要求 facade 重新暴露 internal detail
 - popup / manage 測試優先 mock `getPopupFeedSnapshot`，並驗證 reducer 保存的是 popup feed state，而不是 `LibrarySnapshotV2`
 - reader / background 測試優先 mock 系列級 mutation API

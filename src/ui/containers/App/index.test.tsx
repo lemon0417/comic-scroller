@@ -2,19 +2,20 @@ import { render, screen } from "@testing-library/react";
 import { App } from "./index";
 
 jest.mock("@infra/services/library", () => ({
-  buildSeriesKey: jest.fn((site: string, comicsID: string) => `${site}:${comicsID}`),
-  getSeriesSnapshot: jest.fn(async () => ({
-    site: "dm5",
-    comicsID: "123",
-    title: "One Piece",
-    cover: "",
-    url: "https://dm5.com/one-piece",
-    chapterList: [],
-    chapters: {},
-    lastRead: "",
-    read: [],
+  getReaderSeriesState: jest.fn(async () => ({
+    series: {
+      site: "dm5",
+      comicsID: "123",
+      title: "One Piece",
+      cover: "",
+      url: "https://dm5.com/one-piece",
+      chapterList: [],
+      chapters: {},
+      lastRead: "",
+      read: [],
+    },
+    subscribed: true,
   })),
-  isSeriesSubscribedByKey: jest.fn(async () => true),
   subscribeToLibrarySignal: jest.fn(() => () => undefined),
 }));
 
@@ -64,6 +65,7 @@ describe("App", () => {
         chapterNowIndex={0}
         site="dm5"
         comicsID="123"
+        seriesKey="dm5:m123"
       />,
     );
 

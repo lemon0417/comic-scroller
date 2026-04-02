@@ -145,6 +145,39 @@ export async function getSeriesSnapshot(siteOrSeriesKey: string, comicsID?: stri
   return readSeriesSnapshotByKey(resolveSeriesKeyInput(siteOrSeriesKey, comicsID));
 }
 
+export async function getReaderSeriesState(seriesKey: string) {
+  await ensureLibraryReady();
+  const db = await openLibraryDb();
+  const transaction = db.transaction(
+    [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE],
+    "readonly",
+  );
+  const done = transactionDone(transaction);
+  const seriesStore = transaction.objectStore(SERIES_STORE);
+  const chaptersStore = transaction.objectStore(CHAPTERS_STORE);
+  const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
+  const row = await requestToPromise<SeriesRow | undefined>(seriesStore.get(seriesKey));
+  const subscriptionRow = await requestToPromise(subscriptionsStore.get(seriesKey));
+
+  if (!row) {
+    await done;
+    return {
+      series: null,
+      subscribed: Boolean(subscriptionRow),
+    };
+  }
+
+  const chapterRows = await requestToPromise<ChapterRow[]>(
+    chaptersStore.index("seriesKey").getAll(seriesKey),
+  );
+  await done;
+
+  return {
+    series: composeSeriesRecord(row, chapterRows),
+    subscribed: Boolean(subscriptionRow),
+  };
+}
+
 export async function getSeriesMeta(siteOrSeriesKey: string, comicsID?: string) {
   return getSeriesSnapshot(siteOrSeriesKey, comicsID);
 }

@@ -31,6 +31,7 @@
 - `LibrarySnapshotV2` 只留在 `compat.ts` 的匯入匯出與 migration 路徑，公開 facade 不再鼓勵 snapshot 型 API
 - popup / manage 走 `getPopupFeedSnapshot()`，store 內只保存 popup feed 與 UI 狀態
 - `getPopupFeedSnapshot()` 直接從 IndexedDB rows 組出 feed，不再先還原成完整 library snapshot
+- reader 保存 canonical `seriesKey`，並以 `getReaderSeriesState()` 一次取回 series + subscription state
 - reader 與 background 走系列級 mutation，不再每次全量重寫整包 snapshot
 - reducer 不負責 DOM / URL side effects，這類行為放在 epics
 - background 保持 MV3 service worker 限制下可用，不依賴 DOM API

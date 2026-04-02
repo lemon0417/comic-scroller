@@ -1,9 +1,11 @@
 import reduce from "lodash/reduce";
+import { buildSeriesKey } from "@infra/services/library/schema";
 
 type State = {
   innerHeight: number;
   innerWidth: number;
   site: string;
+  seriesKey: string;
   comicsID: string;
   title: string;
   chapterLatestIndex: number;
@@ -41,6 +43,7 @@ const initialState: State = {
   innerHeight: typeof window === "undefined" ? 0 : window.innerHeight,
   innerWidth: typeof window === "undefined" ? 0 : window.innerWidth,
   site: "",
+  seriesKey: "",
   comicsID: "",
   title: "",
   chapterLatestIndex: 0,
@@ -207,6 +210,10 @@ export default function comics(
       return {
         ...state,
         comicsID: action.data,
+        seriesKey:
+          state.site && typeof action.data === "string"
+            ? buildSeriesKey(state.site, action.data)
+            : "",
       };
     case UPDATE_SUBSCRIBE:
       return {
@@ -246,6 +253,10 @@ export default function comics(
       return {
         ...state,
         site: typeof action.site === "string" ? action.site : state.site,
+        seriesKey:
+          typeof action.site === "string" && state.comicsID
+            ? buildSeriesKey(action.site, state.comicsID)
+            : "",
         baseURL:
           typeof action.baseURL === "string" ? action.baseURL : state.baseURL,
       };

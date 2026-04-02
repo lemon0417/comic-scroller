@@ -1,4 +1,10 @@
-import comics, { resetImg, updateInnerHeight, updateInnerWidth } from "./comics";
+import comics, {
+  resetImg,
+  updateComicsID,
+  updateInnerHeight,
+  updateInnerWidth,
+  updateSiteInfo,
+} from "./comics";
 
 describe("comics reducer", () => {
   it("updates innerHeight", () => {
@@ -30,5 +36,13 @@ describe("comics reducer", () => {
     const nextState = comics(seededState as any, resetImg() as any);
 
     expect(nextState.imageList).toEqual({ result: [], entity: {} });
+  });
+
+  it("builds a canonical seriesKey when site and comicsID are set", () => {
+    const prevState = comics(undefined, { type: "@@INIT" } as any) as any;
+    const withSite = comics(prevState, updateSiteInfo("dm5", "https://www.dm5.com") as any);
+    const nextState = comics(withSite, updateComicsID("123") as any);
+
+    expect(nextState.seriesKey).toBe("dm5:m123");
   });
 });

@@ -5,7 +5,7 @@ import {
   SUBSCRIPTIONS_STORE,
   UPDATES_STORE,
 } from "./schema";
-import { getPopupFeedSnapshot } from "./queries";
+import { getPopupFeedSnapshot, getReaderSeriesState } from "./queries";
 
 jest.mock("./shared", () => {
   const actual = jest.requireActual("./shared");
@@ -198,5 +198,77 @@ describe("library queries", () => {
     expect(stores[SERIES_STORE].get).toHaveBeenCalledWith("dm5:m123");
     expect(transaction.objectStore).toHaveBeenCalledWith(SERIES_STORE);
     expect(transaction.objectStore).toHaveBeenCalledWith(CHAPTERS_STORE);
+  });
+
+  it("loads reader series state and subscription in a single query", async () => {
+    const seriesStore = {
+      get: jest.fn(() => ({
+        seriesKey: "dm5:m123",
+        site: "dm5",
+        comicsID: "m123",
+        title: "Demo",
+        cover: "cover.jpg",
+        url: "https://www.dm5.com/m123/",
+        lastRead: "m1",
+        read: ["m1"],
+        updatedAt: 1,
+      })),
+    };
+    const chaptersStore = {
+      index: jest.fn(() => ({
+        getAll: jest.fn(() => [
+          {
+            seriesKey: "dm5:m123",
+            chapterID: "m1",
+            title: "Ch 1",
+            href: "https://www.dm5.com/m123/1.html",
+            orderIndex: 0,
+          },
+        ]),
+      })),
+    };
+    const subscriptionsStore = {
+      get: jest.fn(() => ({ seriesKey: "dm5:m123", position: 0 })),
+    };
+    const stores = {
+      [SERIES_STORE]: seriesStore,
+      [CHAPTERS_STORE]: chaptersStore,
+      [SUBSCRIPTIONS_STORE]: subscriptionsStore,
+    };
+    const transaction = {
+      objectStore: jest.fn(
+        (storeName: keyof typeof stores) => stores[storeName],
+      ),
+    };
+    const db = {
+      transaction: jest.fn(() => transaction),
+    };
+    shared.openLibraryDb.mockResolvedValue(db);
+
+    const result = await getReaderSeriesState("dm5:m123");
+
+    expect(result).toEqual({
+      series: {
+        site: "dm5",
+        comicsID: "m123",
+        title: "Demo",
+        cover: "cover.jpg",
+        url: "https://www.dm5.com/m123/",
+        chapterList: ["m1"],
+        chapters: {
+          m1: {
+            title: "Ch 1",
+            href: "https://www.dm5.com/m123/1.html",
+          },
+        },
+        lastRead: "m1",
+        read: ["m1"],
+      },
+      subscribed: true,
+    });
+    expect(db.transaction).toHaveBeenCalledWith(
+      [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE],
+      "readonly",
+    );
   });
 });

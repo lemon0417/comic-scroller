@@ -9,9 +9,7 @@ import ImageContainer from "@containers/ImageContainer";
 import ChapterList from "@containers/ChapterList";
 import { updateSubscribe } from "@domain/reducers/comics";
 import {
-  buildSeriesKey,
-  getSeriesSnapshot,
-  isSeriesSubscribedByKey,
+  getReaderSeriesState,
   subscribeToLibrarySignal,
 } from "@infra/services/library";
 import {
@@ -51,10 +49,9 @@ class App extends Component<any, any> {
   unsubscribeLibrary?: () => void;
 
   syncLibraryState = async () => {
-    const { site, comicsID } = this.props;
-    if (!site || !comicsID) return;
-    const seriesKey = buildSeriesKey(site, comicsID);
-    const series = await getSeriesSnapshot(seriesKey);
+    const { seriesKey } = this.props;
+    if (!seriesKey) return;
+    const { series, subscribed } = await getReaderSeriesState(seriesKey);
     if (!series) {
       chrome.tabs.getCurrent((tab: { id: any }) => {
         if (tab?.id) {
@@ -63,16 +60,15 @@ class App extends Component<any, any> {
       });
       return;
     }
-    this.props.updateSubscribe(await isSeriesSubscribedByKey(seriesKey));
+    this.props.updateSubscribe(subscribed);
   };
 
   componentDidMount() {
     this.props.startResize();
     void this.syncLibraryState();
     this.unsubscribeLibrary = subscribeToLibrarySignal((signal) => {
-      const { site, comicsID } = this.props;
-      if (!site || !comicsID) return;
-      const seriesKey = buildSeriesKey(site, comicsID);
+      const { seriesKey } = this.props;
+      if (!seriesKey) return;
       if (
         signal.seriesKeys?.length &&
         !signal.seriesKeys.includes(seriesKey) &&
@@ -220,6 +216,7 @@ function mapStateToProps(state: any) {
     nextable: chapterNowIndex > 0,
     chapterNowIndex,
     comicsID,
+    seriesKey: state.comics.seriesKey,
     subscribe,
     url: `${baseURL}/${comicsID}`,
   };
