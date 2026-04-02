@@ -23,7 +23,9 @@
 - reader 測試若需要同步 library 狀態，優先 mock `getReaderSeriesState()`，不要再分別 mock `getSeriesSnapshot()` 和 `isSeriesSubscribedByKey()`
 - 若測試需要 schema constants / row types，直接從 `@infra/services/library/schema` 匯入，不要再要求 facade 重新暴露 internal detail
 - background 測試優先直接測 `@infra/services/background` 的 service 函式；`src/background.ts` 應維持薄 wiring，不必堆大量 listener 細節測試
-- 目前 Jest/jsdom 沒有可直接使用的 `indexedDB` 實作；若要補真實 IndexedDB integration tests，需要先引入專用測試 harness
+- 真實 IndexedDB integration tests 目前使用 `fake-indexeddb`
+- repository integration tests 直接使用 `src/infra/services/library/shared.ts` 的 `resetLibraryPersistenceForTests()` 重置 DB connection cache、刪除測試 DB、清空 `chrome.storage.local`
+- `fake-indexeddb` 依賴 `structuredClone`；若測試環境缺少，需在測試檔中補 polyfill
 - popup / manage 測試優先 mock `getPopupFeedSnapshot`，並驗證 reducer 保存的是 popup feed state，而不是 `LibrarySnapshotV2`
 - reader / background 測試優先 mock 系列級 mutation API
 - reducer 測試不得依賴 `document` / `window.history` side effects

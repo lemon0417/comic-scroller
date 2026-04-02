@@ -67,6 +67,9 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - Background：
   - `src/background.ts` 只保留 MV3 listener wiring
   - 更新檢查、安裝處理、通知點擊、ping 回應、reader redirect 解析集中在 `src/infra/services/background.ts`
+- Repository 測試基礎：
+  - 真實 IndexedDB integration tests 使用 `fake-indexeddb`
+  - 測試用 DB reset 與 module cache reset 集中在 `library/shared.ts` 的 test-only helper
 
 ## 重構原則
 - Reducer 必須純函式
