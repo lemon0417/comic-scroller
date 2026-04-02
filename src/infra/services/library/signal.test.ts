@@ -1,16 +1,4 @@
-import { createEmptyLibrarySnapshot } from "./schema";
-import {
-  subscribeToLibraryChanges,
-  subscribeToLibrarySignal,
-} from "./signal";
-
-jest.mock("./compat", () => ({
-  loadLibrary: jest.fn(),
-}));
-
-const compat = jest.requireMock("./compat") as {
-  loadLibrary: jest.Mock;
-};
+import { subscribeToLibrarySignal } from "./signal";
 
 describe("library signal", () => {
   let addListener: jest.Mock;
@@ -67,32 +55,5 @@ describe("library signal", () => {
 
     unsubscribe();
     expect(removeListener).toHaveBeenCalledTimes(1);
-  });
-
-  it("hydrates a compatibility snapshot when subscribing to full library changes", async () => {
-    const snapshot = createEmptyLibrarySnapshot("4.0.52");
-    const listener = jest.fn();
-    compat.loadLibrary.mockResolvedValue(snapshot);
-
-    subscribeToLibraryChanges(listener);
-    handler?.(
-      {
-        librarySignal: {
-          newValue: {
-            revision: "rev-2",
-            changedAt: 2,
-            source: "test",
-            dbSchemaVersion: 1,
-            scopes: ["series"],
-          },
-        },
-      },
-      "local",
-    );
-
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(compat.loadLibrary).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(snapshot);
   });
 });

@@ -43,9 +43,6 @@ export type {
 } from "./library/schema";
 
 export {
-  migrateLibrary,
-  loadLibrary,
-  saveLibrary,
   resetLibrary,
   exportLibraryDump,
   importLibraryDump,
@@ -78,5 +75,4 @@ export {
 
 export {
   subscribeToLibrarySignal,
-  subscribeToLibraryChanges,
 } from "./library/signal";

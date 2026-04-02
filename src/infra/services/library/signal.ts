@@ -1,8 +1,7 @@
 declare var chrome: any;
 
-import type { LibrarySignal, LibrarySnapshotV2 } from "./schema";
+import type { LibrarySignal } from "./schema";
 import { LIBRARY_SIGNAL_KEY } from "./schema";
-import { loadLibrary } from "./compat";
 
 export function subscribeToLibrarySignal(listener: (signal: LibrarySignal) => void) {
   const onChanged = chrome?.storage?.onChanged;
@@ -15,12 +14,4 @@ export function subscribeToLibrarySignal(listener: (signal: LibrarySignal) => vo
   };
   onChanged.addListener(handleChange);
   return () => onChanged.removeListener(handleChange);
-}
-
-export function subscribeToLibraryChanges(
-  listener: (snapshot: LibrarySnapshotV2) => void,
-) {
-  return subscribeToLibrarySignal(async () => {
-    listener(await loadLibrary());
-  });
 }

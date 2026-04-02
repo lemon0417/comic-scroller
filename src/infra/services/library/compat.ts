@@ -1,4 +1,4 @@
-import type { LibraryDumpV1, LibrarySnapshotV2 } from "./schema";
+import type { LibraryDumpV1 } from "./schema";
 import {
   createEmptyLibrarySnapshot,
   getExtensionVersion,
@@ -21,20 +21,9 @@ import {
   openLibraryDb,
 } from "./shared";
 
-export async function loadLibrary() {
+async function loadLibrary() {
   await ensureLibraryReady();
   return rowsToSnapshot(await readRowsFromDb());
-}
-
-export async function saveLibrary(snapshot: LibrarySnapshotV2) {
-  await ensureLibraryReady();
-  return persistSnapshot(snapshot, {
-    cleanupLegacy: true,
-    emitSignal: true,
-    signalSource: "saveLibrary",
-    scopes: ["series", "subscriptions", "history", "updates"],
-    seriesKeys: Object.keys(snapshot.seriesByKey || {}),
-  });
 }
 
 export async function resetLibrary() {
@@ -69,8 +58,6 @@ export async function importLibraryDump(raw: any) {
     seriesKeys: Object.keys(snapshot.seriesByKey || {}),
   });
 }
-
-export { migrateLibrary };
 
 export async function setLibraryVersion(version: string) {
   await ensureLibraryReady();

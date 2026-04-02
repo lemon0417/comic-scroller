@@ -8,24 +8,23 @@ import {
   buildSeriesKey,
   type ChapterRow,
   type HistoryRow,
-  type LibrarySnapshotV2,
   type PopupFeedCategory,
   type PopupFeedEntry,
   type PopupFeedSnapshot,
+  type SeriesRecord,
   type SeriesRow,
   type SubscriptionRow,
   type UpdateRow,
   createEmptyPopupFeedSnapshot,
-  parseSeriesKey,
 } from "./schema";
 import {
+  composeSeriesRecord,
   ensureLibraryReady,
   loadOrderedSeriesKeysInTransaction,
   openLibraryDb,
   readSeriesSnapshotByKey,
   requestToPromise,
   resolveSeriesKeyInput,
-  rowsToSnapshot,
   sortRowsByPosition,
   transactionDone,
 } from "./shared";
@@ -37,13 +36,13 @@ const SITE_LABELS: Record<string, string> = {
 };
 
 function buildPopupFeedEntry(
-  library: LibrarySnapshotV2,
+  seriesByKey: Record<string, SeriesRecord>,
   category: PopupFeedCategory,
   seriesKey: string,
   index: number,
   chapterID = "",
 ): PopupFeedEntry | null {
-  const record = library.seriesByKey[seriesKey];
+  const record = seriesByKey[seriesKey];
   if (!record) return null;
 
   const chapters = record.chapters || {};
@@ -56,14 +55,13 @@ function buildPopupFeedEntry(
   const continueChapterID = lastReadChapterID || chapterID || lastChapterID;
   const continueHref =
     lastRead?.href || updateChapter?.href || lastChapter?.href || record.url || "";
-  const { site } = parseSeriesKey(seriesKey);
 
   return {
     category,
     key: `${category}_${seriesKey}_${chapterID || index}`,
     index,
-    site,
-    siteLabel: SITE_LABELS[site] || String(site || "").toUpperCase(),
+    site: record.site,
+    siteLabel: SITE_LABELS[record.site] || String(record.site || "").toUpperCase(),
     comicsID: record.comicsID,
     chapterID,
     lastReadChapterID,
@@ -84,20 +82,25 @@ function buildPopupFeedEntry(
 }
 
 function mapPopupSeriesList(
-  library: LibrarySnapshotV2,
+  seriesByKey: Record<string, SeriesRecord>,
   category: Extract<PopupFeedCategory, "subscribe" | "history">,
   list: string[],
 ) {
   return list
-    .map((seriesKey, index) => buildPopupFeedEntry(library, category, seriesKey, index))
+    .map((seriesKey, index) =>
+      buildPopupFeedEntry(seriesByKey, category, seriesKey, index),
+    )
     .filter((entry): entry is PopupFeedEntry => entry !== null);
 }
 
-function mapPopupUpdates(library: LibrarySnapshotV2) {
-  return library.updates
+function mapPopupUpdates(
+  seriesByKey: Record<string, SeriesRecord>,
+  updates: UpdateRow[],
+) {
+  return sortRowsByPosition(updates)
     .map((item, index) =>
       buildPopupFeedEntry(
-        library,
+        seriesByKey,
         "update",
         item.seriesKey,
         index,
@@ -107,17 +110,26 @@ function mapPopupUpdates(library: LibrarySnapshotV2) {
     .filter((entry): entry is PopupFeedEntry => entry !== null);
 }
 
-function buildPopupFeedSnapshot(library: LibrarySnapshotV2): PopupFeedSnapshot {
-  const update = mapPopupUpdates(library);
-  const subscribe = mapPopupSeriesList(library, "subscribe", library.subscriptions);
-  const history = mapPopupSeriesList(library, "history", library.history);
-  const firstSubscribed = library.subscriptions.find(
-    (seriesKey) => !!library.seriesByKey[seriesKey],
+function buildPopupFeedSnapshot(input: {
+  seriesByKey: Record<string, SeriesRecord>;
+  subscriptions: SubscriptionRow[];
+  history: HistoryRow[];
+  updates: UpdateRow[];
+}): PopupFeedSnapshot {
+  const subscriptionKeys = sortRowsByPosition(input.subscriptions).map(
+    (row) => row.seriesKey,
+  );
+  const historyKeys = sortRowsByPosition(input.history).map((row) => row.seriesKey);
+  const update = mapPopupUpdates(input.seriesByKey, input.updates);
+  const subscribe = mapPopupSeriesList(input.seriesByKey, "subscribe", subscriptionKeys);
+  const history = mapPopupSeriesList(input.seriesByKey, "history", historyKeys);
+  const firstSubscribed = subscriptionKeys.find(
+    (seriesKey) => !!input.seriesByKey[seriesKey],
   );
   const continueReading =
     history[0] ||
     (firstSubscribed
-      ? buildPopupFeedEntry(library, "subscribe", firstSubscribed, 0)
+      ? buildPopupFeedEntry(input.seriesByKey, "subscribe", firstSubscribed, 0)
       : null);
 
   return {
@@ -221,28 +233,22 @@ export async function getPopupFeedSnapshot() {
     ]),
   );
 
-  const seriesRows: SeriesRow[] = [];
-  const chapterRows: ChapterRow[] = [];
+  const seriesByKey: Record<string, SeriesRecord> = {};
   for (const seriesKey of referencedKeys) {
     const row = await requestToPromise<SeriesRow | undefined>(seriesStore.get(seriesKey));
     if (!row) continue;
-    seriesRows.push(row);
-    chapterRows.push(
-      ...(await requestToPromise<ChapterRow[]>(
-        chaptersStore.index("seriesKey").getAll(seriesKey),
-      )),
+    const chapterRows = await requestToPromise<ChapterRow[]>(
+      chaptersStore.index("seriesKey").getAll(seriesKey),
     );
+    seriesByKey[seriesKey] = composeSeriesRecord(row, chapterRows);
   }
 
   await done;
 
-  return buildPopupFeedSnapshot(
-    rowsToSnapshot({
-      series: seriesRows,
-      chapters: chapterRows,
-      subscriptions,
-      history,
-      updates,
-    }),
-  );
+  return buildPopupFeedSnapshot({
+    seriesByKey,
+    subscriptions,
+    history,
+    updates,
+  });
 }
