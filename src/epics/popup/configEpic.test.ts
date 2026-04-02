@@ -10,7 +10,10 @@ import {
   hydratePopupFeed,
   setExportConfig,
 } from "@domain/reducers/popupState";
-import type { PopupFeedEntry, PopupFeedSnapshot } from "@infra/services/library";
+import type {
+  PopupFeedEntry,
+  PopupFeedSnapshot,
+} from "@infra/services/library/schema";
 
 jest.mock("@infra/services/library", () => ({
   createEmptyPopupFeedSnapshot: jest.fn(() => ({

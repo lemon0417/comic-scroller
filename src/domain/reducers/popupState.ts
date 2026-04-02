@@ -1,5 +1,5 @@
-import type { PopupFeedSnapshot } from "@infra/services/library";
-import { createEmptyPopupFeedSnapshot } from "@infra/services/library";
+import type { PopupFeedSnapshot } from "@infra/services/library/schema";
+import { createEmptyPopupFeedSnapshot } from "@infra/services/library/schema";
 import {
   REQUEST_EXPORT_CONFIG,
   REQUEST_IMPORT_CONFIG,

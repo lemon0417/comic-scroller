@@ -24,6 +24,8 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - `library/mutations.ts`
   - `library/compat.ts`
   - `library/signal.ts`
+- facade 只暴露業務 API 與少量 shared helper（例如 `buildSeriesKey` / `parseSeriesKey`）
+- schema constants、row types、normalize helper 屬於 internal detail；若測試或底層模組需要，直接從 `library/schema.ts` 取用
 - `LibrarySnapshotV2` 目前只保留給 `compat.ts` 內部流程、匯入匯出與 migration
 - 底層以 IndexedDB 結構化 stores 持久化：
   - `series`

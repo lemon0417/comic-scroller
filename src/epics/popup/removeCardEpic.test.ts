@@ -3,7 +3,7 @@ import { toArray } from "rxjs/operators";
 import removeCardEpic from "./removeCardEpic";
 import { requestRemoveCard } from "@domain/actions/popup";
 import { hydratePopupFeed } from "@domain/reducers/popupState";
-import type { PopupFeedSnapshot } from "@infra/services/library";
+import type { PopupFeedSnapshot } from "@infra/services/library/schema";
 
 jest.mock("@infra/services/library", () => {
   const actual = jest.requireActual("@infra/services/library");

@@ -1,45 +1,6 @@
 export {
-  LIBRARY_DB_NAME,
-  LIBRARY_DB_VERSION,
-  LIBRARY_META_KEY,
-  LIBRARY_SCHEMA_VERSION,
-  LIBRARY_SIGNAL_KEY,
-  META_STORE,
-  SERIES_STORE,
-  CHAPTERS_STORE,
-  SUBSCRIPTIONS_STORE,
-  HISTORY_STORE,
-  UPDATES_STORE,
-  HISTORY_LIMIT,
-  SITE_KEYS,
-  canonicalizeComicsID,
   buildSeriesKey,
   parseSeriesKey,
-  createEmptyLibrarySnapshot,
-  createEmptyPopupFeedSnapshot,
-  normalizeChapterRecord,
-  normalizeSeriesRecord,
-  getExtensionVersion,
-  uniqueStrings,
-} from "./library/schema";
-
-export type {
-  ChapterRecord,
-  ChapterRow,
-  HistoryRow,
-  LibraryDumpV1,
-  LibrarySignal,
-  LibrarySnapshotV2,
-  LibraryUpdateRecord,
-  PopupFeedCategory,
-  PopupFeedEntry,
-  PopupFeedSnapshot,
-  SeriesKey,
-  SeriesRecord,
-  SeriesRow,
-  SiteKey,
-  SubscriptionRow,
-  UpdateRow,
 } from "./library/schema";
 
 export {
@@ -51,7 +12,6 @@ export {
 
 export {
   getSeriesSnapshot,
-  getSeriesMeta,
   getPopupFeedSnapshot,
   listSubscriptionKeys,
   findExistingSeriesKey,
@@ -60,13 +20,9 @@ export {
 } from "./library/queries";
 
 export {
-  upsertSeriesWithChapters,
-  markSeriesRead,
-  recordHistory,
   setSeriesSubscription,
   setSeriesSubscriptionByKey,
   dismissSeriesUpdate,
-  prependSeriesUpdate,
   removeSeriesCascade,
   applyReaderSeriesState,
   applyReadProgress,

@@ -26,6 +26,7 @@
 ## 目前架構重點
 - 共享持久化模型：`src/infra/services/library.ts`
 - `library.ts` 是 facade，內部拆成 `schema / shared / queries / mutations / compat / signal`
+- facade 只保留業務 API；schema constants / row types / normalize helper 改由 `library/schema.ts` 內部持有
 - popup / manage / reader 的持久化同步：`chrome.storage.onChanged` + `librarySignal`
 - `LibrarySnapshotV2` 只留在 `compat.ts` 的匯入匯出與 migration 路徑，公開 facade 不再鼓勵 snapshot 型 API
 - popup / manage 走 `getPopupFeedSnapshot()`，store 內只保存 popup feed 與 UI 狀態

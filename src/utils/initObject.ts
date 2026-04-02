@@ -1,4 +1,4 @@
-import { createEmptyLibrarySnapshot } from "@infra/services/library";
+import { createEmptyLibrarySnapshot } from "@infra/services/library/schema";
 
 const initObject = createEmptyLibrarySnapshot();
 
