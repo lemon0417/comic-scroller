@@ -33,5 +33,6 @@
 - `getPopupFeedSnapshot()` 直接從 IndexedDB rows 組出 feed，不再先還原成完整 library snapshot
 - reader 保存 canonical `seriesKey`，並以 `getReaderSeriesState()` 一次取回 series + subscription state
 - reader 與 background 走系列級 mutation，不再每次全量重寫整包 snapshot
+- `src/background.ts` 已收斂成 listener wiring，背景更新檢查與通知邏輯在 `src/infra/services/background.ts`
 - reducer 不負責 DOM / URL side effects，這類行為放在 epics
 - background 保持 MV3 service worker 限制下可用，不依賴 DOM API

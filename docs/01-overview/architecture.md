@@ -56,7 +56,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - Reducers：`src/domain/reducers/`
 - Epics：`src/epics/`、`src/epics/sites/`、`src/epics/popup/`
 - Sites：`src/sites/`（`registry.ts`、`*/adapter.ts`、`*/meta.ts`）
-- Services：`src/infra/services/`（`storage.ts`、`library.ts`）
+- Services：`src/infra/services/`（`storage.ts`、`library.ts`、`background.ts`）
 - Store：`src/domain/store/`
 - Popup / Manage view state：
   - popup reducer 只保存 popup feed 與 UI 狀態
@@ -64,6 +64,9 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - Reader view state：
   - `comics` state 保存 canonical `seriesKey`
   - reader UI 同步 library 狀態時，優先使用單一 query `getReaderSeriesState()`，不要拆成多次查詢再自行拼裝
+- Background：
+  - `src/background.ts` 只保留 MV3 listener wiring
+  - 更新檢查、安裝處理、通知點擊、ping 回應、reader redirect 解析集中在 `src/infra/services/background.ts`
 
 ## 重構原則
 - Reducer 必須純函式
