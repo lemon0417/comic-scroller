@@ -2,7 +2,7 @@ import { Observable } from "rxjs";
 import { exhaustMap } from "rxjs/operators";
 import { ofType } from "redux-observable";
 import { REQUEST_POPUP_DATA } from "@domain/actions/popup";
-import { hydratePopupLibrary } from "@domain/reducers/popupState";
+import { hydratePopupFeed } from "@domain/reducers/popupState";
 import {
   getPopupFeedSnapshot,
   subscribeToLibrarySignal,
@@ -11,8 +11,8 @@ import {
 function observeLibraryChanges() {
   return new Observable((subscriber) => {
     const unsubscribe = subscribeToLibrarySignal(() => {
-      getPopupFeedSnapshot().then((library) => {
-        subscriber.next(hydratePopupLibrary(library, "load"));
+      getPopupFeedSnapshot().then((feed) => {
+        subscriber.next(hydratePopupFeed(feed, "load"));
       });
     });
     return unsubscribe;

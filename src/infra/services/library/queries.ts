@@ -8,9 +8,15 @@ import {
   buildSeriesKey,
   type ChapterRow,
   type HistoryRow,
+  type LibrarySnapshotV2,
+  type PopupFeedCategory,
+  type PopupFeedEntry,
+  type PopupFeedSnapshot,
   type SeriesRow,
   type SubscriptionRow,
   type UpdateRow,
+  createEmptyPopupFeedSnapshot,
+  parseSeriesKey,
 } from "./schema";
 import {
   ensureLibraryReady,
@@ -23,6 +29,105 @@ import {
   sortRowsByPosition,
   transactionDone,
 } from "./shared";
+
+const SITE_LABELS: Record<string, string> = {
+  dm5: "DM5",
+  sf: "SF",
+  comicbus: "ComicBus",
+};
+
+function buildPopupFeedEntry(
+  library: LibrarySnapshotV2,
+  category: PopupFeedCategory,
+  seriesKey: string,
+  index: number,
+  chapterID = "",
+): PopupFeedEntry | null {
+  const record = library.seriesByKey[seriesKey];
+  if (!record) return null;
+
+  const chapters = record.chapters || {};
+  const chapterList = record.chapterList || [];
+  const lastReadChapterID = record.lastRead || "";
+  const lastChapterID = chapterList[0] || "";
+  const lastRead = (lastReadChapterID ? chapters[lastReadChapterID] : null) || null;
+  const lastChapter = (lastChapterID ? chapters[lastChapterID] : null) || null;
+  const updateChapter = (chapterID ? chapters[chapterID] : null) || null;
+  const continueChapterID = lastReadChapterID || chapterID || lastChapterID;
+  const continueHref =
+    lastRead?.href || updateChapter?.href || lastChapter?.href || record.url || "";
+  const { site } = parseSeriesKey(seriesKey);
+
+  return {
+    category,
+    key: `${category}_${seriesKey}_${chapterID || index}`,
+    index,
+    site,
+    siteLabel: SITE_LABELS[site] || String(site || "").toUpperCase(),
+    comicsID: record.comicsID,
+    chapterID,
+    lastReadChapterID,
+    lastChapterID,
+    updateChapterID: chapterID,
+    continueChapterID,
+    title: record.title || "Untitled Series",
+    url: record.url || "",
+    cover: record.cover || "",
+    lastReadTitle: lastRead?.title || "Not started",
+    lastReadHref: lastRead?.href || "",
+    lastChapterTitle: lastChapter?.title || "No chapters yet",
+    lastChapterHref: lastChapter?.href || "",
+    updateChapterTitle: updateChapter?.title || "",
+    updateChapterHref: updateChapter?.href || "",
+    continueHref,
+  };
+}
+
+function mapPopupSeriesList(
+  library: LibrarySnapshotV2,
+  category: Extract<PopupFeedCategory, "subscribe" | "history">,
+  list: string[],
+) {
+  return list
+    .map((seriesKey, index) => buildPopupFeedEntry(library, category, seriesKey, index))
+    .filter((entry): entry is PopupFeedEntry => entry !== null);
+}
+
+function mapPopupUpdates(library: LibrarySnapshotV2) {
+  return library.updates
+    .map((item, index) =>
+      buildPopupFeedEntry(
+        library,
+        "update",
+        item.seriesKey,
+        index,
+        String(item.chapterID || ""),
+      ),
+    )
+    .filter((entry): entry is PopupFeedEntry => entry !== null);
+}
+
+function buildPopupFeedSnapshot(library: LibrarySnapshotV2): PopupFeedSnapshot {
+  const update = mapPopupUpdates(library);
+  const subscribe = mapPopupSeriesList(library, "subscribe", library.subscriptions);
+  const history = mapPopupSeriesList(library, "history", library.history);
+  const firstSubscribed = library.subscriptions.find(
+    (seriesKey) => !!library.seriesByKey[seriesKey],
+  );
+  const continueReading =
+    history[0] ||
+    (firstSubscribed
+      ? buildPopupFeedEntry(library, "subscribe", firstSubscribed, 0)
+      : null);
+
+  return {
+    ...createEmptyPopupFeedSnapshot(),
+    update,
+    subscribe,
+    history,
+    continueReading,
+  };
+}
 
 export async function getSeriesSnapshot(siteOrSeriesKey: string, comicsID?: string) {
   return readSeriesSnapshotByKey(resolveSeriesKeyInput(siteOrSeriesKey, comicsID));
@@ -131,11 +236,13 @@ export async function getPopupFeedSnapshot() {
 
   await done;
 
-  return rowsToSnapshot({
-    series: seriesRows,
-    chapters: chapterRows,
-    subscriptions,
-    history,
-    updates,
-  });
+  return buildPopupFeedSnapshot(
+    rowsToSnapshot({
+      series: seriesRows,
+      chapters: chapterRows,
+      subscriptions,
+      history,
+      updates,
+    }),
+  );
 }

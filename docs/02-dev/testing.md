@@ -17,6 +17,8 @@
 ## 重構後的測試原則
 - 新測試優先 mock `@infra/services/library`，不要再綁死舊版 storage schema callback 細節
 - 若測的是底層 storage wrapper 或 signal，同步 mock `chrome.storage.local`
-- 若測的是 repository 實作，優先驗證公開 query / mutation API，不直接耦合 object store 細節
-- popup / manage 測試優先 mock `getPopupFeedSnapshot`；reader / background 測試優先 mock 系列級 mutation API
+- 若測的是 repository 實作，優先直接測 `queries.ts`、`mutations.ts`、`signal.ts`、`compat.ts` 的公開函式，不要只停在 barrel mock
+- repository 模組測試可以 mock `shared.ts` 的 IndexedDB primitive，重點驗證 query / mutation 語意與 signal payload
+- popup / manage 測試優先 mock `getPopupFeedSnapshot`，並驗證 reducer 保存的是 popup feed state，而不是 `LibrarySnapshotV2`
+- reader / background 測試優先 mock 系列級 mutation API
 - reducer 測試不得依賴 `document` / `window.history` side effects

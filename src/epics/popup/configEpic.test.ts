@@ -7,18 +7,17 @@ import {
   requestResetConfig,
 } from "@domain/actions/popup";
 import {
-  hydratePopupLibrary,
+  hydratePopupFeed,
   setExportConfig,
 } from "@domain/reducers/popupState";
+import type { PopupFeedEntry, PopupFeedSnapshot } from "@infra/services/library";
 
 jest.mock("@infra/services/library", () => ({
-  createEmptyLibrarySnapshot: jest.fn(() => ({
-    schemaVersion: 2,
-    version: "0.0.0",
-    seriesByKey: {},
-    subscriptions: [],
+  createEmptyPopupFeedSnapshot: jest.fn(() => ({
+    update: [],
+    subscribe: [],
     history: [],
-    updates: [],
+    continueReading: null,
   })),
   exportLibraryDump: jest.fn(),
   getPopupFeedSnapshot: jest.fn(),
@@ -30,14 +29,41 @@ const { exportLibraryDump, getPopupFeedSnapshot, importLibraryDump, resetLibrary
   "@infra/services/library",
 );
 
-const emptyLibrary = {
-  schemaVersion: 2 as const,
-  version: "0.0.0",
-  seriesByKey: {},
-  subscriptions: [],
+const emptyFeed: PopupFeedSnapshot = {
+  update: [],
+  subscribe: [],
   history: [],
-  updates: [],
+  continueReading: null,
 };
+
+function buildFeedEntry(
+  overrides: Partial<PopupFeedEntry> = {},
+): PopupFeedEntry {
+  return {
+    category: "update",
+    key: "update_dm5:m1_m1",
+    index: 0,
+    site: "dm5",
+    siteLabel: "DM5",
+    comicsID: "m1",
+    chapterID: "m1",
+    lastReadChapterID: "",
+    lastChapterID: "m1",
+    updateChapterID: "m1",
+    continueChapterID: "m1",
+    title: "Demo",
+    url: "",
+    cover: "",
+    lastReadTitle: "Not started",
+    lastReadHref: "",
+    lastChapterTitle: "Ch 1",
+    lastChapterHref: "",
+    updateChapterTitle: "Ch 1",
+    updateChapterHref: "",
+    continueHref: "",
+    ...overrides,
+  };
+}
 
 describe("popupConfigEpic", () => {
   let popupConfigEpic: any;
@@ -65,21 +91,27 @@ describe("popupConfigEpic", () => {
   });
 
   it("loads popup data", async () => {
-    getPopupFeedSnapshot.mockResolvedValue(emptyLibrary);
+    getPopupFeedSnapshot.mockResolvedValue(emptyFeed);
 
     const actions = await lastValueFrom(
       popupConfigEpic(of(requestPopupData())).pipe(toArray()),
     );
 
-    expect(actions).toEqual([hydratePopupLibrary(emptyLibrary, "load")]);
+    expect(actions).toEqual([hydratePopupFeed(emptyFeed, "load")]);
   });
 
   it("imports config and updates badge", async () => {
-    const data = {
-      ...emptyLibrary,
-      updates: [
-        { seriesKey: "dm5:m1", chapterID: "m1", createdAt: 1 },
-        { seriesKey: "dm5:m2", chapterID: "m2", createdAt: 2 },
+    const data: PopupFeedSnapshot = {
+      ...emptyFeed,
+      update: [
+        buildFeedEntry(),
+        buildFeedEntry({
+          key: "update_dm5:m2_m2",
+          index: 1,
+          comicsID: "m2",
+          chapterID: "m2",
+          updateChapterID: "m2",
+        }),
       ],
     };
     importLibraryDump.mockResolvedValue(data);
@@ -89,19 +121,19 @@ describe("popupConfigEpic", () => {
       popupConfigEpic(of(requestImportConfig({}))).pipe(toArray()),
     );
 
-    expect(actions).toEqual([hydratePopupLibrary(data, "import")]);
+    expect(actions).toEqual([hydratePopupFeed(data, "import")]);
     expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "2" });
   });
 
   it("resets config and updates badge", async () => {
-    resetLibrary.mockResolvedValue(emptyLibrary);
-    getPopupFeedSnapshot.mockResolvedValue(emptyLibrary);
+    resetLibrary.mockResolvedValue(emptyFeed);
+    getPopupFeedSnapshot.mockResolvedValue(emptyFeed);
 
     const actions = await lastValueFrom(
       popupConfigEpic(of(requestResetConfig())).pipe(toArray()),
     );
 
-    expect(actions).toEqual([hydratePopupLibrary(emptyLibrary, "reset")]);
+    expect(actions).toEqual([hydratePopupFeed(emptyFeed, "reset")]);
     expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "" });
   });
 

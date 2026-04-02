@@ -17,7 +17,14 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 
 ## 持久化模型
 - 共享持久化模型位於 `src/infra/services/library.ts`
-- 對外仍使用 `LibrarySnapshotV2` 作為 repository 載入後的快照格式
+- `library.ts` 是公開 facade；內部實作拆為：
+  - `library/schema.ts`
+  - `library/shared.ts`
+  - `library/queries.ts`
+  - `library/mutations.ts`
+  - `library/compat.ts`
+  - `library/signal.ts`
+- `LibrarySnapshotV2` 目前只保留給 compatibility API、匯入匯出與少數過渡流程
 - 底層以 IndexedDB 結構化 stores 持久化：
   - `series`
   - `chapters`
@@ -26,8 +33,9 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - `updates`
 - `chrome.storage.local.librarySignal` 用於跨 context 通知資料已變更
 - repository 目前分成兩層 API：
-  - compatibility：`loadLibrary`、`saveLibrary`、`exportLibraryDump`、`importLibraryDump`
+  - compatibility：`loadLibrary`、`saveLibrary`、`exportLibraryDump`、`importLibraryDump`、`subscribeToLibraryChanges`
   - query / mutation：`getPopupFeedSnapshot`、`getSeriesSnapshot`、`listSubscriptionKeys`、`applyReaderSeriesState`、`applyReadProgress`、`setSeriesSubscription*`、`dismissSeriesUpdate`、`removeSeriesCascade`
+  - meta：`setLibraryVersion`
 - 核心欄位：
   - `seriesByKey`
   - `subscriptions`
@@ -48,6 +56,9 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - Sites：`src/sites/`（`registry.ts`、`*/adapter.ts`、`*/meta.ts`）
 - Services：`src/infra/services/`（`storage.ts`、`library.ts`）
 - Store：`src/domain/store/`
+- Popup / Manage view state：
+  - popup reducer 只保存 popup feed 與 UI 狀態
+  - `getPopupFeedSnapshot()` 直接回傳 UI 所需的 feed model，不再把 `LibrarySnapshotV2` 放進 popup store
 
 ## 重構原則
 - Reducer 必須純函式
@@ -56,4 +67,5 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - 不得在 component、reducer、background 中直接讀寫 IndexedDB 或拼接舊 schema
 - 所有持久化更新優先走 `library.ts`
 - 新增業務流程時，優先使用 query / mutation API，不要新增 `loadLibrary → mutate snapshot → saveLibrary`
+- `compat.ts` 是過渡層，不應成為新功能的預設入口
 - Reader store 與 Popup store 只保存頁面需要的 state，不作為跨頁面持久化真實來源

@@ -108,6 +108,39 @@ export type LibrarySignal = {
   seriesKeys?: string[];
 };
 
+export type PopupFeedCategory = "update" | "subscribe" | "history";
+
+export type PopupFeedEntry = {
+  category: PopupFeedCategory;
+  key: string;
+  index: number;
+  site: SiteKey;
+  siteLabel: string;
+  comicsID: string;
+  chapterID: string;
+  lastReadChapterID: string;
+  lastChapterID: string;
+  updateChapterID: string;
+  continueChapterID: string;
+  title: string;
+  url: string;
+  cover: string;
+  lastReadTitle: string;
+  lastReadHref: string;
+  lastChapterTitle: string;
+  lastChapterHref: string;
+  updateChapterTitle: string;
+  updateChapterHref: string;
+  continueHref: string;
+};
+
+export type PopupFeedSnapshot = {
+  update: PopupFeedEntry[];
+  subscribe: PopupFeedEntry[];
+  history: PopupFeedEntry[];
+  continueReading: PopupFeedEntry | null;
+};
+
 export type LibraryDumpV1 = {
   format: "comic-scroller-db-dump";
   formatVersion: 1;
@@ -209,5 +242,14 @@ export function createEmptyLibrarySnapshot(
     subscriptions: [],
     history: [],
     updates: [],
+  };
+}
+
+export function createEmptyPopupFeedSnapshot(): PopupFeedSnapshot {
+  return {
+    update: [],
+    subscribe: [],
+    history: [],
+    continueReading: null,
   };
 }

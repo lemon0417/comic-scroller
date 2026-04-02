@@ -2,7 +2,9 @@ import type { LibraryDumpV1, LibrarySnapshotV2 } from "./schema";
 import {
   createEmptyLibrarySnapshot,
   getExtensionVersion,
+  LIBRARY_DB_VERSION,
   LIBRARY_META_KEY,
+  LIBRARY_SCHEMA_VERSION,
   META_STORE,
 } from "./schema";
 import {
@@ -52,7 +54,7 @@ export async function exportLibraryDump(): Promise<LibraryDumpV1> {
     format: "comic-scroller-db-dump",
     formatVersion: 1,
     exportedAt: Date.now(),
-    dbSchemaVersion: 1,
+    dbSchemaVersion: LIBRARY_DB_VERSION,
     data: snapshotToRows(snapshot),
   };
 }
@@ -81,8 +83,8 @@ export async function setLibraryVersion(version: string) {
     value: {
       initialized: true,
       version: getExtensionVersion(),
-      schemaVersion: 2,
-      dbSchemaVersion: 1,
+      schemaVersion: LIBRARY_SCHEMA_VERSION,
+      dbSchemaVersion: LIBRARY_DB_VERSION,
       updatedAt: Date.now(),
     },
   };

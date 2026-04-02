@@ -1,5 +1,5 @@
-import type { LibrarySnapshotV2 } from "@infra/services/library";
-import { createEmptyLibrarySnapshot } from "@infra/services/library";
+import type { PopupFeedSnapshot } from "@infra/services/library";
+import { createEmptyPopupFeedSnapshot } from "@infra/services/library";
 import {
   REQUEST_EXPORT_CONFIG,
   REQUEST_IMPORT_CONFIG,
@@ -16,7 +16,7 @@ type Notice = {
 };
 
 type State = {
-  library: LibrarySnapshotV2;
+  feed: PopupFeedSnapshot;
   hydrationStatus: "idle" | "loading" | "ready";
   activeAction: ActiveAction;
   notice: Notice | null;
@@ -26,7 +26,7 @@ type State = {
 
 type Action = {
   type: string;
-  data?: LibrarySnapshotV2;
+  data?: PopupFeedSnapshot;
   source?: HydrationSource;
   url?: string;
   filename?: string;
@@ -34,14 +34,14 @@ type Action = {
   message?: string;
 };
 
-const HYDRATE_POPUP_LIBRARY = "HYDRATE_POPUP_LIBRARY";
+const HYDRATE_POPUP_FEED = "HYDRATE_POPUP_FEED";
 const SET_EXPORT_CONFIG = "SET_EXPORT_CONFIG";
 const CLEAR_EXPORT_CONFIG = "CLEAR_EXPORT_CONFIG";
 const SET_POPUP_NOTICE = "SET_POPUP_NOTICE";
 const CLEAR_POPUP_NOTICE = "CLEAR_POPUP_NOTICE";
 
 const initialState: State = {
-  library: createEmptyLibrarySnapshot(),
+  feed: createEmptyPopupFeedSnapshot(),
   hydrationStatus: "idle",
   activeAction: null,
   notice: null,
@@ -90,10 +90,10 @@ export default function popupState(state: State = initialState, action: Action) 
         activeAction: "export",
         notice: null,
       };
-    case HYDRATE_POPUP_LIBRARY:
+    case HYDRATE_POPUP_FEED:
       return {
         ...state,
-        library: action.data || createEmptyLibrarySnapshot(),
+        feed: action.data || createEmptyPopupFeedSnapshot(),
         hydrationStatus: "ready",
         activeAction: null,
         notice: resolveSuccessNotice(action.source) || state.notice,
@@ -135,11 +135,11 @@ export default function popupState(state: State = initialState, action: Action) 
   }
 }
 
-export function hydratePopupLibrary(
-  data: LibrarySnapshotV2,
+export function hydratePopupFeed(
+  data: PopupFeedSnapshot,
   source: HydrationSource = "load",
 ) {
-  return { type: HYDRATE_POPUP_LIBRARY, data, source };
+  return { type: HYDRATE_POPUP_FEED, data, source };
 }
 
 export function setExportConfig(url: string, filename: string) {

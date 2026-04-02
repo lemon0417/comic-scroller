@@ -8,7 +8,7 @@ import {
   REQUEST_RESET_CONFIG,
 } from "@domain/actions/popup";
 import {
-  hydratePopupLibrary,
+  hydratePopupFeed,
   setExportConfig,
 } from "@domain/reducers/popupState";
 import {
@@ -36,7 +36,7 @@ export default function popupConfigEpic(action$: any) {
     mergeMap((action: any) => {
       if (action.type === REQUEST_POPUP_DATA) {
         return from(getPopupFeedSnapshot()).pipe(
-          mergeMap((library) => [hydratePopupLibrary(library, "load")]),
+          mergeMap((feed) => [hydratePopupFeed(feed, "load")]),
         );
       }
 
@@ -44,9 +44,9 @@ export default function popupConfigEpic(action$: any) {
         return from(importLibraryDump(action.payload || {})).pipe(
           mergeMap(() =>
             from(getPopupFeedSnapshot()).pipe(
-              mergeMap((library) => {
-                updateBadge(library.updates);
-                return [hydratePopupLibrary(library, "import")];
+              mergeMap((feed) => {
+                updateBadge(feed.update);
+                return [hydratePopupFeed(feed, "import")];
               }),
             ),
           ),
@@ -57,9 +57,9 @@ export default function popupConfigEpic(action$: any) {
         return from(resetLibrary()).pipe(
           mergeMap(() =>
             from(getPopupFeedSnapshot()).pipe(
-              mergeMap((library) => {
-                updateBadge(library.updates);
-                return [hydratePopupLibrary(library, "reset")];
+              mergeMap((feed) => {
+                updateBadge(feed.update);
+                return [hydratePopupFeed(feed, "reset")];
               }),
             ),
           ),

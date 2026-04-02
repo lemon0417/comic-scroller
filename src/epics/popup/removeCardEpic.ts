@@ -2,7 +2,7 @@ import { from } from "rxjs";
 import { mergeMap } from "rxjs/operators";
 import { ofType } from "redux-observable";
 import { REQUEST_REMOVE_CARD } from "@domain/actions/popup";
-import { hydratePopupLibrary } from "@domain/reducers/popupState";
+import { hydratePopupFeed } from "@domain/reducers/popupState";
 import {
   dismissSeriesUpdate,
   getPopupFeedSnapshot,
@@ -46,11 +46,11 @@ export default function removeCardEpic(action$: any) {
       return from(operation).pipe(
         mergeMap((updateCount) =>
           from(getPopupFeedSnapshot()).pipe(
-            mergeMap((library) => {
+            mergeMap((feed) => {
               chrome.action.setBadgeText({
                 text: `${updateCount === 0 ? "" : updateCount}`,
               });
-              return [hydratePopupLibrary(library, "load")];
+              return [hydratePopupFeed(feed, "load")];
             }),
           ),
         ),

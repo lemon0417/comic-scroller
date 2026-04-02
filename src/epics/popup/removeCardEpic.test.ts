@@ -2,8 +2,8 @@ import { lastValueFrom, of } from "rxjs";
 import { toArray } from "rxjs/operators";
 import removeCardEpic from "./removeCardEpic";
 import { requestRemoveCard } from "@domain/actions/popup";
-import { hydratePopupLibrary } from "@domain/reducers/popupState";
-import type { LibrarySnapshotV2 } from "@infra/services/library";
+import { hydratePopupFeed } from "@domain/reducers/popupState";
+import type { PopupFeedSnapshot } from "@infra/services/library";
 
 jest.mock("@infra/services/library", () => {
   const actual = jest.requireActual("@infra/services/library");
@@ -30,46 +30,38 @@ describe("removeCardEpic", () => {
   });
 
   it("removes update card and rehydrates popup state", async () => {
-    const store: LibrarySnapshotV2 = {
-      schemaVersion: 2 as const,
-      version: "0.0.0",
-      history: [],
-      subscriptions: [],
-      updates: [
-        { seriesKey: "dm5:c1", chapterID: "ch1", createdAt: 1 },
-        { seriesKey: "dm5:c2", chapterID: "ch2", createdAt: 2 },
-      ],
-      seriesByKey: {
-        "dm5:c1": {
+    const nextFeed: PopupFeedSnapshot = {
+      update: [
+        {
+          category: "update",
+          key: "update_dm5:c2_ch2",
+          index: 0,
           site: "dm5",
-          comicsID: "c1",
-          title: "A",
-          cover: "",
-          url: "",
-          chapterList: ["ch1"],
-          chapters: { ch1: { title: "Ch1", href: "" } },
-          lastRead: "",
-          read: [],
-        },
-        "dm5:c2": {
-          site: "dm5",
+          siteLabel: "DM5",
           comicsID: "c2",
+          chapterID: "ch2",
+          lastReadChapterID: "",
+          lastChapterID: "ch2",
+          updateChapterID: "ch2",
+          continueChapterID: "ch2",
           title: "B",
-          cover: "",
           url: "",
-          chapterList: ["ch2"],
-          chapters: { ch2: { title: "Ch2", href: "" } },
-          lastRead: "",
-          read: [],
+          cover: "",
+          lastReadTitle: "Not started",
+          lastReadHref: "",
+          lastChapterTitle: "Ch2",
+          lastChapterHref: "",
+          updateChapterTitle: "Ch2",
+          updateChapterHref: "",
+          continueHref: "",
         },
-      },
-    };
-    const nextStore: LibrarySnapshotV2 = {
-      ...store,
-      updates: [{ seriesKey: "dm5:c2", chapterID: "ch2", createdAt: 2 }],
+      ],
+      subscribe: [],
+      history: [],
+      continueReading: null,
     };
     dismissSeriesUpdate.mockResolvedValue(1);
-    getPopupFeedSnapshot.mockResolvedValue(nextStore);
+    getPopupFeedSnapshot.mockResolvedValue(nextFeed);
 
     const actions = await lastValueFrom(
       removeCardEpic(
@@ -85,7 +77,7 @@ describe("removeCardEpic", () => {
       ).pipe(toArray()),
     );
 
-    expect(actions).toEqual([hydratePopupLibrary(nextStore, "load")]);
+    expect(actions).toEqual([hydratePopupFeed(nextFeed, "load")]);
     expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "1" });
   });
 });
