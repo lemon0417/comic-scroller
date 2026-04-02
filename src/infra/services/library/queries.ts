@@ -8,15 +8,18 @@ import {
   buildSeriesKey,
   type ChapterRow,
   type HistoryRow,
-  type PopupFeedCategory,
-  type PopupFeedEntry,
-  type PopupFeedSnapshot,
   type SeriesRecord,
   type SeriesRow,
   type SubscriptionRow,
   type UpdateRow,
-  createEmptyPopupFeedSnapshot,
 } from "./schema";
+import {
+  createEmptyPopupFeedSnapshot,
+  type PopupFeedCategory,
+  type PopupFeedEntry,
+  type PopupFeedSnapshot,
+  type ReaderSeriesState,
+} from "./models";
 import {
   composeSeriesRecord,
   ensureLibraryReady,
@@ -145,7 +148,9 @@ export async function getSeriesSnapshot(siteOrSeriesKey: string, comicsID?: stri
   return readSeriesSnapshotByKey(resolveSeriesKeyInput(siteOrSeriesKey, comicsID));
 }
 
-export async function getReaderSeriesState(seriesKey: string) {
+export async function getReaderSeriesState(
+  seriesKey: string,
+): Promise<ReaderSeriesState> {
   await ensureLibraryReady();
   const db = await openLibraryDb();
   const transaction = db.transaction(

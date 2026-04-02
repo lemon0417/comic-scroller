@@ -19,6 +19,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - 共享持久化模型位於 `src/infra/services/library.ts`
 - `library.ts` 是公開 facade；內部實作拆為：
   - `library/schema.ts`
+  - `library/models.ts`
   - `library/shared.ts`
   - `library/queries.ts`
   - `library/mutations.ts`
@@ -26,6 +27,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - `library/signal.ts`
 - facade 只暴露業務 API 與少量 shared helper（例如 `buildSeriesKey` / `parseSeriesKey`）
 - schema constants、row types、normalize helper 屬於 internal detail；若測試或底層模組需要，直接從 `library/schema.ts` 取用
+- query / view model 型別（例如 popup feed、reader query result）集中在 `library/models.ts`
 - `LibrarySnapshotV2` 目前只保留給 `compat.ts` 內部流程、匯入匯出與 migration
 - 底層以 IndexedDB 結構化 stores 持久化：
   - `series`

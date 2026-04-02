@@ -1,4 +1,4 @@
-import type { PopupFeedSnapshot } from "@infra/services/library/schema";
+import type { PopupFeedSnapshot } from "@infra/services/library/models";
 
 type PopupState = {
   popup: {

@@ -13,7 +13,7 @@ import {
 import type {
   PopupFeedEntry,
   PopupFeedSnapshot,
-} from "@infra/services/library/schema";
+} from "@infra/services/library/models";
 
 jest.mock("@infra/services/library", () => ({
   createEmptyPopupFeedSnapshot: jest.fn(() => ({
