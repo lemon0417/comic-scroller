@@ -169,4 +169,83 @@ describe("ManageApp", () => {
       url: "chrome-extension://test/app.html?site=dm5&chapter=m1123",
     });
   });
+
+  it("virtualizes large following lists", () => {
+    const subscribe = Array.from({ length: 200 }, (_, index) =>
+      createFeedEntry({
+        category: "subscribe",
+        key: `subscribe_${index}`,
+        index,
+        title: `Series ${index}`,
+        siteLabel: "DM5",
+        site: "dm5",
+        comicsID: `series-${index}`,
+        continueChapterID: `m${index}`,
+      }),
+    );
+
+    render(
+      <ManageApp
+        hydrationStatus="ready"
+        activeAction={null}
+        notice={null}
+        exportUrl=""
+        exportFilename=""
+        update={[]}
+        subscribe={subscribe}
+        history={[]}
+        continueReading={null}
+        requestPopupData={jest.fn()}
+        requestExportConfig={jest.fn()}
+        requestImportConfig={jest.fn()}
+        requestResetConfig={jest.fn()}
+        requestRemoveCard={jest.fn()}
+        clearExportConfig={jest.fn()}
+        clearPopupNotice={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Following 200" }));
+
+    const renderedRows = document.querySelectorAll(".ds-series-row");
+    expect(renderedRows.length).toBeGreaterThan(0);
+    expect(renderedRows.length).toBeLessThan(subscribe.length);
+  });
+
+  it("renders dismiss update as a secondary action button", () => {
+    render(
+      <ManageApp
+        hydrationStatus="ready"
+        activeAction={null}
+        notice={null}
+        exportUrl=""
+        exportFilename=""
+        update={[
+          createFeedEntry({
+            category: "update",
+            key: "update_1",
+            title: "One Piece",
+            updateChapterTitle: "Ch 1124",
+            lastReadTitle: "Ch 1123",
+          }),
+        ]}
+        subscribe={[]}
+        history={[]}
+        continueReading={null}
+        requestPopupData={jest.fn()}
+        requestExportConfig={jest.fn()}
+        requestImportConfig={jest.fn()}
+        requestResetConfig={jest.fn()}
+        requestRemoveCard={jest.fn()}
+        clearExportConfig={jest.fn()}
+        clearPopupNotice={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Updates 1" }));
+
+    expect(
+      screen.getByRole("button", { name: "Dismiss update" }),
+    ).toHaveClass("ds-btn-secondary");
+  });
 });

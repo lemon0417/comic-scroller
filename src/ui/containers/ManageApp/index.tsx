@@ -1,6 +1,11 @@
 import type { ChangeEventHandler } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { connect } from "react-redux";
+import {
+  List,
+  type RowComponentProps,
+  useDynamicRowHeight,
+} from "react-window";
 import Content from "@components/Content";
 import EmptyState from "@components/EmptyState";
 import LoadingRows from "@components/LoadingRows";
@@ -27,6 +32,17 @@ import type { PopupFeedEntry } from "@infra/services/library/models";
 import { isDevLogEnabled, setDevLogEnabled } from "@utils/devLog";
 
 type ManageTab = "updates" | "following" | "history" | "data";
+
+type ManageRowsListProps = {
+  selectedTab: Exclude<ManageTab, "data">;
+  rows: PopupFeedEntry[];
+  onForgetSeries: (item: PopupFeedEntry) => void;
+  onRemoveCard: typeof requestRemoveCard;
+};
+
+const MANAGE_ROW_DEFAULT_HEIGHT = 112;
+const MANAGE_LIST_MAX_HEIGHT = 720;
+const MANAGE_LIST_OVERSCAN_COUNT = 6;
 
 type ManageAppProps = PopupViewProps & {
   clearExportConfig: typeof clearExportConfig;
@@ -64,6 +80,120 @@ function openReaderPage(site: string, chapterID?: string, fallbackUrl = "") {
   openUrl(fallbackUrl);
 }
 
+function ManageFeedRow({
+  ariaAttributes,
+  index,
+  onForgetSeries,
+  onRemoveCard,
+  rows,
+  selectedTab,
+  style,
+}: RowComponentProps<ManageRowsListProps>) {
+  const item = rows[index];
+  if (!item) {
+    return null;
+  }
+
+  if (selectedTab === "updates") {
+    return (
+      <div {...ariaAttributes} style={style} className="px-1 py-1.5">
+        <SeriesRow
+          title={item.title}
+          siteLabel={item.siteLabel}
+          cover={item.cover}
+          summary={`New chapter • ${item.updateChapterTitle || item.lastChapterTitle}`}
+          detail={`Last read • ${item.lastReadTitle}`}
+          actions={[
+            {
+              label: "Read update",
+              variant: "primary",
+              onClick: () =>
+                openReaderPage(
+                  item.site,
+                  item.updateChapterID || item.lastChapterID,
+                  item.updateChapterHref || item.lastChapterHref || item.url,
+                ),
+            },
+            {
+              label: "Dismiss update",
+              onClick: () =>
+                onRemoveCard({
+                  category: "update",
+                  index: item.index,
+                  comicsID: item.comicsID,
+                  chapterID: item.chapterID,
+                  site: item.site,
+                }),
+            },
+          ]}
+        />
+      </div>
+    );
+  }
+
+  if (selectedTab === "following") {
+    return (
+      <div {...ariaAttributes} style={style} className="px-1 py-1.5">
+        <SeriesRow
+          title={item.title}
+          siteLabel={item.siteLabel}
+          cover={item.cover}
+          summary={`Last read • ${item.lastReadTitle}`}
+          detail={`Latest • ${item.lastChapterTitle}`}
+          actions={[
+            {
+              label: "Continue",
+              variant: "primary",
+              onClick: () =>
+                openReaderPage(
+                  item.site,
+                  item.continueChapterID,
+                  item.continueHref,
+                ),
+            },
+            {
+              label: "Unfollow",
+              variant: "danger",
+              onClick: () =>
+                onRemoveCard({
+                  category: "subscribe",
+                  index: item.index,
+                  comicsID: item.comicsID,
+                  site: item.site,
+                }),
+            },
+          ]}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div {...ariaAttributes} style={style} className="px-1 py-1.5">
+      <SeriesRow
+        title={item.title}
+        siteLabel={item.siteLabel}
+        cover={item.cover}
+        summary={`Last read • ${item.lastReadTitle}`}
+        detail={`Latest • ${item.lastChapterTitle}`}
+        actions={[
+          {
+            label: "Continue",
+            variant: "primary",
+            onClick: () =>
+              openReaderPage(item.site, item.continueChapterID, item.continueHref),
+          },
+          {
+            label: "Forget series",
+            variant: "danger",
+            onClick: () => onForgetSeries(item),
+          },
+        ]}
+      />
+    </div>
+  );
+}
+
 function ManageAppComponent(props: ManageAppProps) {
   const {
     hydrationStatus,
@@ -86,6 +216,10 @@ function ManageAppComponent(props: ManageAppProps) {
   const [selectedTab, setSelectedTab] = useState<ManageTab>(getInitialTab);
   const [debugLogEnabled, setDebugLogEnabled] = useState(isDevLogEnabled);
   const [localError, setLocalError] = useState("");
+  const rowHeights = useDynamicRowHeight({
+    defaultRowHeight: MANAGE_ROW_DEFAULT_HEIGHT,
+    key: selectedTab,
+  });
   const downloadRef = useRef<HTMLAnchorElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -163,18 +297,44 @@ function ManageAppComponent(props: ManageAppProps) {
     setDebugLogEnabled(enabled);
   };
 
-  const handleForgetSeries = (item: PopupFeedEntry) => {
-    const shouldForget = window.confirm(
-      `Forget “${item.title}”? This removes its history, updates, subscription, and cached series data.`,
-    );
-    if (!shouldForget) return;
-    requestRemoveCardProp({
-      category: "history",
-      index: item.index,
-      comicsID: item.comicsID,
-      site: item.site,
-    });
-  };
+  const handleForgetSeries = useCallback(
+    (item: PopupFeedEntry) => {
+      const shouldForget = window.confirm(
+        `Forget “${item.title}”? This removes its history, updates, subscription, and cached series data.`,
+      );
+      if (!shouldForget) return;
+      requestRemoveCardProp({
+        category: "history",
+        index: item.index,
+        comicsID: item.comicsID,
+        site: item.site,
+      });
+    },
+    [requestRemoveCardProp],
+  );
+
+  const rowProps = useMemo<ManageRowsListProps>(
+    () => ({
+      selectedTab:
+        selectedTab === "data" ? "following" : selectedTab,
+      rows: currentRows,
+      onForgetSeries: handleForgetSeries,
+      onRemoveCard: requestRemoveCardProp,
+    }),
+    [currentRows, handleForgetSeries, requestRemoveCardProp, selectedTab],
+  );
+
+  const listHeight = useMemo(
+    () =>
+      Math.min(
+        MANAGE_LIST_MAX_HEIGHT,
+        Math.max(
+          MANAGE_ROW_DEFAULT_HEIGHT,
+          currentRows.length * rowHeights.getAverageRowHeight(),
+        ),
+      ),
+    [currentRows.length, rowHeights],
+  );
 
   const renderRows = () => {
     if (isLoading) {
@@ -209,111 +369,18 @@ function ManageAppComponent(props: ManageAppProps) {
     }
 
     return (
-      <div className="flex flex-col gap-3">
-        {currentRows.map((item: PopupFeedEntry) => {
-          if (selectedTab === "updates") {
-            return (
-              <SeriesRow
-                key={item.key}
-                title={item.title}
-                siteLabel={item.siteLabel}
-                cover={item.cover}
-                summary={`New chapter • ${item.updateChapterTitle || item.lastChapterTitle}`}
-                detail={`Last read • ${item.lastReadTitle}`}
-                actions={[
-                  {
-                    label: "Read update",
-                    variant: "primary",
-                    onClick: () =>
-                      openReaderPage(
-                        item.site,
-                        item.updateChapterID || item.lastChapterID,
-                        item.updateChapterHref ||
-                          item.lastChapterHref ||
-                          item.url,
-                      ),
-                  },
-                  {
-                    label: "Dismiss update",
-                    onClick: () =>
-                      requestRemoveCardProp({
-                        category: "update",
-                        index: item.index,
-                        comicsID: item.comicsID,
-                        chapterID: item.chapterID,
-                        site: item.site,
-                      }),
-                  },
-                ]}
-              />
-            );
-          }
-
-          if (selectedTab === "following") {
-            return (
-              <SeriesRow
-                key={item.key}
-                title={item.title}
-                siteLabel={item.siteLabel}
-                cover={item.cover}
-                summary={`Last read • ${item.lastReadTitle}`}
-                detail={`Latest • ${item.lastChapterTitle}`}
-                actions={[
-                  {
-                    label: "Continue",
-                    variant: "primary",
-                    onClick: () =>
-                      openReaderPage(
-                        item.site,
-                        item.continueChapterID,
-                        item.continueHref,
-                      ),
-                  },
-                  {
-                    label: "Unfollow",
-                    variant: "danger",
-                    onClick: () =>
-                      requestRemoveCardProp({
-                        category: "subscribe",
-                        index: item.index,
-                        comicsID: item.comicsID,
-                        site: item.site,
-                      }),
-                  },
-                ]}
-              />
-            );
-          }
-
-          return (
-            <SeriesRow
-              key={item.key}
-              title={item.title}
-              siteLabel={item.siteLabel}
-              cover={item.cover}
-              summary={`Last read • ${item.lastReadTitle}`}
-              detail={`Latest • ${item.lastChapterTitle}`}
-              actions={[
-                {
-                  label: "Continue",
-                  variant: "primary",
-                  onClick: () =>
-                    openReaderPage(
-                      item.site,
-                      item.continueChapterID,
-                      item.continueHref,
-                    ),
-                },
-                {
-                  label: "Forget series",
-                  variant: "danger",
-                  onClick: () => handleForgetSeries(item),
-                },
-              ]}
-            />
-          );
-        })}
-      </div>
+      <List
+        className="popup-scrollbar scrollbar-stable"
+        overscanCount={MANAGE_LIST_OVERSCAN_COUNT}
+        rowComponent={ManageFeedRow}
+        rowCount={currentRows.length}
+        rowHeight={rowHeights}
+        rowProps={rowProps}
+        style={{
+          height: listHeight,
+          width: "100%",
+        }}
+      />
     );
   };
 

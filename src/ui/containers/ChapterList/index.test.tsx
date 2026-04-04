@@ -1,18 +1,27 @@
+import type { ComponentProps } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ChapterList } from "./index";
 
-const baseProps = {
+type ChapterListProps = ComponentProps<typeof ChapterList>;
+
+const baseProps: ChapterListProps = {
   show: true,
-  chapterList: [
-    { chapter: "c1", title: "第1話", read: true, current: false },
-    { chapter: "c2", title: "第2話", read: true, current: true },
-    { chapter: "c3", title: "第3話", read: false, current: false },
-  ],
+  chapterList: ["c1", "c2", "c3"],
+  chapters: {
+    c1: { title: "第1話" },
+    c2: { title: "第2話" },
+    c3: { title: "第3話" },
+  },
+  columnCount: 2,
+  currentChapterID: "c2",
+  currentChapterRowIndex: 0,
+  gridWidth: 640,
+  readSet: new Set(["c1", "c2"]),
   navigateChapter: jest.fn(),
   showChapterListHandler: jest.fn(),
 };
 
-function renderChapterList(overrideProps: Partial<typeof baseProps> = {}) {
+function renderChapterList(overrideProps: Partial<ChapterListProps> = {}) {
   const props = {
     ...baseProps,
     navigateChapter: jest.fn(),
@@ -28,6 +37,12 @@ function renderChapterList(overrideProps: Partial<typeof baseProps> = {}) {
 }
 
 describe("ChapterList", () => {
+  it("does not render the dialog while hidden", () => {
+    renderChapterList({ show: false });
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("renders as an accessible dialog", () => {
     renderChapterList();
 
@@ -66,5 +81,30 @@ describe("ChapterList", () => {
     fireEvent.keyDown(document, { key: "Escape" });
 
     expect(props.showChapterListHandler).toHaveBeenCalled();
+  });
+
+  it("virtualizes large chapter lists instead of mounting every chapter button", () => {
+    renderChapterList({
+      chapterList: Array.from({ length: 1200 }, (_item, index) => `c${index + 1}`),
+      chapters: Array.from({ length: 1200 }, (_item, index) => `c${index + 1}`).reduce(
+        (acc, chapterID, index) => ({
+          ...acc,
+          [chapterID]: {
+            title: `第${index + 1}話`,
+          },
+        }),
+        {},
+      ),
+      currentChapterID: "c31",
+      currentChapterRowIndex: 10,
+      columnCount: 3,
+      gridWidth: 960,
+      readSet: new Set(Array.from({ length: 20 }, (_item, index) => `c${index + 1}`)),
+    });
+
+    expect(screen.getByRole("button", { name: "第1話" })).toBeInTheDocument();
+    expect(screen.queryAllByRole("button", { name: /^第\d+話$/ }).length).toBeLessThan(
+      1200,
+    );
   });
 });
