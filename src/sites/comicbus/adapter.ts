@@ -5,7 +5,7 @@ import type { SiteAdapter } from "../types";
 const comicbusAdapter: SiteAdapter = {
   key: "comicbus",
   baseURL: "http://www.comicbus.com",
-  fetchMeta: fetchMeta$,
+  fetchMeta: (url, comicsID) => fetchMeta$(url, comicsID || ""),
   epics: {
     fetchChapterEpic: reader.fetchChapterEpic,
     fetchImgSrcEpic: reader.fetchImgSrcEpic,

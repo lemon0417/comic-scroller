@@ -1,5 +1,6 @@
 import { from } from "rxjs";
 import { map as rxMap } from "rxjs/operators";
+import type { ChapterRecord } from "@infra/services/library/schema";
 
 const baseURL = "https://www.dm5.com";
 
@@ -36,7 +37,7 @@ const parseFromDocument = (doc: Document) => {
       return href ? href.replace(/\//g, "") : null;
     })
     .filter(Boolean) as string[];
-  const chapters = Array.from(chapterNodes).reduce<Record<string, any>>(
+  const chapters = Array.from(chapterNodes).reduce<Record<string, ChapterRecord>>(
     (acc, n) => {
       const href = n.getAttribute("href") || "";
       if (!href) return acc;
@@ -66,7 +67,7 @@ const parseFromHtml = (html: string) => {
   const cover = coverMatch ? coverMatch[1] : "";
 
   const chapterList: string[] = [];
-  const chapters: Record<string, any> = {};
+  const chapters: Record<string, ChapterRecord> = {};
   let match: RegExpExecArray | null;
   while ((match = anchorRegex.exec(block))) {
     const href = match[1].replace(/\//g, "");

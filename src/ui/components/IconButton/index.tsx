@@ -4,7 +4,10 @@ import ripple from "../Ripple";
 type Props = {
   children?: React.ReactNode;
   onClickHandler?: () => void;
-  onMouseDownHandler?: (e: React.MouseEvent<HTMLButtonElement>, node: any) => void;
+  onMouseDownHandler?: (
+    e: React.MouseEvent<HTMLButtonElement>,
+    node: HTMLButtonElement | null,
+  ) => void;
   ariaLabel?: string;
   className?: string;
   disabled?: boolean;
@@ -15,7 +18,7 @@ function mergeClasses(...classes: Array<string | undefined>) {
 }
 
 class IconButton extends Component<Props> {
-  node: any;
+  node: HTMLButtonElement | null = null;
 
   onMouseDownHandler = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (this.props.disabled) {
@@ -35,7 +38,7 @@ class IconButton extends Component<Props> {
     }
   };
 
-  refHandler = (node: any) => {
+  refHandler = (node: HTMLButtonElement | null) => {
     this.node = node;
   };
 

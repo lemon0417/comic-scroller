@@ -1,4 +1,4 @@
-import { from } from "rxjs";
+import { from, type Observable } from "rxjs";
 import { mergeMap } from "rxjs/operators";
 import { ofType } from "redux-observable";
 import {
@@ -17,21 +17,32 @@ import {
   importLibraryDump,
   resetLibrary,
 } from "@infra/services/library";
+import type { PopupFeedEntry } from "@infra/services/library/models";
+import type { PopupEpic } from "../types";
 
-function updateBadge(update: Array<any> | undefined) {
+type PopupConfigAction = {
+  type:
+    | typeof REQUEST_POPUP_DATA
+    | typeof REQUEST_IMPORT_CONFIG
+    | typeof REQUEST_RESET_CONFIG
+    | typeof REQUEST_EXPORT_CONFIG;
+  payload?: unknown;
+};
+
+function updateBadge(update: PopupFeedEntry[] | undefined) {
   const count = Array.isArray(update) ? update.length : 0;
   chrome.action.setBadgeText({ text: `${count === 0 ? "" : count}` });
 }
 
-export default function popupConfigEpic(action$: any) {
-  return action$.pipe(
+const popupConfigEpic: PopupEpic = (action$) =>
+  (action$ as Observable<PopupConfigAction>).pipe(
     ofType(
       REQUEST_POPUP_DATA,
       REQUEST_IMPORT_CONFIG,
       REQUEST_RESET_CONFIG,
       REQUEST_EXPORT_CONFIG,
     ),
-    mergeMap((action: any) => {
+    mergeMap((action) => {
       if (action.type === REQUEST_POPUP_DATA) {
         return from(getPopupFeedSnapshot()).pipe(
           mergeMap((feed) => [hydratePopupFeed(feed, "load")]),
@@ -78,4 +89,5 @@ export default function popupConfigEpic(action$: any) {
       return [];
     }),
   );
-}
+
+export default popupConfigEpic;

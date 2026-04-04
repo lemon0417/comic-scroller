@@ -1,7 +1,8 @@
-import { fromEvent } from "rxjs";
+import { fromEvent, type Observable } from "rxjs";
 import { mergeMap, takeUntil, throttleTime } from "rxjs/operators";
 import { ofType } from "redux-observable";
 import findIndex from "lodash/findIndex";
+import type { RootState } from "@domain/reducers";
 import {
   START_SCROLL_EPIC,
   STOP_SCROLL_EPIC,
@@ -44,7 +45,10 @@ declare var document: Document;
 //   return { begin: -1, end: -1 };
 // }
 
-function fromScrollEvent(state$: { value: any }, cancel$: any) {
+function fromScrollEvent(
+  state$: { value: RootState },
+  cancel$: Observable<{ type: string }>,
+) {
   return fromEvent(document, "scroll").pipe(
     throttleTime(100),
     mergeMap(() => {
@@ -73,14 +77,9 @@ function fromScrollEvent(state$: { value: any }, cancel$: any) {
         }
       }
       const result$ = [];
-      const pushIfFn = (fn: any, ...args: any[]) => {
-        if (typeof fn === "function") {
-          result$.push(fn(...args));
-        }
-      };
       if ((renderBeginIndex + renderEndIndex) / 2 !== viewIndex) {
         result$.push(updateRenderIndex(viewIndex - 6, viewIndex + 6));
-        pushIfFn(fetchImgSrc, viewIndex - 6, viewIndex + 6);
+        result$.push(fetchImgSrc(viewIndex - 6, viewIndex + 6));
       }
       if (chapterList.length > 0) {
         const imgChapter = entity[viewIndex].chapter;
@@ -89,11 +88,11 @@ function fromScrollEvent(state$: { value: any }, cancel$: any) {
           (item) => item === imgChapter,
         );
         if (chapterLatestIndex === imgChapterIndex && chapterLatestIndex > 0) {
-          pushIfFn(fetchImgList, chapterLatestIndex - 1);
+          result$.push(fetchImgList(chapterLatestIndex - 1));
           result$.push(updateChapterLatestIndex(chapterLatestIndex - 1));
         }
         if (chapterNowIndex !== imgChapterIndex) {
-          pushIfFn(updateRead, imgChapterIndex);
+          result$.push(updateRead(imgChapterIndex));
         }
       }
       return result$;
@@ -102,7 +101,10 @@ function fromScrollEvent(state$: { value: any }, cancel$: any) {
   );
 }
 
-export default function scrollEpic(action$: any, state$: { value: any }) {
+export default function scrollEpic(
+  action$: Observable<{ type: string }>,
+  state$: { value: RootState },
+) {
   return action$.pipe(
     ofType(START_SCROLL_EPIC),
     mergeMap(() =>

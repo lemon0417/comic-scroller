@@ -11,16 +11,16 @@ import navigationEpic from "./navigationEpic";
 import subscribeEpic from "./subscribeEpic";
 import readerLocationEpic from "./readerLocationEpic";
 
-const rootEpic = combineEpics<any, any, any, any>(
-  fetchChapterEpic as any,
-  fetchImgSrcEpic as any,
-  scrollEpic as any,
-  resizeEpic as any,
-  navigationEpic as any,
-  subscribeEpic as any,
-  readerLocationEpic as any,
-  fetchImgListEpic as any,
-  updateReadEpic as any,
+const rootEpic = combineEpics(
+  fetchChapterEpic,
+  fetchImgSrcEpic,
+  scrollEpic,
+  resizeEpic,
+  navigationEpic,
+  subscribeEpic,
+  readerLocationEpic,
+  fetchImgListEpic,
+  updateReadEpic,
 );
 
 export default rootEpic;

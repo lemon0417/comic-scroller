@@ -1,11 +1,13 @@
+import type { AppEpic } from "@epics/types";
+
 export type SiteAdapter = {
   key: string;
   baseURL: string;
-  fetchMeta: (...args: any[]) => any;
+  fetchMeta: (url: string, comicsID?: string) => unknown;
   epics: {
-    fetchChapterEpic: Function;
-    fetchImgSrcEpic: Function;
-    fetchImgListEpic: Function;
-    updateReadEpic: Function;
+    fetchChapterEpic: AppEpic;
+    fetchImgSrcEpic: AppEpic;
+    fetchImgListEpic: AppEpic;
+    updateReadEpic: AppEpic;
   };
 };

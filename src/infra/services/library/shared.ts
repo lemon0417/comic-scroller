@@ -41,9 +41,9 @@ type LegacyStore = {
   history?: Array<{ site?: string; comicsID?: string }> | string[];
   subscribe?: Array<{ site?: string; comicsID?: string }>;
   update?: Array<{ site?: string; comicsID?: string; chapterID?: string }>;
-  dm5?: Record<string, any>;
-  sf?: Record<string, any>;
-  comicbus?: Record<string, any>;
+  dm5?: Record<string, unknown>;
+  sf?: Record<string, unknown>;
+  comicbus?: Record<string, unknown>;
   schemaVersion?: number;
   seriesByKey?: Record<string, SeriesRecord>;
   subscriptions?: string[];
@@ -52,19 +52,25 @@ type LegacyStore = {
 
 type MetaRow = {
   key: string;
-  value: any;
+  value: {
+    initialized?: boolean;
+    version?: string;
+    schemaVersion?: number;
+    dbSchemaVersion?: number;
+    updatedAt?: number;
+  };
 };
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 let libraryReadyPromise: Promise<void> | null = null;
 
-function getStorageSnapshot(): Promise<any> {
+function getStorageSnapshot(): Promise<Record<string, unknown>> {
   return new Promise((resolve) => {
     storageGetAll((items) => resolve(items || {}));
   });
 }
 
-function setStorageItems(items: any): Promise<void> {
+function setStorageItems(items: Record<string, unknown>): Promise<void> {
   return new Promise((resolve) => {
     storageSet(items, () => resolve());
   });
@@ -379,7 +385,7 @@ export async function readRowsFromDb() {
   return { series, chapters, subscriptions, history, updates };
 }
 
-function hasLegacyLibraryData(raw: any) {
+function hasLegacyLibraryData(raw: Record<string, unknown>) {
   return LEGACY_STORAGE_KEYS.some((key) => key in (raw || {}));
 }
 
@@ -524,7 +530,7 @@ function migrateLegacy(raw: LegacyStore): LibrarySnapshotV2 {
   }
 
   const history = uniqueStrings(
-    (raw.history || []).map((item: any) =>
+    (raw.history || []).map((item) =>
       typeof item === "string"
         ? item
         : buildSeriesKey(String(item?.site || ""), String(item?.comicsID || "")),
@@ -563,18 +569,28 @@ function migrateLegacy(raw: LegacyStore): LibrarySnapshotV2 {
   };
 }
 
-export function migrateLibrary(raw: LegacyStore | undefined | null) {
-  if (raw?.schemaVersion === LIBRARY_SCHEMA_VERSION && raw.seriesByKey) {
-    return migrateV2(raw);
+export function migrateLibrary(raw: unknown) {
+  const candidate =
+    raw && typeof raw === "object" ? (raw as LegacyStore) : undefined;
+
+  if (
+    candidate?.schemaVersion === LIBRARY_SCHEMA_VERSION &&
+    candidate.seriesByKey
+  ) {
+    return migrateV2(candidate);
   }
-  return migrateLegacy(raw || {});
+  return migrateLegacy(candidate || {});
 }
 
-export function isLibraryDumpV1(raw: any): raw is LibraryDumpV1 {
+export function isLibraryDumpV1(raw: unknown): raw is LibraryDumpV1 {
+  if (!raw || typeof raw !== "object") {
+    return false;
+  }
+  const candidate = raw as Partial<LibraryDumpV1>;
   return (
-    raw?.format === "comic-scroller-db-dump" &&
-    raw?.formatVersion === 1 &&
-    raw?.data
+    candidate.format === "comic-scroller-db-dump" &&
+    candidate.formatVersion === 1 &&
+    Boolean(candidate.data)
   );
 }
 

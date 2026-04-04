@@ -20,7 +20,7 @@ export function requestPopupData() {
   return { type: REQUEST_POPUP_DATA };
 }
 
-export function requestImportConfig(payload: any) {
+export function requestImportConfig(payload: unknown) {
   return { type: REQUEST_IMPORT_CONFIG, payload };
 }
 

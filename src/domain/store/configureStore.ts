@@ -3,19 +3,29 @@ import {
   Tuple,
 } from "@reduxjs/toolkit";
 import { createEpicMiddleware } from "redux-observable";
-import rootReducer from "../reducers";
+import rootReducer, { type RootState } from "../reducers";
 import rootEpic from "../../epics";
 import { getDebugLogger } from "./debugLogger";
+import type { EpicAction } from "@epics/types";
 
-const epicDependencies: { store: any } = { store: null };
-const epicMiddleware = createEpicMiddleware({ dependencies: epicDependencies });
+type AppStore = ReturnType<typeof configureToolkitStore<RootState>>;
+
+const epicDependencies: { store: AppStore | null } = { store: null };
+const epicMiddleware = createEpicMiddleware<
+  EpicAction,
+  EpicAction,
+  RootState,
+  typeof epicDependencies
+>({
+  dependencies: epicDependencies,
+});
 
 const buildMiddleware = () => {
   const logger = getDebugLogger();
   return logger ? new Tuple(epicMiddleware, logger) : new Tuple(epicMiddleware);
 };
 
-export default function configureStore(initialState?: any) {
+export default function configureStore(initialState?: Partial<RootState>) {
   const store = configureToolkitStore({
     reducer: rootReducer,
     middleware: buildMiddleware,

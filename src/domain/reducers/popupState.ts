@@ -15,7 +15,7 @@ type Notice = {
   message: string;
 };
 
-type State = {
+export type PopupState = {
   feed: PopupFeedSnapshot;
   hydrationStatus: "idle" | "loading" | "ready";
   activeAction: ActiveAction;
@@ -40,7 +40,7 @@ const CLEAR_EXPORT_CONFIG = "CLEAR_EXPORT_CONFIG";
 const SET_POPUP_NOTICE = "SET_POPUP_NOTICE";
 const CLEAR_POPUP_NOTICE = "CLEAR_POPUP_NOTICE";
 
-const initialState: State = {
+const initialState: PopupState = {
   feed: createEmptyPopupFeedSnapshot(),
   hydrationStatus: "idle",
   activeAction: null,
@@ -65,7 +65,10 @@ function resolveSuccessNotice(source?: HydrationSource) {
   return null;
 }
 
-export default function popupState(state: State = initialState, action: Action) {
+export default function popupState(
+  state: PopupState = initialState,
+  action: Action,
+): PopupState {
   switch (action.type) {
     case REQUEST_POPUP_DATA:
       return {

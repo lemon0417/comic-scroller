@@ -74,6 +74,9 @@ describe("removeCardEpic", () => {
             site: "dm5",
           }),
         ),
+        {
+          value: undefined as never,
+        },
       ).pipe(toArray()),
     );
 

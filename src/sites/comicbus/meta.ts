@@ -1,5 +1,6 @@
 import { from } from "rxjs";
 import { map as rxMap } from "rxjs/operators";
+import type { ChapterRecord } from "@infra/services/library/schema";
 
 const baseURL = "http://www.comicbus.com";
 
@@ -42,7 +43,7 @@ const parseFromDocument = (doc: Document, comicsID: string) => {
       .reverse(),
   ] as string[];
   const chapters = {
-    ...Array.from(chapterNodes).reduce<Record<string, any>>((acc, n) => {
+    ...Array.from(chapterNodes).reduce<Record<string, ChapterRecord>>((acc, n) => {
       const parsed = parseOnclick(n);
       if (!parsed) return acc;
       acc[`comic-${parsed.comic}.html?ch=${parsed.chapter}`] = {
@@ -52,7 +53,7 @@ const parseFromDocument = (doc: Document, comicsID: string) => {
       };
       return acc;
     }, {}),
-    ...Array.from(volNodes).reduce<Record<string, any>>((acc, n) => {
+    ...Array.from(volNodes).reduce<Record<string, ChapterRecord>>((acc, n) => {
       const parsed = parseOnclick(n);
       if (!parsed) return acc;
       acc[`comic-${parsed.comic}.html?ch=${parsed.chapter}`] = {
@@ -90,7 +91,7 @@ const parseFromHtml = (html: string, comicsID: string) => {
       .reverse();
 
   const buildChapters = (nodes: Array<{ key: string; title: string }>) =>
-    nodes.reduce<Record<string, any>>((acc, node) => {
+    nodes.reduce<Record<string, ChapterRecord>>((acc, node) => {
       acc[node.key] = {
         title: node.title,
         href: `${baseURL}/online/${node.key}`,

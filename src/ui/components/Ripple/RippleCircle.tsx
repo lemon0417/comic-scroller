@@ -1,7 +1,7 @@
 import { PureComponent } from "react";
 
 type Props = {
-  removeRippleHandler: Function;
+  removeRippleHandler: (id: string) => void;
   radius: number;
   id: string;
   left: number;

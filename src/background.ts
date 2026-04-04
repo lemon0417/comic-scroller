@@ -19,7 +19,11 @@ chrome.runtime.onInstalled.addListener(async (details: { reason?: string }) => {
 });
 
 chrome.runtime.onMessage.addListener(
-  (message: any, _sender: any, sendResponse: (value: any) => void) =>
+  (
+    message: { msg?: string },
+    _sender: unknown,
+    sendResponse: (value: { ok: boolean; reason?: string; at?: number; summary?: unknown }) => void,
+  ) =>
     handlePingBackgroundMessage(message, sendResponse, { isDev }),
 );
 

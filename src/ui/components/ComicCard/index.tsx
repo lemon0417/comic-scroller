@@ -2,8 +2,34 @@ import { Component } from "react";
 import { connect } from "react-redux";
 import TrashTopIcon from "@imgs/bin_top.svg?react";
 import TrashBodyIcon from "@imgs/bin_body.svg?react";
-import { requestRemoveCard } from "@domain/actions/popup";
+import {
+  type RemoveCardPayload,
+  requestRemoveCard,
+} from "@domain/actions/popup";
 import Card from "@components/Card";
+
+type ComicCardChapter = {
+  href: string;
+  title: string;
+};
+
+const emptyComicCardChapter: ComicCardChapter = {
+  href: "",
+  title: "",
+};
+
+type ComicCardRecord = {
+  chapterList: string[];
+  chapters: Record<string, ComicCardChapter>;
+  cover: string;
+  lastRead: string;
+  title: string;
+  url: string;
+};
+
+type ComicCardRootState = {
+  popup: Record<string, Record<string, ComicCardRecord | undefined> | undefined>;
+};
 
 function getComicCardClass(shift: boolean, move: boolean) {
   const base = "ds-card";
@@ -18,7 +44,7 @@ function getComicCardClass(shift: boolean, move: boolean) {
 
 type Props = {
   url: string;
-  category: string;
+  category: RemoveCardPayload["category"];
   comicsID: string;
   chapterID?: string;
   cover: string;
@@ -27,7 +53,7 @@ type Props = {
   index: number | string;
   move: boolean;
   shift: boolean;
-  requestRemoveCard: Function;
+  requestRemoveCard: (payload: RemoveCardPayload) => void;
   lastRead: {
     href: string;
     title: string;
@@ -116,7 +142,10 @@ class ComicCard extends Component<Props> {
   }
 }
 
-function mapStateToProps(state: any, ownProps: any) {
+function mapStateToProps(
+  state: ComicCardRootState,
+  ownProps: { comicsID: string; site: string },
+) {
   const bucket = state.popup[ownProps.site] || {};
   const record = bucket[ownProps.comicsID];
   if (!record) {
@@ -124,8 +153,8 @@ function mapStateToProps(state: any, ownProps: any) {
       title: "",
       url: "",
       cover: "",
-      lastRead: {},
-      lastChapter: {},
+      lastRead: emptyComicCardChapter,
+      lastChapter: emptyComicCardChapter,
     };
   }
   const { title, lastRead, cover, url, chapters, chapterList } = record;
@@ -133,11 +162,11 @@ function mapStateToProps(state: any, ownProps: any) {
     title,
     url,
     cover,
-    lastRead: chapters[lastRead] || {},
+    lastRead: chapters[lastRead] || emptyComicCardChapter,
     lastChapter:
       chapterList[0] && chapters[chapterList[0]]
         ? chapters[chapterList[0]]
-        : {},
+        : emptyComicCardChapter,
   };
 }
 

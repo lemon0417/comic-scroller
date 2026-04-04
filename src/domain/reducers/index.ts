@@ -2,7 +2,9 @@ import { combineReducers } from "redux";
 import comics from "./comics";
 
 const rootReducer = combineReducers({
-  comics: comics as any,
+  comics,
 });
+
+export type RootState = ReturnType<typeof rootReducer>;
 
 export default rootReducer;

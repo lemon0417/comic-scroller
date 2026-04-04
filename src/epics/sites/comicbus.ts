@@ -31,8 +31,27 @@ import {
   applyReadProgress,
   applyReaderSeriesState,
 } from "@infra/services/library";
+import type { AppEpic } from "../types";
 
 const baseURL = "http://www.comicbus.com";
+
+type ReaderChapterAction = {
+  chapter: string;
+};
+
+type ReaderIndexAction = {
+  index: number;
+};
+
+type ReaderRangeAction = {
+  begin: number;
+  end: number;
+};
+
+type ReaderDispatchAction = {
+  type: string;
+  [key: string]: unknown;
+};
 
 function fetchImgs$(chapter: string) {
   return ajax({
@@ -41,7 +60,6 @@ function fetchImgs$(chapter: string) {
   }).pipe(
     mergeMap(function fetchImgPageHandler({ response }) {
       const doc = response as Document;
-      /* eslint-disable */
       const scriptText =
         doc.querySelector("#Form1 > script")?.textContent || "";
       const extractVar = (name: string) => {
@@ -54,7 +72,7 @@ function fetchImgs$(chapter: string) {
       const chs = unquote(extractVar("chs"));
       const cs = unquote(extractVar("cs"));
       const ti = unquote(extractVar("ti"));
-      let ch: any = /.*ch\=(.*)/.exec(chapter)![1];
+      let ch = /.*ch\=(.*)/.exec(chapter)![1];
       if (ch.indexOf("#") > 0) {
         ch = ch.split("#")[0];
       }
@@ -63,9 +81,9 @@ function fetchImgs$(chapter: string) {
         ch = ch.split("-")[0];
       }
       if (ch === "") {
-        ch = 1;
+        ch = "1";
       } else {
-        ch = parseInt(ch, 10);
+        ch = String(parseInt(ch, 10));
       }
       const ss = (a: string, b: number, c: number, d?: number) => {
         const e = a.substring(b, b + c);
@@ -119,39 +137,39 @@ function fetchImgs$(chapter: string) {
       }
       // $FlowFixMe
       return of({ imgList, comicsID: ti });
-      /* eslint-enable */
     }),
   );
 }
 
-export function fetchImgSrcEpic(action$: any, state$: { value: any }) {
-  return action$.pipe(
+export const fetchImgSrcEpic: AppEpic = (action$, state$) =>
+  action$.pipe(
     ofType(FETCH_IMAGE_SRC),
-    mergeMap((action: any) => {
+    mergeMap((action) => {
+      const { begin, end } = action as ReaderRangeAction;
       const { result, entity } = state$.value.comics.imageList;
-      return from(result as any[]).pipe(
-        rxFilter((item: any) => {
+      return from(result).pipe(
+        rxFilter((item: number) => {
           return (
-            item >= action.begin &&
-            item <= action.end &&
+            item >= begin &&
+            item <= end &&
             entity[item].loading &&
             entity[item].type !== "end"
           );
         }),
-        rxMap((id: any) => {
-          return loadImgSrc(entity[id].src, id as any);
+        rxMap((id: number) => {
+          return loadImgSrc(entity[id].src, id);
         }),
       );
     }),
   );
-}
 
-export function fetchImgListEpic(action$: any, state$: { value: any }) {
-  return action$.pipe(
+export const fetchImgListEpic: AppEpic = (action$, state$) =>
+  action$.pipe(
     ofType(FETCH_IMG_LIST),
-    mergeMap((action: { index: string | number }) => {
+    mergeMap((action) => {
+      const { index } = action as ReaderIndexAction;
       const { chapterList } = state$.value.comics;
-      const chapter = chapterList[action.index];
+      const chapter = chapterList[index];
       return fetchImgs$(chapter).pipe(
         mergeMap(({ imgList }) => {
           const nowImgList = state$.value.comics.imageList.result;
@@ -168,13 +186,13 @@ export function fetchImgListEpic(action$: any, state$: { value: any }) {
       );
     }),
   );
-}
 
-export function fetchChapterEpic(action$: any) {
-  return action$.pipe(
+export const fetchChapterEpic: AppEpic = (action$) =>
+  action$.pipe(
     ofType(FETCH_CHAPTER),
-    mergeMap((action: { chapter: string }) =>
-      fetchImgs$(action.chapter).pipe(
+    mergeMap((action) => {
+      const { chapter } = action as ReaderChapterAction;
+      return fetchImgs$(chapter).pipe(
         mergeMap(({ imgList, comicsID }) => {
           return merge(
             of(updateComicsID(comicsID)),
@@ -186,7 +204,7 @@ export function fetchChapterEpic(action$: any) {
               mergeMap(({ title, cover, chapterList, chapters }) => {
                 const chapterIndex = findIndex(
                   chapterList,
-                  (item) => item === action.chapter,
+                  (item) => item === chapter,
                 );
                 return from(
                   applyReaderSeriesState(
@@ -199,14 +217,14 @@ export function fetchChapterEpic(action$: any) {
                       cover,
                       url: `${baseURL}/html/${comicsID}.html`,
                     },
-                    action.chapter,
+                    chapter,
                   ),
                 ).pipe(
                   mergeMap(({ series, subscribed, updatesCount }) => {
                     chrome.action.setBadgeText({
                       text: `${updatesCount === 0 ? "" : updatesCount}`,
                     });
-                    const result$: any[] = [
+                    const result$: ReaderDispatchAction[] = [
                       updateSiteInfo("comicbus", baseURL),
                       updateComicsID(comicsID),
                       updateSubscribe(subscribed),
@@ -231,19 +249,19 @@ export function fetchChapterEpic(action$: any) {
             ),
           );
         }),
-      ),
-    ),
+      );
+    }),
   );
-}
 
-export function updateReadEpic(action$: any, state$: { value: any }) {
-  return action$.pipe(
+export const updateReadEpic: AppEpic = (action$, state$) =>
+  action$.pipe(
     ofType(UPDATE_READ),
-    mergeMap((action: { index: number }) =>
-      from(
+    mergeMap((action) => {
+      const { index } = action as ReaderIndexAction;
+      return from(
         (() => {
           const { comicsID, chapterList } = state$.value.comics;
-          return applyReadProgress("comicbus", comicsID, chapterList[action.index]);
+          return applyReadProgress("comicbus", comicsID, chapterList[index]);
         })(),
       ).pipe(
         mergeMap(({ series, updatesCount }) => {
@@ -252,10 +270,9 @@ export function updateReadEpic(action$: any, state$: { value: any }) {
           });
           return [
             updateReadChapters(series?.read || []),
-            updateChapterNowIndex(action.index),
+            updateChapterNowIndex(index),
           ];
         }),
-      ),
-    ),
+      );
+    }),
   );
-}

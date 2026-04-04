@@ -12,6 +12,7 @@ const reactRecommended = react.configs.flat.recommended || {};
 const reactJsxRuntime = react.configs.flat['jsx-runtime'] || {};
 const importRecommended = importPlugin.configs?.recommended || {};
 const jsxA11yRecommended = jsxA11y.configs?.recommended || {};
+const tsRecommended = tsPlugin.configs?.recommended || {};
 
 export default [
   {
@@ -20,14 +21,11 @@ export default [
       'dist/**',
       'build/**',
       'coverage/**',
-      'dist/**',
       'scripts/**',
       'server.js',
-      '**/*.test.*',
-      '**/__mocks__/**',
     ],
     linterOptions: {
-      reportUnusedDisableDirectives: 'off',
+      reportUnusedDisableDirectives: 'warn',
     },
   },
   js.configs.recommended,
@@ -80,8 +78,25 @@ export default [
       ...reactJsxRuntime.rules,
       ...importRecommended.rules,
       ...jsxA11yRecommended.rules,
+      ...tsRecommended.rules,
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      '@typescript-eslint/ban-ts-comment': [
+        'error',
+        {
+          minimumDescriptionLength: 8,
+          'ts-check': false,
+          'ts-expect-error': 'allow-with-description',
+          'ts-ignore': true,
+          'ts-nocheck': true,
+        },
+      ],
+      '@typescript-eslint/no-explicit-any': [
+        'warn',
+        {
+          ignoreRestArgs: true,
+        },
+      ],
       'prefer-arrow-callback': 'off',
       'arrow-body-style': 'off',
       'no-useless-escape': 'off',
@@ -104,11 +119,25 @@ export default [
     },
   },
   {
-    files: ['**/*.test.{js,jsx,ts,tsx}', '**/__tests__/**/*.{js,jsx,ts,tsx}'],
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      'no-undef': 'off',
+    },
+  },
+  {
+    files: [
+      '**/*.test.{js,jsx,ts,tsx}',
+      '**/__tests__/**/*.{js,jsx,ts,tsx}',
+      '**/__mocks__/**/*.{js,jsx,ts,tsx}',
+    ],
     languageOptions: {
       globals: {
         ...globals.jest,
       },
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
   {

@@ -1,3 +1,4 @@
+import type { ChapterRecord } from "@infra/services/library/schema";
 import { getSiteAdapter } from "@sites/registry";
 import {
   applyBackgroundSeriesRefresh,
@@ -19,7 +20,7 @@ type SiteMeta = {
   title?: string;
   chapterList?: string[];
   cover?: string;
-  chapters?: Record<string, any>;
+  chapters?: Record<string, ChapterRecord>;
 };
 
 type SiteMetaStream = {
@@ -32,7 +33,7 @@ type SiteMetaStream = {
 type BackgroundServiceDeps = {
   applyBackgroundSeriesRefresh: typeof applyBackgroundSeriesRefresh;
   clearNotification: (id: string) => void;
-  createNotification: (id: string, options: any) => void;
+  createNotification: (id: string, options: ChromeNotificationOptions) => void;
   getFetchChapterPage: (site: string) => ((url: string, comicsID?: string) => SiteMetaStream) | undefined;
   getManifestVersion: () => string;
   getRuntimeUrl: (path: string) => string;
@@ -200,8 +201,13 @@ export function handleNotificationClick(
 }
 
 export function handlePingBackgroundMessage(
-  message: any,
-  sendResponse: (value: any) => void,
+  message: { msg?: string } | null | undefined,
+  sendResponse: (value: {
+    ok: boolean;
+    reason?: string;
+    at?: number;
+    summary?: BackgroundSummary;
+  }) => void,
   options: {
     isDev: boolean;
     now?: () => number;

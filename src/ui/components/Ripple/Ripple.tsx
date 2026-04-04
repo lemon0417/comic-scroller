@@ -11,15 +11,18 @@ type RippleItem = {
 
 type Props = {
   children?: React.ReactNode;
-  onMouseDownHandler?: Function;
-  [key: string]: any;
+  onMouseDownHandler?: (
+    event: React.MouseEvent<HTMLElement>,
+    node: HTMLElement | null,
+  ) => void;
+  [key: string]: unknown;
 };
 
 type State = {
   ripples: Array<RippleItem>;
 };
 
-const ripple = <T extends {}>(WrapComponent: React.ComponentType<T>) => {
+const ripple = <T extends object>(WrapComponent: React.ComponentType<T>) => {
   class RippleComponent extends PureComponent<Props & T, State> {
     state: State = {
       ripples: [],
@@ -27,7 +30,7 @@ const ripple = <T extends {}>(WrapComponent: React.ComponentType<T>) => {
 
     counter = 0;
 
-    onMouseDownHandler = (e: any) => {
+    onMouseDownHandler = (e: React.MouseEvent<HTMLElement>) => {
       if (e.defaultPrevented) return;
       const x = e.pageX - window.scrollX || window.pageXOffset;
       const y = e.pageY - window.scrollY || window.pageYOffset;

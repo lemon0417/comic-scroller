@@ -2,9 +2,10 @@ import { EMPTY } from "rxjs";
 import { mergeMap } from "rxjs/operators";
 import { ofType } from "redux-observable";
 import { UPDATE_CHAPTER_NOW_INDEX } from "@domain/reducers/comics";
+import type { AppEpic } from "./types";
 
-export default function readerLocationEpic(action$: any, state$: { value: any }) {
-  return action$.pipe(
+const readerLocationEpic: AppEpic = (action$, state$) =>
+  action$.pipe(
     ofType(UPDATE_CHAPTER_NOW_INDEX),
     mergeMap(() => {
       const comics = state$?.value?.comics;
@@ -27,4 +28,5 @@ export default function readerLocationEpic(action$: any, state$: { value: any })
       return EMPTY;
     }),
   );
-}
+
+export default readerLocationEpic;

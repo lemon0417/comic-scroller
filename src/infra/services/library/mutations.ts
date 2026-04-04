@@ -6,9 +6,11 @@ import {
   SUBSCRIPTIONS_STORE,
   UPDATES_STORE,
   buildSeriesKey,
+  type ChapterRow,
   normalizeSeriesRecord,
   type LibraryUpdateRecord,
   type SeriesRecord,
+  type SeriesRow,
   type SiteKey,
   uniqueStrings,
 } from "./schema";
@@ -52,12 +54,16 @@ async function persistSeriesRecordState(
   const updatesStore = transaction.objectStore(UPDATES_STORE);
   const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
 
-  const previousRow = await requestToPromise(seriesStore.get(seriesKey));
+  const previousRow = await requestToPromise<SeriesRow | undefined>(
+    seriesStore.get(seriesKey),
+  );
   const previousChapters = previousRow
-    ? await requestToPromise(chaptersStore.index("seriesKey").getAll(seriesKey))
+    ? await requestToPromise<ChapterRow[]>(
+        chaptersStore.index("seriesKey").getAll(seriesKey),
+      )
     : [];
   const previousRecord = previousRow
-    ? composeSeriesRecord(previousRow as any, previousChapters as any)
+    ? composeSeriesRecord(previousRow, previousChapters)
     : normalizeSeriesRecord(site, comicsID, {});
 
   const mergedRecord = normalizeSeriesRecord(site, comicsID, {
@@ -341,12 +347,16 @@ export async function applyBackgroundSeriesRefresh(
   const chaptersStore = transaction.objectStore(CHAPTERS_STORE);
   const updatesStore = transaction.objectStore(UPDATES_STORE);
 
-  const previousRow = await requestToPromise(seriesStore.get(seriesKey));
+  const previousRow = await requestToPromise<SeriesRow | undefined>(
+    seriesStore.get(seriesKey),
+  );
   const previousChapters = previousRow
-    ? await requestToPromise(chaptersStore.index("seriesKey").getAll(seriesKey))
+    ? await requestToPromise<ChapterRow[]>(
+        chaptersStore.index("seriesKey").getAll(seriesKey),
+      )
     : [];
   const previousRecord = previousRow
-    ? composeSeriesRecord(previousRow as any, previousChapters as any)
+    ? composeSeriesRecord(previousRow, previousChapters)
     : normalizeSeriesRecord(site, comicsID, {});
   const mergedRecord = normalizeSeriesRecord(site, comicsID, {
     ...previousRecord,

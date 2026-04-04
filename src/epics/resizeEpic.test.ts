@@ -8,7 +8,9 @@ describe("resizeEpic", () => {
     jest.useFakeTimers();
 
     const action$ = of(startResize());
-    const output$ = resizeEpic(action$);
+    const output$ = resizeEpic(action$, {
+      value: undefined as never,
+    });
 
     const actions: any[] = [];
     const subscription = output$.subscribe((action: any) =>

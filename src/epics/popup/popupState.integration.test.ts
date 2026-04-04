@@ -2,6 +2,7 @@ import { configureStore, Tuple } from "@reduxjs/toolkit";
 import { createEpicMiddleware } from "redux-observable";
 import popupReducer from "@domain/reducers/popup";
 import popupEpic from "@epics/popup";
+import type { EpicAction, PopupRootState } from "@epics/types";
 import { requestPopupData } from "@domain/actions/popup";
 
 jest.mock("@infra/services/library", () => ({
@@ -125,7 +126,11 @@ describe("popup state integration", () => {
 
     getPopupFeedSnapshot.mockResolvedValue(data);
 
-    const epicMiddleware = createEpicMiddleware();
+    const epicMiddleware = createEpicMiddleware<
+      EpicAction,
+      EpicAction,
+      PopupRootState
+    >();
     const store = configureStore({
       reducer: popupReducer,
       middleware: () => new Tuple(epicMiddleware),

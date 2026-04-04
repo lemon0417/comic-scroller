@@ -6,15 +6,20 @@ import { createEpicMiddleware } from "redux-observable";
 import rootReducer from "../reducers/popup";
 import { getDebugLogger } from "./debugLogger";
 import popupEpic from "@epics/popup";
+import type { EpicAction, PopupRootState } from "@epics/types";
 
-const epicMiddleware = createEpicMiddleware();
+const epicMiddleware = createEpicMiddleware<
+  EpicAction,
+  EpicAction,
+  PopupRootState
+>();
 
 const buildMiddleware = () => {
   const logger = getDebugLogger();
   return logger ? new Tuple(epicMiddleware, logger) : new Tuple(epicMiddleware);
 };
 
-export default function configureStore(initialState?: any) {
+export default function configureStore(initialState?: Partial<PopupRootState>) {
   const store = configureToolkitStore({
     reducer: rootReducer,
     middleware: buildMiddleware,

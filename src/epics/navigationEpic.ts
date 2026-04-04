@@ -7,16 +7,21 @@ import {
   updateRead,
 } from "@domain/actions/reader";
 import { resetImg, updateChapterLatestIndex } from "@domain/reducers/comics";
+import type { AppEpic } from "./types";
 
-export default function navigationEpic(action$: any) {
-  return action$.pipe(
+const navigationEpic: AppEpic = (action$) =>
+  action$.pipe(
     ofType(NAVIGATE_CHAPTER),
-    mergeMap((action: { index: number }) => [
-      stopScroll(),
-      resetImg(),
-      updateRead(action.index),
-      updateChapterLatestIndex(action.index),
-      fetchImgList(action.index),
-    ]),
+    mergeMap((action) => {
+      const { index } = action as { index: number };
+      return [
+        stopScroll(),
+        resetImg(),
+        updateRead(index),
+        updateChapterLatestIndex(index),
+        fetchImgList(index),
+      ];
+    }),
   );
-}
+
+export default navigationEpic;

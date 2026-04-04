@@ -1,12 +1,17 @@
 import { Component, type SyntheticEvent } from "react";
 import { connect } from "react-redux";
-import { updateImgType } from "@domain/reducers/comics";
+import {
+  type ComicsImageRecord,
+  type ComicsImageType,
+  type ComicsState,
+  updateImgType,
+} from "@domain/reducers/comics";
 import { getImageRenderMetrics } from "@domain/utils/readerLayout";
 
 type Props = {
   loading?: boolean;
   src?: string;
-  type?: string;
+  type?: ComicsImageType;
   height?: number;
   innerHeight?: number;
   innerWidth?: number;
@@ -15,7 +20,13 @@ type Props = {
   renderHeight?: number;
   renderWidth?: number;
   index?: number;
-  updateImgType?: Function;
+  updateImgType?: (
+    height: number,
+    index: number,
+    imgType: ComicsImageType,
+    naturalWidth?: number,
+    naturalHeight?: number,
+  ) => void;
 };
 
 type State = {
@@ -43,7 +54,7 @@ export class ComicImage extends Component<Props, State> {
         innerWidth: this.props.innerWidth,
         innerHeight: this.props.innerHeight,
       });
-      this.props.updateImgType &&
+      if (this.props.updateImgType && typeof this.props.index === "number") {
         this.props.updateImgType(
           layout.height,
           this.props.index,
@@ -51,6 +62,7 @@ export class ComicImage extends Component<Props, State> {
           this.w,
           this.h,
         );
+      }
     }
     this.setState({ showImage: true });
   };
@@ -97,9 +109,24 @@ export class ComicImage extends Component<Props, State> {
   }
 }
 
-function makeMapStateToProps(_state: any, props: any) {
+function createFallbackImageRecord(): ComicsImageRecord {
+  return {
+    chapter: "",
+    src: "",
+    loading: true,
+    height: 0,
+    naturalHeight: 0,
+    naturalWidth: 0,
+    type: "image",
+  };
+}
+
+function makeMapStateToProps(
+  _state: { comics: ComicsState },
+  props: { index: number },
+) {
   const { index } = props;
-  return function mapStateToProps({ comics }: any) {
+  return function mapStateToProps({ comics }: { comics: ComicsState }) {
     const {
       src,
       loading,
@@ -107,7 +134,7 @@ function makeMapStateToProps(_state: any, props: any) {
       height,
       naturalWidth,
       naturalHeight,
-    } = comics.imageList.entity[index];
+    } = comics.imageList.entity[index] || createFallbackImageRecord();
     const layout = getImageRenderMetrics({
       type,
       height,

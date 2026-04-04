@@ -73,7 +73,7 @@ declare const chrome: {
         listener: (
           request: { msg?: string },
           sender: unknown,
-          sendResponse: (response: { msg: string }) => void,
+          sendResponse: (response: Record<string, unknown>) => void,
         ) => boolean | void,
       ): void;
     };

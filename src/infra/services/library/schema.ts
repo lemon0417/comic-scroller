@@ -120,6 +120,13 @@ export type LibraryDumpV1 = {
   };
 };
 
+function toRecord(input: unknown): Record<string, unknown> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return {};
+  }
+  return input as Record<string, unknown>;
+}
+
 export function getExtensionVersion() {
   try {
     return chrome?.runtime?.getManifest?.().version || "";
@@ -128,7 +135,10 @@ export function getExtensionVersion() {
   }
 }
 
-export function uniqueStrings(input: any, limit = Number.POSITIVE_INFINITY) {
+export function uniqueStrings(
+  input: unknown,
+  limit = Number.POSITIVE_INFINITY,
+) {
   const seen = new Set<string>();
   const result: string[] = [];
   for (const item of Array.isArray(input) ? input : []) {
@@ -141,11 +151,16 @@ export function uniqueStrings(input: any, limit = Number.POSITIVE_INFINITY) {
   return result;
 }
 
-export function normalizeChapterRecord(chapter: any): ChapterRecord {
+export function normalizeChapterRecord(chapter: unknown): ChapterRecord {
+  const chapterRecord = toRecord(chapter);
   return {
-    title: typeof chapter?.title === "string" ? chapter.title : "",
-    href: typeof chapter?.href === "string" ? chapter.href : "",
-    ...(typeof chapter?.chapter === "string" ? { chapter: chapter.chapter } : {}),
+    title:
+      typeof chapterRecord.title === "string" ? chapterRecord.title : "",
+    href:
+      typeof chapterRecord.href === "string" ? chapterRecord.href : "",
+    ...(typeof chapterRecord.chapter === "string"
+      ? { chapter: chapterRecord.chapter }
+      : {}),
   };
 }
 
@@ -170,12 +185,17 @@ export function parseSeriesKey(seriesKey: string) {
   };
 }
 
-export function normalizeSeriesRecord(site: SiteKey, comicsID: string, record: any): SeriesRecord {
+export function normalizeSeriesRecord(
+  site: SiteKey,
+  comicsID: string,
+  record: unknown,
+): SeriesRecord {
+  const source = toRecord(record);
   const normalizedComicsID = canonicalizeComicsID(site, comicsID);
-  const normalizedChapterList = Array.isArray(record?.chapterList)
-    ? record.chapterList.map((item: any) => String(item || "")).filter(Boolean)
+  const normalizedChapterList = Array.isArray(source.chapterList)
+    ? source.chapterList.map((item: unknown) => String(item || "")).filter(Boolean)
     : [];
-  const normalizedChapters = Object.entries(record?.chapters || {}).reduce<
+  const normalizedChapters = Object.entries(toRecord(source.chapters)).reduce<
     Record<string, ChapterRecord>
   >((acc, [chapterID, chapter]) => {
     const normalizedChapterID = String(chapterID || "");
@@ -187,13 +207,13 @@ export function normalizeSeriesRecord(site: SiteKey, comicsID: string, record: a
   return {
     site,
     comicsID: normalizedComicsID,
-    title: typeof record?.title === "string" ? record.title : "",
-    cover: typeof record?.cover === "string" ? record.cover : "",
-    url: typeof record?.url === "string" ? record.url : "",
+    title: typeof source.title === "string" ? source.title : "",
+    cover: typeof source.cover === "string" ? source.cover : "",
+    url: typeof source.url === "string" ? source.url : "",
     chapterList: normalizedChapterList,
     chapters: normalizedChapters,
-    lastRead: typeof record?.lastRead === "string" ? record.lastRead : "",
-    read: uniqueStrings(record?.read),
+    lastRead: typeof source.lastRead === "string" ? source.lastRead : "",
+    read: uniqueStrings(source.read),
   };
 }
 

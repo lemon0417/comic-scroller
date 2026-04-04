@@ -10,7 +10,7 @@ type ConfigMenuProps = {
   exportFilename?: string;
   onRequestExport: () => void;
   onClearExport: () => void;
-  onRequestImport: (data: any) => void;
+  onRequestImport: (data: unknown) => void;
   onRequestReset: () => void;
   onBackgroundCheck?: () => void;
   showBackgroundCheck?: boolean;
@@ -73,7 +73,7 @@ export default function ConfigMenu({
     const fr = new FileReader();
     fr.onload = (event) => {
       const raw = event.target && (event.target as FileReader).result;
-      let result: any = {};
+      let result: unknown = {};
       try {
         result = JSON.parse(String(raw || "{}"));
       } catch {

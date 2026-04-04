@@ -48,7 +48,7 @@ export async function exportLibraryDump(): Promise<LibraryDumpV1> {
   };
 }
 
-export async function importLibraryDump(raw: any) {
+export async function importLibraryDump(raw: unknown) {
   const snapshot = isLibraryDumpV1(raw) ? migrateDump(raw) : migrateLibrary(raw);
   return persistSnapshot(snapshot, {
     cleanupLegacy: true,
@@ -65,7 +65,16 @@ export async function setLibraryVersion(version: string) {
   const transaction = db.transaction([META_STORE], "readwrite");
   const done = transactionDone(transaction);
   const metaStore = transaction.objectStore(META_STORE);
-  const existing = (await requestToPromise<any>(metaStore.get(LIBRARY_META_KEY))) || {
+  const existing = (await requestToPromise<{
+    key: string;
+    value: {
+      initialized?: boolean;
+      version?: string;
+      schemaVersion?: number;
+      dbSchemaVersion?: number;
+      updatedAt?: number;
+    };
+  } | undefined>(metaStore.get(LIBRARY_META_KEY))) || {
     key: LIBRARY_META_KEY,
     value: {
       initialized: true,

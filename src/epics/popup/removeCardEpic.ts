@@ -1,32 +1,37 @@
-import { from } from "rxjs";
+import { from, type Observable } from "rxjs";
 import { mergeMap } from "rxjs/operators";
 import { ofType } from "redux-observable";
-import { REQUEST_REMOVE_CARD } from "@domain/actions/popup";
+import {
+  REQUEST_REMOVE_CARD,
+  type RemoveCardPayload,
+} from "@domain/actions/popup";
 import { hydratePopupFeed } from "@domain/reducers/popupState";
+import type { SiteKey } from "@infra/services/library/schema";
 import {
   dismissSeriesUpdate,
   getPopupFeedSnapshot,
   removeSeriesCascade,
   setSeriesSubscription,
 } from "@infra/services/library";
+import type { PopupEpic } from "../types";
 
-export default function removeCardEpic(action$: any) {
-  return action$.pipe(
+type RemoveCardAction = {
+  type: typeof REQUEST_REMOVE_CARD;
+  payload?: Partial<RemoveCardPayload> & {
+    site?: SiteKey;
+  };
+};
+
+const removeCardEpic: PopupEpic = (action$) =>
+  (action$ as Observable<RemoveCardAction>).pipe(
     ofType(REQUEST_REMOVE_CARD),
-    mergeMap((action: any) => {
-      const payload = action?.payload || {};
+    mergeMap((action) => {
       const {
         category,
         comicsID,
         chapterID,
         site,
-      }: {
-        category?: "update" | "subscribe" | "history";
-        index?: number | string;
-        comicsID?: string;
-        chapterID?: string;
-        site?: "dm5" | "sf" | "comicbus";
-      } = payload;
+      } = action.payload || {};
 
       if (!category || !comicsID || !site) {
         return [];
@@ -55,4 +60,5 @@ export default function removeCardEpic(action$: any) {
       );
     }),
   );
-}
+
+export default removeCardEpic;

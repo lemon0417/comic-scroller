@@ -7,9 +7,10 @@ import {
   getPopupFeedSnapshot,
   subscribeToLibrarySignal,
 } from "@infra/services/library";
+import type { PopupEpic } from "../types";
 
 function observeLibraryChanges() {
-  return new Observable((subscriber) => {
+  return new Observable<ReturnType<typeof hydratePopupFeed>>((subscriber) => {
     const unsubscribe = subscribeToLibrarySignal(() => {
       getPopupFeedSnapshot().then((feed) => {
         subscriber.next(hydratePopupFeed(feed, "load"));
@@ -19,9 +20,10 @@ function observeLibraryChanges() {
   });
 }
 
-export default function popupSyncEpic(action$: any) {
-  return action$.pipe(
+const popupSyncEpic: PopupEpic = (action$) =>
+  action$.pipe(
     ofType(REQUEST_POPUP_DATA),
     exhaustMap(() => observeLibraryChanges()),
   );
-}
+
+export default popupSyncEpic;

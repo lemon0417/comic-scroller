@@ -1,3 +1,5 @@
+import type { ComicsImageType } from "@domain/reducers/comics";
+
 export const READER_HEADER_HEIGHT = 48;
 export const READER_IMAGE_GAP = 16;
 export const READER_TOP_PADDING = 24;
@@ -6,12 +8,18 @@ export const READER_MAX_WIDTH = 1120;
 export const DEFAULT_IMAGE_HEIGHT = 1400;
 
 type ImageLayoutInput = {
-  type?: string;
+  type?: ComicsImageType;
   height?: number;
   naturalWidth?: number;
   naturalHeight?: number;
   innerWidth?: number;
   innerHeight?: number;
+};
+
+type ImageRenderMetrics = {
+  height: number;
+  type: ComicsImageType;
+  width: number;
 };
 
 export function getReaderSidePadding(innerWidth = 0) {
@@ -38,7 +46,7 @@ export function getImageRenderMetrics({
   naturalHeight,
   innerWidth,
   innerHeight,
-}: ImageLayoutInput) {
+}: ImageLayoutInput): ImageRenderMetrics {
   const width = getReaderRailWidth(innerWidth);
 
   if (type === "end") {
@@ -59,7 +67,8 @@ export function getImageRenderMetrics({
 
   let renderWidth = width;
   let renderHeight = (width * naturalHeight) / naturalWidth;
-  let nextType = naturalWidth > naturalHeight ? "wide" : "natural";
+  let nextType: ComicsImageType =
+    naturalWidth > naturalHeight ? "wide" : "natural";
 
   if (naturalWidth > naturalHeight) {
     const maxHeight = getWideImageMaxHeight(innerHeight);

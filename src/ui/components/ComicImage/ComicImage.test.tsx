@@ -1,32 +1,45 @@
 import { fireEvent, render } from "@testing-library/react";
+import type { ComicsImageType } from "@domain/reducers/comics";
 import { ComicImage } from ".";
 import { getImageRenderMetrics } from "@domain/utils/readerLayout";
 
-const defaultProps = {
+type ComicImageTestProps = {
+  height: number;
+  index: number;
+  innerHeight: number;
+  innerWidth: number;
+  loading: boolean;
+  renderHeight?: number;
+  renderWidth?: number;
+  src: string;
+  type?: ComicsImageType;
+  updateImgType: jest.Mock;
+};
+
+const defaultProps: ComicImageTestProps = {
   loading: false,
   src: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==",
-  type: "",
   height: 0,
   innerHeight: 0,
   innerWidth: 0,
   index: 0,
-  updateImgType: () => {},
+  updateImgType: jest.fn(),
 };
 
-function renderComicImage(overrideProps: Partial<typeof defaultProps> = {}) {
+function renderComicImage(overrideProps: Partial<ComicImageTestProps> = {}) {
   const props = { ...defaultProps, ...overrideProps };
   return render(<ComicImage {...props} />);
 }
 
 describe("ComicImage type variant check", () => {
   it("ComicImage type = undefined => data-variant = init", () => {
-    const { container } = renderComicImage({ type: "" });
+    const { container } = renderComicImage();
     expect(container.firstChild).toHaveAttribute("data-variant", "init");
   });
 
-  it("ComicImage type = normal => data-variant = normal", () => {
-    const { container } = renderComicImage({ type: "normal" });
-    expect(container.firstChild).toHaveAttribute("data-variant", "normal");
+  it("ComicImage type = image => data-variant = image", () => {
+    const { container } = renderComicImage({ type: "image" });
+    expect(container.firstChild).toHaveAttribute("data-variant", "image");
   });
 
   it("ComicImage type = wide => data-variant = wide", () => {
@@ -136,7 +149,7 @@ describe("ComicImage shows Image", () => {
       type: "natural",
       renderWidth: 960,
       renderHeight: 1440,
-    } as any);
+    });
 
     expect(container.firstChild).not.toHaveClass("w-[980px]");
     expect(container.firstChild).not.toHaveClass("min-w-[980px]");

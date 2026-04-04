@@ -3,13 +3,14 @@ import { mergeMap } from "rxjs/operators";
 import { ofType } from "redux-observable";
 import { TOGGLE_SUBSCRIBE } from "@domain/actions/reader";
 import { updateSubscribe } from "@domain/reducers/comics";
+import type { AppEpic } from "./types";
 import {
   isSeriesSubscribedByKey,
   setSeriesSubscriptionByKey,
 } from "@infra/services/library";
 
-export default function subscribeEpic(action$: any, state$: { value: any }) {
-  return action$.pipe(
+const subscribeEpic: AppEpic = (action$, state$) =>
+  action$.pipe(
     ofType(TOGGLE_SUBSCRIBE),
     mergeMap(() =>
       from(
@@ -30,4 +31,5 @@ export default function subscribeEpic(action$: any, state$: { value: any }) {
       ),
     ),
   );
-}
+
+export default subscribeEpic;
