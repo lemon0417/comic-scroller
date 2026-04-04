@@ -2,8 +2,35 @@ import { Component } from "react";
 import { connect } from "react-redux";
 import map from "lodash/map";
 import { navigateChapter } from "@domain/actions/reader";
+import type {
+  ComicsChapterRecord,
+  ComicsState,
+} from "@domain/reducers/comics";
 
-export class ChapterList extends Component<any, any> {
+type ChapterListItem = ComicsChapterRecord & {
+  chapter: string;
+  current: boolean;
+  read: boolean;
+};
+
+type ChapterListStateProps = {
+  chapterList: ChapterListItem[];
+};
+
+type ChapterListOwnProps = {
+  show: boolean;
+  showChapterListHandler: () => void;
+};
+
+type ChapterListDispatchProps = {
+  navigateChapter: typeof navigateChapter;
+};
+
+type ChapterListProps = ChapterListOwnProps &
+  ChapterListStateProps &
+  ChapterListDispatchProps;
+
+export class ChapterList extends Component<ChapterListProps> {
   node!: HTMLDivElement;
   closeButton!: HTMLButtonElement | null;
 
@@ -11,7 +38,7 @@ export class ChapterList extends Component<any, any> {
     document.addEventListener("keydown", this.keydownHandler);
   }
 
-  componentDidUpdate(prevProps: any) {
+  componentDidUpdate(prevProps: ChapterListProps) {
     if (!prevProps.show && this.props.show) {
       this.closeButton?.focus();
     }
@@ -48,7 +75,7 @@ export class ChapterList extends Component<any, any> {
     this.onClickHandler();
   };
 
-  getChapterClass(item: any) {
+  getChapterClass(item: ChapterListItem) {
     if (item.current) {
       return "reader-chapter-item reader-chapter-item-active";
     }
@@ -113,10 +140,11 @@ export class ChapterList extends Component<any, any> {
   }
 }
 
-function mapStateToProps(state: any) {
-  const { read, chapterList, chapters, chapterNowIndex } = state.comics;
+function mapStateToProps({ comics }: { comics: ComicsState }): ChapterListStateProps {
+  const { read, chapterList, chapters, chapterNowIndex } = comics;
   return {
     chapterList: map(chapterList, (item, index) => ({
+      chapter: item,
       ...chapters[item],
       read: read.includes(item),
       current: index === chapterNowIndex,
@@ -126,4 +154,4 @@ function mapStateToProps(state: any) {
 
 export default connect(mapStateToProps, {
   navigateChapter,
-})(ChapterList as any);
+})(ChapterList);

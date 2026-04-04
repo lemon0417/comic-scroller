@@ -19,11 +19,23 @@ import {
   requestRemoveCard,
   requestResetConfig,
 } from "@domain/actions/popup";
-import { selectPopupView } from "@domain/selectors/popupView";
-
-declare var chrome: any;
+import {
+  type PopupViewProps,
+  selectPopupView,
+} from "@domain/selectors/popupView";
+import type { PopupFeedEntry } from "@infra/services/library/models";
 
 type ManageTab = "updates" | "following" | "history" | "data";
+
+type ManageAppProps = PopupViewProps & {
+  clearExportConfig: typeof clearExportConfig;
+  clearPopupNotice: typeof clearPopupNotice;
+  requestExportConfig: typeof requestExportConfig;
+  requestImportConfig: typeof requestImportConfig;
+  requestPopupData: typeof requestPopupData;
+  requestRemoveCard: typeof requestRemoveCard;
+  requestResetConfig: typeof requestResetConfig;
+};
 
 const TAB_OPTIONS: ManageTab[] = ["updates", "following", "history", "data"];
 
@@ -51,7 +63,7 @@ function openReaderPage(site: string, chapterID?: string, fallbackUrl = "") {
   openUrl(fallbackUrl);
 }
 
-function ManageAppComponent(props: any) {
+function ManageAppComponent(props: ManageAppProps) {
   const {
     hydrationStatus,
     activeAction,
@@ -139,7 +151,7 @@ function ManageAppComponent(props: any) {
     requestResetConfigProp();
   };
 
-  const handleForgetSeries = (item: any) => {
+  const handleForgetSeries = (item: PopupFeedEntry) => {
     const shouldForget = window.confirm(
       `Forget “${item.title}”? This removes its history, updates, subscription, and cached series data.`,
     );
@@ -186,7 +198,7 @@ function ManageAppComponent(props: any) {
 
     return (
       <div className="flex flex-col gap-3">
-        {currentRows.map((item: any) => {
+        {currentRows.map((item: PopupFeedEntry) => {
           if (selectedTab === "updates") {
             return (
               <SeriesRow

@@ -1,5 +1,3 @@
-declare var chrome: any;
-
 import type { LibrarySignal } from "./schema";
 import { LIBRARY_SIGNAL_KEY } from "./schema";
 

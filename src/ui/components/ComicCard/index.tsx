@@ -5,8 +5,6 @@ import TrashBodyIcon from "@imgs/bin_body.svg?react";
 import { requestRemoveCard } from "@domain/actions/popup";
 import Card from "@components/Card";
 
-declare var chrome: any;
-
 function getComicCardClass(shift: boolean, move: boolean) {
   const base = "ds-card";
   if (move) {

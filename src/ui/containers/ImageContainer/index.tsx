@@ -6,6 +6,7 @@ import reduce from "lodash/reduce";
 import filter from "lodash/filter";
 import Loading from "@components/Loading";
 import ConnectedComicImage from "@components/ComicImage";
+import type { ComicsState } from "@domain/reducers/comics";
 import {
   READER_BOTTOM_PADDING,
   READER_HEADER_HEIGHT,
@@ -14,7 +15,13 @@ import {
   getImageBlockHeight,
 } from "@domain/utils/readerLayout";
 
-class ImageContainer extends Component<any, any> {
+type ImageContainerProps = {
+  paddingBottom: number;
+  paddingTop: number;
+  renderResult: number[];
+};
+
+class ImageContainer extends Component<ImageContainerProps> {
   render() {
     return (
       <main
@@ -39,19 +46,19 @@ class ImageContainer extends Component<any, any> {
 }
 
 const getRenderResult = createSelector(
-  (comics: any) => comics.imageList.result,
-  (comics: any) => comics.renderBeginIndex,
-  (comics: any) => comics.renderEndIndex,
+  (comics: ComicsState) => comics.imageList.result,
+  (comics: ComicsState) => comics.renderBeginIndex,
+  (comics: ComicsState) => comics.renderEndIndex,
   (result, begin, end) =>
     filter(result, (item) => item >= begin && item <= end),
 );
 
 const getPaddingTop = createSelector(
-  (comics: any) => comics.imageList.result,
-  (comics: any) => comics.imageList.entity,
-  (comics: any) => comics.renderBeginIndex,
-  (comics: any) => comics.innerWidth,
-  (comics: any) => comics.innerHeight,
+  (comics: ComicsState) => comics.imageList.result,
+  (comics: ComicsState) => comics.imageList.entity,
+  (comics: ComicsState) => comics.renderBeginIndex,
+  (comics: ComicsState) => comics.innerWidth,
+  (comics: ComicsState) => comics.innerHeight,
   (result, entity, begin, innerWidth, innerHeight) =>
     reduce(
       filter(result, (item) => item < begin),
@@ -67,11 +74,11 @@ const getPaddingTop = createSelector(
 );
 
 const getPaddingBottom = createSelector(
-  (comics: any) => comics.imageList.result,
-  (comics: any) => comics.imageList.entity,
-  (comics: any) => comics.renderEndIndex,
-  (comics: any) => comics.innerWidth,
-  (comics: any) => comics.innerHeight,
+  (comics: ComicsState) => comics.imageList.result,
+  (comics: ComicsState) => comics.imageList.entity,
+  (comics: ComicsState) => comics.renderEndIndex,
+  (comics: ComicsState) => comics.innerWidth,
+  (comics: ComicsState) => comics.innerHeight,
   (result, entity, end, innerWidth, innerHeight) =>
     reduce(
       filter(result, (item) => item > end),
@@ -86,7 +93,7 @@ const getPaddingBottom = createSelector(
     ),
 );
 
-function mapStateToProps({ comics }: { comics: any }) {
+function mapStateToProps({ comics }: { comics: ComicsState }) {
   return {
     paddingTop: getPaddingTop(comics),
     paddingBottom: getPaddingBottom(comics),
@@ -94,4 +101,4 @@ function mapStateToProps({ comics }: { comics: any }) {
   };
 }
 
-export default connect(mapStateToProps)(ImageContainer as any);
+export default connect(mapStateToProps)(ImageContainer);

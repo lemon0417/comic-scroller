@@ -7,7 +7,7 @@ import TagIcon from "@imgs/tag.svg?react";
 import IconButton from "@components/IconButton";
 import ImageContainer from "@containers/ImageContainer";
 import ChapterList from "@containers/ChapterList";
-import { updateSubscribe } from "@domain/reducers/comics";
+import { type ComicsState, updateSubscribe } from "@domain/reducers/comics";
 import {
   getReaderSeriesState,
   subscribeToLibrarySignal,
@@ -19,12 +19,35 @@ import {
   toggleSubscribe,
 } from "@domain/actions/reader";
 
-declare var chrome: any;
+type AppStateProps = {
+  chapterList: string[];
+  chapterNowIndex: number;
+  chapterTitle: string;
+  comicsID: string;
+  nextable: boolean;
+  prevable: boolean;
+  seriesKey: string;
+  site: string;
+  subscribe: boolean;
+  title: string;
+  url: string;
+};
 
-const ImageContainerAny: any = ImageContainer;
-const ChapterListAny: any = ChapterList;
+type AppDispatchProps = {
+  fetchChapter: typeof fetchChapter;
+  navigateChapter: typeof navigateChapter;
+  startResize: typeof startResize;
+  toggleSubscribe: typeof toggleSubscribe;
+  updateSubscribe: typeof updateSubscribe;
+};
 
-function getTagIconClass(chapterTitle: any, subscribe: any) {
+type AppProps = AppStateProps & AppDispatchProps;
+
+type AppState = {
+  showChapterList: boolean;
+};
+
+function getTagIconClass(chapterTitle: string, subscribe: boolean) {
   if (chapterTitle === "") {
     return "fill-current text-comic-ink/25 transition-colors duration-150";
   }
@@ -41,7 +64,7 @@ function getNavigationIconClass(enabled: boolean) {
   return "fill-current text-comic-ink/60 transition-colors duration-150";
 }
 
-class App extends Component<any, any> {
+class App extends Component<AppProps, AppState> {
   state = {
     showChapterList: false,
   };
@@ -53,7 +76,7 @@ class App extends Component<any, any> {
     if (!seriesKey) return;
     const { series, subscribed } = await getReaderSeriesState(seriesKey);
     if (!series) {
-      chrome.tabs.getCurrent((tab: { id: any }) => {
+      chrome.tabs.getCurrent((tab) => {
         if (tab?.id) {
           chrome.tabs.remove(tab.id);
         }
@@ -178,8 +201,8 @@ class App extends Component<any, any> {
             </IconButton>
           </div>
         </header>
-        <ImageContainerAny />
-        <ChapterListAny
+        <ImageContainer />
+        <ChapterList
           show={this.state.showChapterList}
           showChapterListHandler={this.showChapterListHandler}
         />
@@ -188,7 +211,7 @@ class App extends Component<any, any> {
   }
 }
 
-function mapStateToProps(state: any) {
+function mapStateToProps({ comics }: { comics: ComicsState }): AppStateProps {
   const {
     title,
     chapterNowIndex,
@@ -197,8 +220,9 @@ function mapStateToProps(state: any) {
     subscribe,
     site,
     comicsID,
+    seriesKey,
     baseURL,
-  } = state.comics;
+  } = comics;
   const chapterID = chapterList[chapterNowIndex];
   return {
     title,
@@ -207,16 +231,12 @@ function mapStateToProps(state: any) {
         ? chapters[chapterID].title
         : "",
     site,
-    chapter:
-      chapterList.length > 0 && chapters[chapterID]
-        ? chapters[chapterID].chapter
-        : "",
     chapterList,
     prevable: chapterNowIndex < chapterList.length,
     nextable: chapterNowIndex > 0,
     chapterNowIndex,
     comicsID,
-    seriesKey: state.comics.seriesKey,
+    seriesKey,
     subscribe,
     url: `${baseURL}/${comicsID}`,
   };
@@ -230,5 +250,5 @@ const connectedApp = connect(mapStateToProps, {
   toggleSubscribe,
 })(App);
 
-export default connectedApp as any;
+export default connectedApp;
 export { App };

@@ -1,5 +1,35 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { PopupFeedEntry } from "@infra/services/library/models";
 import { ManageApp } from "./index";
+
+function createFeedEntry(
+  overrides: Partial<PopupFeedEntry> = {},
+): PopupFeedEntry {
+  return {
+    category: "history",
+    key: "feed_1",
+    index: 0,
+    site: "dm5",
+    siteLabel: "DM5",
+    comicsID: "123",
+    chapterID: "",
+    lastReadChapterID: "",
+    lastChapterID: "",
+    updateChapterID: "",
+    continueChapterID: "",
+    title: "One Piece",
+    url: "https://dm5.com/series",
+    cover: "cover.jpg",
+    lastReadTitle: "",
+    lastReadHref: "",
+    lastChapterTitle: "",
+    lastChapterHref: "",
+    updateChapterTitle: "",
+    updateChapterHref: "",
+    continueHref: "",
+    ...overrides,
+  };
+}
 
 describe("ManageApp", () => {
   beforeEach(() => {
@@ -32,7 +62,7 @@ describe("ManageApp", () => {
         update={[]}
         subscribe={[]}
         history={[
-          {
+          createFeedEntry({
             key: "history_1",
             index: 0,
             title: "One Piece",
@@ -43,8 +73,9 @@ describe("ManageApp", () => {
             lastReadTitle: "Ch 1123",
             lastChapterTitle: "Ch 1124",
             continueHref: "https://dm5.com/op-1123",
-          },
+          }),
         ]}
+        continueReading={null}
         requestPopupData={jest.fn()}
         requestExportConfig={jest.fn()}
         requestImportConfig={jest.fn()}
@@ -78,6 +109,7 @@ describe("ManageApp", () => {
         update={[]}
         subscribe={[]}
         history={[]}
+        continueReading={null}
         requestPopupData={jest.fn()}
         requestExportConfig={requestExportConfig}
         requestImportConfig={jest.fn()}
@@ -104,7 +136,8 @@ describe("ManageApp", () => {
         exportFilename=""
         update={[]}
         subscribe={[
-          {
+          createFeedEntry({
+            category: "subscribe",
             key: "subscribe_1",
             title: "One Piece",
             siteLabel: "DM5",
@@ -115,9 +148,10 @@ describe("ManageApp", () => {
             lastChapterTitle: "Ch 1124",
             continueChapterID: "m1123",
             continueHref: "https://www.dm5.com/m1123/",
-          },
+          }),
         ]}
         history={[]}
+        continueReading={null}
         requestPopupData={jest.fn()}
         requestExportConfig={jest.fn()}
         requestImportConfig={jest.fn()}

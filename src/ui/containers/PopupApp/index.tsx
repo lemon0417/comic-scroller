@@ -7,9 +7,11 @@ import LoadingRows from "@components/LoadingRows";
 import Panel from "@components/Panel";
 import SeriesRow from "@components/SeriesRow";
 import { requestPopupData } from "@domain/actions/popup";
-import { selectPopupView } from "@domain/selectors/popupView";
-
-declare var chrome: any;
+import {
+  type PopupViewProps,
+  selectPopupView,
+} from "@domain/selectors/popupView";
+import type { PopupFeedEntry } from "@infra/services/library/models";
 
 function openUrl(url: string) {
   if (!url) return;
@@ -47,7 +49,14 @@ function SectionTitle({ title, count }: { title: string; count?: number }) {
   );
 }
 
-function PopupAppComponent(props: any) {
+type PopupAppProps = Pick<
+  PopupViewProps,
+  "continueReading" | "hydrationStatus" | "update"
+> & {
+  requestPopupData: typeof requestPopupData;
+};
+
+function PopupAppComponent(props: PopupAppProps) {
   const {
     hydrationStatus,
     update,
@@ -113,7 +122,7 @@ function PopupAppComponent(props: any) {
                 <section>
                   <SectionTitle title="New updates" count={update.length} />
                   <div className="flex flex-col gap-3">
-                    {update.map((item: any) => (
+                    {update.map((item: PopupFeedEntry) => (
                       <SeriesRow
                         key={item.key}
                         title={item.title}

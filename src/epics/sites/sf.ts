@@ -33,7 +33,6 @@ import {
 } from "@infra/services/library";
 
 const baseURL = "http://comic.sfacg.com";
-declare var chrome: any;
 
 function fetchImgs$(chapter: any) {
   return ajax({

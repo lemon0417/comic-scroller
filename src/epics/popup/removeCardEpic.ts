@@ -10,8 +10,6 @@ import {
   setSeriesSubscription,
 } from "@infra/services/library";
 
-declare var chrome: any;
-
 export default function removeCardEpic(action$: any) {
   return action$.pipe(
     ofType(REQUEST_REMOVE_CARD),

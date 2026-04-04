@@ -18,8 +18,6 @@ import {
   resetLibrary,
 } from "@infra/services/library";
 
-declare var chrome: any;
-
 function updateBadge(update: Array<any> | undefined) {
   const count = Array.isArray(update) ? update.length : 0;
   chrome.action.setBadgeText({ text: `${count === 0 ? "" : count}` });

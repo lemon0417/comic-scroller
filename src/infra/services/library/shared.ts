@@ -36,8 +36,6 @@ import {
   uniqueStrings,
 } from "./schema";
 
-declare var chrome: any;
-
 type LegacyStore = {
   version?: string;
   history?: Array<{ site?: string; comicsID?: string }> | string[];

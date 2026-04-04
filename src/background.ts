@@ -6,7 +6,6 @@ import {
   runBackgroundUpdateSummary,
 } from "@infra/services/background";
 
-declare var chrome: any;
 const isDev = import.meta.env.MODE !== "production";
 
 chrome.action.setBadgeBackgroundColor({ color: "#F00" });

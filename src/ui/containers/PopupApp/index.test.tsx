@@ -1,5 +1,35 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { PopupFeedEntry } from "@infra/services/library/models";
 import { PopupApp } from "./index";
+
+function createFeedEntry(
+  overrides: Partial<PopupFeedEntry> = {},
+): PopupFeedEntry {
+  return {
+    category: "update",
+    key: "feed_1",
+    index: 0,
+    site: "dm5",
+    siteLabel: "DM5",
+    comicsID: "123",
+    chapterID: "",
+    lastReadChapterID: "",
+    lastChapterID: "",
+    updateChapterID: "",
+    continueChapterID: "",
+    title: "One Piece",
+    url: "https://dm5.com/series",
+    cover: "cover.jpg",
+    lastReadTitle: "",
+    lastReadHref: "",
+    lastChapterTitle: "",
+    lastChapterHref: "",
+    updateChapterTitle: "",
+    updateChapterHref: "",
+    continueHref: "",
+    ...overrides,
+  };
+}
 
 describe("PopupApp", () => {
   beforeEach(() => {
@@ -18,7 +48,7 @@ describe("PopupApp", () => {
       <PopupApp
         hydrationStatus="ready"
         update={[
-          {
+          createFeedEntry({
             key: "update_1",
             title: "Chainsaw Man",
             siteLabel: "DM5",
@@ -29,9 +59,10 @@ describe("PopupApp", () => {
             lastChapterHref: "https://dm5.com/ch201",
             lastReadTitle: "Ch 200",
             url: "https://dm5.com/series",
-          },
+          }),
         ]}
-        continueReading={{
+        continueReading={createFeedEntry({
+          category: "history",
           key: "history_1",
           title: "One Piece",
           siteLabel: "DM5",
@@ -39,7 +70,7 @@ describe("PopupApp", () => {
           lastReadTitle: "Ch 1123",
           lastChapterTitle: "Ch 1124",
           continueHref: "https://dm5.com/op-1123",
-        }}
+        })}
         requestPopupData={jest.fn()}
       />,
     );
@@ -65,7 +96,8 @@ describe("PopupApp", () => {
       <PopupApp
         hydrationStatus="ready"
         update={[]}
-        continueReading={{
+        continueReading={createFeedEntry({
+          category: "history",
           key: "history_1",
           title: "One Piece",
           site: "dm5",
@@ -75,7 +107,7 @@ describe("PopupApp", () => {
           lastChapterTitle: "Ch 1124",
           continueChapterID: "m1123",
           continueHref: "https://www.dm5.com/m1123/",
-        }}
+        })}
         requestPopupData={jest.fn()}
       />,
     );

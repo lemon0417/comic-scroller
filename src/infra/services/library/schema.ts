@@ -1,5 +1,3 @@
-declare var chrome: any;
-
 export const LIBRARY_SCHEMA_VERSION = 2;
 export const LIBRARY_DB_VERSION = 1;
 export const HISTORY_LIMIT = 50;

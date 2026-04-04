@@ -9,8 +9,6 @@ import {
   setLibraryVersion,
 } from "@infra/services/library";
 
-declare var chrome: any;
-
 const dm5Regex = /https\:\/\/(tel||www)\.dm5\.com\/(m\d+)\//;
 const sfRegex = /http\:\/\/comic\.sfacg\.com\/(HTML\/[^\/]+\/.+)$/;
 const comicbusRegex =

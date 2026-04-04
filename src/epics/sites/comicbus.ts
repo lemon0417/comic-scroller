@@ -33,7 +33,6 @@ import {
 } from "@infra/services/library";
 
 const baseURL = "http://www.comicbus.com";
-declare var chrome: any;
 
 function fetchImgs$(chapter: string) {
   return ajax({

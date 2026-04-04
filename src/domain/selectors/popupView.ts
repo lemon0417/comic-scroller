@@ -29,3 +29,5 @@ export function selectPopupView(state: PopupState) {
     continueReading: popupState.feed.continueReading,
   };
 }
+
+export type PopupViewProps = ReturnType<typeof selectPopupView>;

@@ -1,7 +1,30 @@
 import reduce from "lodash/reduce";
 import { buildSeriesKey } from "@infra/services/library/schema";
 
-type State = {
+export type ComicsChapterRecord = {
+  chapter?: string;
+  href?: string;
+  title: string;
+};
+
+export type ComicsImageType = "end" | "image" | "natural" | "wide";
+
+export type ComicsImageSource = {
+  chapter: string;
+  src: string;
+  cid?: string;
+  key?: string;
+};
+
+export type ComicsImageRecord = ComicsImageSource & {
+  height: number;
+  loading: boolean;
+  naturalHeight: number;
+  naturalWidth: number;
+  type: ComicsImageType;
+};
+
+export type ComicsState = {
   innerHeight: number;
   innerWidth: number;
   site: string;
@@ -12,34 +35,41 @@ type State = {
   chapterNowIndex: number;
   baseURL: string;
   subscribe: boolean;
-  chapters: Record<number, any>;
-  chapterList: Array<any>;
+  chapters: Record<string, ComicsChapterRecord>;
+  chapterList: string[];
   read: string[];
   renderBeginIndex: number;
   renderEndIndex: number;
   imageList: {
-    result: Array<any>;
-    entity: Record<number, any>;
+    result: number[];
+    entity: Record<number, ComicsImageRecord>;
   };
 };
 
 type Action = {
   type: string;
   src?: string;
-  data?: any;
+  data?:
+    | boolean
+    | number
+    | string
+    | string[]
+    | ComicsImageSource[]
+    | Record<string, ComicsChapterRecord>;
   index?: number;
   begin?: number;
   end?: number;
   height?: number;
   innerHeight?: number;
   innerWidth?: number;
-  imgType?: any;
+  imgType?: ComicsImageType;
   naturalWidth?: number;
   naturalHeight?: number;
-  [key: string]: any;
+  baseURL?: string;
+  site?: string;
 };
 
-const initialState: State = {
+const initialState: ComicsState = {
   innerHeight: typeof window === "undefined" ? 0 : window.innerHeight,
   innerWidth: typeof window === "undefined" ? 0 : window.innerWidth,
   site: "",
@@ -78,13 +108,27 @@ const UPDATE_INNER_WIDTH = "UPDATE_INNER_WIDTH";
 const RESET_IMAGE = "RESET_IMAGE";
 const UPDATE_SITE_INFO = "UPDATE_SITE_INFO";
 
+function createFallbackImageRecord(chapter = ""): ComicsImageRecord {
+  return {
+    chapter,
+    src: "",
+    height: 1400,
+    loading: false,
+    naturalHeight: 0,
+    naturalWidth: 0,
+    type: "image",
+  };
+}
+
 export default function comics(
-  state: State = initialState,
+  state: ComicsState = initialState,
   action: Action,
-): State {
+): ComicsState {
   switch (action.type) {
     case LOAD_IMAGE_SRC:
       if (typeof action.index === "number" && action.index >= 0) {
+        const currentRecord =
+          state.imageList.entity[action.index] || createFallbackImageRecord();
         return {
           ...state,
           imageList: {
@@ -92,8 +136,8 @@ export default function comics(
             entity: {
               ...state.imageList.entity,
               [action.index]: {
-                ...state.imageList.entity[action.index],
-                src: action.src,
+                ...currentRecord,
+                src: action.src || "",
                 loading: false,
               },
             },
@@ -103,6 +147,8 @@ export default function comics(
       return state;
     case UPDATE_IMAGE_TYPE:
       if (typeof action.index === "number" && action.index >= 0) {
+        const currentRecord =
+          state.imageList.entity[action.index] || createFallbackImageRecord();
         return {
           ...state,
           imageList: {
@@ -110,17 +156,20 @@ export default function comics(
             entity: {
               ...state.imageList.entity,
               [action.index]: {
-                ...state.imageList.entity[action.index],
-                height: action.height,
-                type: action.imgType,
+                ...currentRecord,
+                height:
+                  typeof action.height === "number"
+                    ? action.height
+                    : currentRecord.height,
+                type: action.imgType || currentRecord.type,
                 naturalWidth:
                   typeof action.naturalWidth === "number"
                     ? action.naturalWidth
-                    : state.imageList.entity[action.index].naturalWidth,
+                    : currentRecord.naturalWidth,
                 naturalHeight:
                   typeof action.naturalHeight === "number"
                     ? action.naturalHeight
-                    : state.imageList.entity[action.index].naturalHeight,
+                    : currentRecord.naturalHeight,
               },
             },
           },
@@ -128,8 +177,8 @@ export default function comics(
       }
       return state;
     case CONCAT_IMAGE_LIST:
-      if (action.data && action.data.length) {
-        const data = action.data;
+      if (Array.isArray(action.data) && action.data.length > 0) {
+        const data = action.data as ComicsImageSource[];
         return {
           ...state,
           imageList: {
@@ -157,10 +206,11 @@ export default function comics(
                   },
                 }),
                 state.imageList.entity,
-              ),
+              ) as Record<number, ComicsImageRecord>,
               [data.length + state.imageList.result.length]: {
                 type: "end",
                 chapter: data[0].chapter,
+                src: "",
                 loading: false,
                 height: 72,
                 naturalWidth: 0,
@@ -172,11 +222,13 @@ export default function comics(
       }
       return state;
     case UPDATE_CHAPTER_LATEST_INDEX:
+      if (typeof action.data !== "number") return state;
       return {
         ...state,
         chapterLatestIndex: action.data,
       };
     case UPDATE_CHAPTER_NOW_INDEX:
+      if (typeof action.data !== "number") return state;
       return {
         ...state,
         chapterNowIndex: action.data,
@@ -192,21 +244,27 @@ export default function comics(
           typeof action.end === "number" ? action.end : state.renderEndIndex,
       };
     case UPDATE_READ_CHAPTERS:
+      if (!Array.isArray(action.data)) return state;
       return {
         ...state,
-        read: action.data,
+        read: action.data as string[],
       };
     case UPDATE_CHAPTERS:
+      if (!action.data || typeof action.data !== "object" || Array.isArray(action.data)) {
+        return state;
+      }
       return {
         ...state,
-        chapters: action.data,
+        chapters: action.data as Record<string, ComicsChapterRecord>,
       };
     case UPDATE_CHAPTER_LIST:
+      if (!Array.isArray(action.data)) return state;
       return {
         ...state,
-        chapterList: action.data,
+        chapterList: action.data as string[],
       };
     case UPDATE_COMICS_ID:
+      if (typeof action.data !== "string") return state;
       return {
         ...state,
         comicsID: action.data,
@@ -216,11 +274,13 @@ export default function comics(
             : "",
       };
     case UPDATE_SUBSCRIBE:
+      if (typeof action.data !== "boolean") return state;
       return {
         ...state,
         subscribe: action.data,
       };
     case UPDATE_TITLE:
+      if (typeof action.data !== "string") return state;
       return {
         ...state,
         title: action.data,
@@ -281,11 +341,11 @@ export function updateReadChapters(data: string[]) {
   return { type: UPDATE_READ_CHAPTERS, data };
 }
 
-export function updateChapters(data: {}) {
+export function updateChapters(data: Record<string, ComicsChapterRecord>) {
   return { type: UPDATE_CHAPTERS, data };
 }
 
-export function updateChapterList(data: Array<any>) {
+export function updateChapterList(data: string[]) {
   return { type: UPDATE_CHAPTER_LIST, data };
 }
 
@@ -301,7 +361,7 @@ export function updateRenderIndex(begin: number, end: number) {
   return { type: UPDATE_RENDER_INDEX, begin, end };
 }
 
-export function concatImageList(data: Array<any>) {
+export function concatImageList(data: ComicsImageSource[]) {
   return { type: CONCAT_IMAGE_LIST, data };
 }
 
@@ -312,7 +372,7 @@ export function loadImgSrc(src: string, index: number) {
 export function updateImgType(
   height: number,
   index: number,
-  imgType: string,
+  imgType: ComicsImageType,
   naturalWidth?: number,
   naturalHeight?: number,
 ) {
