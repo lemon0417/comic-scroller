@@ -234,6 +234,10 @@
     background: #f8fafc;
   }
 
+  .ds-series-row-visual {
+    @apply flex w-[52px] flex-none flex-col items-center gap-1.5;
+  }
+
   .ds-series-row-cover {
     @apply h-11 w-11 flex-none rounded-lg object-cover;
     background: #e2e8f0;
@@ -252,7 +256,7 @@
   }
 
   .ds-series-chip {
-    @apply inline-flex items-center px-0 py-0 text-[11px] font-medium uppercase tracking-[0.08em] text-comic-ink/40;
+    @apply max-w-full truncate text-center text-[11px] font-medium uppercase leading-4 tracking-[0.08em] text-comic-ink/40;
   }
 
   .ds-series-row-title {

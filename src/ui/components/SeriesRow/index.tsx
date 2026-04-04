@@ -32,7 +32,7 @@ function ActionButton({
       ? "ds-btn-primary"
       : variant === "danger"
         ? "ds-btn-danger"
-        : "ds-btn-quiet";
+        : "ds-btn-secondary";
 
   return (
     <button
@@ -53,27 +53,27 @@ export default function SeriesRow({
 }: SeriesRowProps) {
   return (
     <article className="ds-series-row">
-      {cover ? (
-        <img
-          src={cover}
-          alt=""
-          width={48}
-          height={48}
-          className="ds-series-row-cover"
-        />
-      ) : (
-        <div
-          className="ds-series-row-cover ds-series-row-fallback"
-          aria-hidden="true"
-        >
-          {title.slice(0, 1).toUpperCase()}
-        </div>
-      )}
+      <div className="ds-series-row-visual">
+        <span className="ds-series-chip">{siteLabel}</span>
+        {cover ? (
+          <img
+            src={cover}
+            alt=""
+            width={48}
+            height={48}
+            className="ds-series-row-cover"
+          />
+        ) : (
+          <div
+            className="ds-series-row-cover ds-series-row-fallback"
+            aria-hidden="true"
+          >
+            {title.slice(0, 1).toUpperCase()}
+          </div>
+        )}
+      </div>
       <div className="ds-series-row-body">
         <div className="ds-series-row-copy">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="ds-series-chip">{siteLabel}</span>
-          </div>
           <h2 className="ds-series-row-title">{title}</h2>
           <div className="ds-series-row-summary">{summary}</div>
           {detail ? <div className="ds-series-row-detail">{detail}</div> : null}
