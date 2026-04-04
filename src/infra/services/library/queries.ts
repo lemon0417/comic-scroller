@@ -23,12 +23,12 @@ import {
 import {
   composeSeriesRecord,
   ensureLibraryReady,
-  loadOrderedSeriesKeysInTransaction,
   openLibraryDb,
   readSeriesSnapshotByKey,
   requestToPromise,
   resolveSeriesKeyInput,
   sortRowsByPosition,
+  sortSubscriptionRowsByCheckedAt,
   transactionDone,
 } from "./shared";
 
@@ -209,13 +209,17 @@ export async function isSeriesSubscribedByKey(seriesKey: string) {
   return Boolean(row);
 }
 
-export async function listSubscriptionKeys() {
+export async function listSubscriptionKeys(limit = Number.POSITIVE_INFINITY) {
   await ensureLibraryReady();
   const db = await openLibraryDb();
   const transaction = db.transaction([SUBSCRIPTIONS_STORE], "readonly");
   const done = transactionDone(transaction);
   const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
-  const seriesKeys = await loadOrderedSeriesKeysInTransaction(subscriptionsStore);
+  const rows = await requestToPromise<SubscriptionRow[]>(subscriptionsStore.getAll());
+  const seriesKeys = sortSubscriptionRowsByCheckedAt(rows)
+    .slice(0, Number.isFinite(limit) ? Math.max(0, limit) : rows.length)
+    .map((row) => row.seriesKey)
+    .filter(Boolean);
   await done;
   return seriesKeys;
 }

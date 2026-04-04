@@ -33,6 +33,7 @@ export {
   applyReaderSeriesState,
   applyReadProgress,
   applyBackgroundSeriesRefresh,
+  markSubscriptionCheckedByKey,
 } from "./library/mutations";
 
 export {

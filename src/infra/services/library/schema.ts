@@ -86,6 +86,7 @@ export type ChapterRow = {
 export type SubscriptionRow = {
   seriesKey: SeriesKey;
   position: number;
+  checkedAt?: number;
 };
 
 export type HistoryRow = {

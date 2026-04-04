@@ -1,4 +1,4 @@
-import { of } from "rxjs";
+import { NEVER, of } from "rxjs";
 import {
   handleExtensionInstalled,
   handleNotificationClick,
@@ -11,6 +11,7 @@ import {
 describe("background service", () => {
   it("summarizes background updates and refreshes badge", async () => {
     const setBadge = jest.fn();
+    const markSubscriptionCheckedByKey = jest.fn().mockResolvedValue(undefined);
     const applyBackgroundSeriesRefresh = jest.fn().mockResolvedValue({
       updatesCount: 2,
     });
@@ -46,11 +47,17 @@ describe("background service", () => {
         .mockResolvedValueOnce(1)
         .mockResolvedValueOnce(2),
       listSubscriptionKeys: jest.fn().mockResolvedValue(["dm5:m123"]),
+      markSubscriptionCheckedByKey,
       openTab: jest.fn(),
       parseSeriesKey: jest.fn(() => ({ site: "dm5", comicsID: "m123" })),
       resetLibrary: jest.fn(),
       setBadge,
       setLibraryVersion: jest.fn(),
+    }, {
+      batchSize: 12,
+      concurrency: 2,
+      timeoutMs: 3000,
+      now: () => 12345,
     });
 
     expect(summary).toEqual({
@@ -77,6 +84,102 @@ describe("background service", () => {
       "https://www.dm5.com/m123/",
       { includeCover: false },
     );
+    expect(markSubscriptionCheckedByKey).toHaveBeenCalledWith(
+      "dm5:m123",
+      12345,
+    );
+  });
+
+  it("times out a stalled subscription fetch and keeps processing the batch", async () => {
+    const markSubscriptionCheckedByKey = jest.fn().mockResolvedValue(undefined);
+    const fetchChapterPage = jest.fn((url: string) =>
+      url.includes("m-stuck")
+        ? NEVER
+        : of({
+            title: "Demo",
+            chapterList: ["m2", "m1"],
+            chapters: {
+              m1: { title: "Ch 1", href: "https://www.dm5.com/m-ok/1" },
+              m2: { title: "Ch 2", href: "https://www.dm5.com/m-ok/2" },
+            },
+          }),
+    );
+    const getSeriesSnapshot = jest
+      .fn()
+      .mockResolvedValueOnce({
+        url: "https://www.dm5.com/m-stuck/",
+        cover: "",
+        chapters: {},
+      })
+      .mockResolvedValueOnce({
+        url: "https://www.dm5.com/m-ok/",
+        cover: "",
+        chapters: {
+          m1: { title: "Ch 1", href: "https://www.dm5.com/m-ok/1" },
+        },
+      });
+    const applyBackgroundSeriesRefresh = jest.fn().mockResolvedValue({
+      updatesCount: 1,
+    });
+
+    const summary = await runBackgroundUpdateSummary(
+      {
+        applyBackgroundSeriesRefresh,
+        clearNotification: jest.fn(),
+        createNotification: jest.fn(),
+        getFetchChapterPage: jest.fn(() => fetchChapterPage),
+        getManifestVersion: jest.fn(() => "4.0.99"),
+        getRuntimeUrl: jest.fn((path: string) => `chrome-extension:///${path}`),
+        getSeriesSnapshot,
+        getUpdateCount: jest
+          .fn()
+          .mockResolvedValueOnce(0)
+          .mockResolvedValueOnce(1),
+        listSubscriptionKeys: jest
+          .fn()
+          .mockResolvedValue(["dm5:m-stuck", "dm5:m-ok"]),
+        markSubscriptionCheckedByKey,
+        openTab: jest.fn(),
+        parseSeriesKey: jest.fn((seriesKey: string) => ({
+          site: "dm5",
+          comicsID: seriesKey.split(":")[1],
+        })),
+        resetLibrary: jest.fn(),
+        setBadge: jest.fn(),
+        setLibraryVersion: jest.fn(),
+      },
+      {
+        batchSize: 10,
+        concurrency: 2,
+        timeoutMs: 1,
+        now: () => 999,
+      },
+    );
+
+    expect(summary).toEqual({
+      checked: 2,
+      updated: 1,
+      errors: 1,
+      diff: {
+        before: 0,
+        after: 1,
+        added: 1,
+      },
+    });
+    expect(applyBackgroundSeriesRefresh).toHaveBeenCalledWith(
+      "dm5",
+      "m-ok",
+      expect.objectContaining({
+        title: "Demo",
+        url: "https://www.dm5.com/m-ok/",
+      }),
+      ["m2"],
+    );
+    expect(markSubscriptionCheckedByKey).toHaveBeenCalledWith(
+      "dm5:m-stuck",
+      999,
+    );
+    expect(markSubscriptionCheckedByKey).toHaveBeenCalledWith("dm5:m-ok", 999);
   });
 
   it("handles install and update lifecycle actions", async () => {
@@ -93,6 +196,7 @@ describe("background service", () => {
       getSeriesSnapshot: jest.fn(),
       getUpdateCount: jest.fn(),
       listSubscriptionKeys: jest.fn(),
+      markSubscriptionCheckedByKey: jest.fn(),
       openTab: jest.fn(),
       parseSeriesKey: jest.fn(),
       resetLibrary,

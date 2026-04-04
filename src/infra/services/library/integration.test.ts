@@ -4,10 +4,12 @@ import { exportLibraryDump, importLibraryDump } from "./compat";
 import {
   applyBackgroundSeriesRefresh,
   dismissSeriesUpdate,
+  markSubscriptionCheckedByKey,
 } from "./mutations";
 import {
   getPopupFeedSnapshot,
   getReaderSeriesState,
+  listSubscriptionKeys,
   getUpdateCount,
 } from "./queries";
 import { resetLibraryPersistenceForTests } from "./shared";
@@ -223,7 +225,7 @@ describe("library integration", () => {
     expect(exported.data.series).toHaveLength(1);
     expect(exported.data.updates).toEqual([]);
     expect(exported.data.subscriptions).toEqual([
-      { seriesKey: "dm5:m123", position: 0 },
+      { seriesKey: "dm5:m123", position: 0, checkedAt: 0 },
     ]);
   });
 
@@ -287,6 +289,56 @@ describe("library integration", () => {
     const readerState = await getReaderSeriesState("dm5:m123");
     expect(readerState.series?.cover).toBe("persisted-cover.jpg");
     expect(readerState.series?.chapterList).toEqual(["m2", "m1"]);
+  });
+
+  it("orders background polling subscriptions by the oldest checkedAt first", async () => {
+    await importLibraryDump({
+      format: "comic-scroller-db-dump",
+      formatVersion: 1,
+      exportedAt: 1,
+      dbSchemaVersion: 1,
+      data: {
+        series: [
+          {
+            seriesKey: "dm5:m-oldest",
+            site: "dm5",
+            comicsID: "m-oldest",
+            title: "Oldest",
+            cover: "",
+            url: "https://www.dm5.com/m-oldest/",
+            lastRead: "",
+            read: [],
+            updatedAt: 1,
+          },
+          {
+            seriesKey: "dm5:m-newest",
+            site: "dm5",
+            comicsID: "m-newest",
+            title: "Newest",
+            cover: "",
+            url: "https://www.dm5.com/m-newest/",
+            lastRead: "",
+            read: [],
+            updatedAt: 1,
+          },
+        ],
+        chapters: [],
+        subscriptions: [
+          { seriesKey: "dm5:m-newest", position: 0 },
+          { seriesKey: "dm5:m-oldest", position: 1 },
+        ],
+        history: [],
+        updates: [],
+      },
+    });
+
+    await markSubscriptionCheckedByKey("dm5:m-newest", 200);
+    await markSubscriptionCheckedByKey("dm5:m-oldest", 100);
+
+    await expect(listSubscriptionKeys()).resolves.toEqual([
+      "dm5:m-oldest",
+      "dm5:m-newest",
+    ]);
   });
 
   it("migrates legacy chrome.storage data into IndexedDB on first repository query", async () => {

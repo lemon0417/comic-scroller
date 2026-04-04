@@ -220,6 +220,7 @@ export function snapshotToRows(snapshot: LibrarySnapshotV2) {
     subscriptions: uniqueStrings(snapshot.subscriptions).map((seriesKey, position) => ({
       seriesKey,
       position,
+      checkedAt: 0,
     })),
     history: uniqueStrings(snapshot.history, HISTORY_LIMIT).map((seriesKey, position) => ({
       seriesKey,
@@ -610,6 +611,15 @@ export function sortRowsByPosition<T extends { position: number }>(rows: T[]) {
   return [...rows].sort((a, b) => a.position - b.position);
 }
 
+export function sortSubscriptionRowsByCheckedAt(rows: SubscriptionRow[]) {
+  return [...rows].sort(
+    (a, b) =>
+      Number(a.checkedAt || 0) - Number(b.checkedAt || 0) ||
+      a.position - b.position ||
+      a.seriesKey.localeCompare(b.seriesKey),
+  );
+}
+
 export function resolveSeriesKeyInput(siteOrSeriesKey: string, comicsID?: string) {
   if (typeof comicsID === "string") {
     return buildSeriesKey(siteOrSeriesKey, comicsID);
@@ -691,12 +701,19 @@ export async function loadOrderedSeriesKeysInTransaction(store: IDBObjectStore) 
 export async function writeOrderedSeriesKeysInTransaction(
   store: IDBObjectStore,
   seriesKeys: string[],
+  resolveRowData?: (seriesKey: string, position: number) => Record<string, unknown>,
 ) {
   await requestToPromise(store.clear());
   const nextSeriesKeys = uniqueStrings(seriesKeys);
   for (let position = 0; position < nextSeriesKeys.length; position += 1) {
     const seriesKey = nextSeriesKeys[position];
-    await requestToPromise(store.put({ seriesKey, position }));
+    await requestToPromise(
+      store.put({
+        seriesKey,
+        position,
+        ...(resolveRowData ? resolveRowData(seriesKey, position) : {}),
+      }),
+    );
   }
 }
 

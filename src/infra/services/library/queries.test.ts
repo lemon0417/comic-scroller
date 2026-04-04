@@ -5,7 +5,11 @@ import {
   SUBSCRIPTIONS_STORE,
   UPDATES_STORE,
 } from "./schema";
-import { getPopupFeedSnapshot, getReaderSeriesState } from "./queries";
+import {
+  getPopupFeedSnapshot,
+  getReaderSeriesState,
+  listSubscriptionKeys,
+} from "./queries";
 
 jest.mock("./shared", () => {
   const actual = jest.requireActual("./shared");
@@ -270,5 +274,27 @@ describe("library queries", () => {
       [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE],
       "readonly",
     );
+  });
+
+  it("returns subscriptions ordered by oldest checkedAt and respects the query limit", async () => {
+    const subscriptionsStore = {
+      getAll: jest.fn(() => [
+        { seriesKey: "dm5:m-newest", position: 0, checkedAt: 300 },
+        { seriesKey: "dm5:m-oldest", position: 1, checkedAt: 100 },
+        { seriesKey: "dm5:m-middle", position: 2, checkedAt: 200 },
+      ]),
+    };
+    const transaction = {
+      objectStore: jest.fn(() => subscriptionsStore),
+    };
+    const db = {
+      transaction: jest.fn(() => transaction),
+    };
+    shared.openLibraryDb.mockResolvedValue(db);
+
+    await expect(listSubscriptionKeys(2)).resolves.toEqual([
+      "dm5:m-oldest",
+      "dm5:m-middle",
+    ]);
   });
 });

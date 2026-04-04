@@ -12,6 +12,7 @@ import {
   type SeriesRecord,
   type SeriesRow,
   type SiteKey,
+  type SubscriptionRow,
   uniqueStrings,
 } from "./schema";
 import {
@@ -180,7 +181,27 @@ async function rewriteOrderedSeriesStore(
   const done = transactionDone(transaction);
   const store = transaction.objectStore(storeName);
   const currentKeys = await loadOrderedSeriesKeysInTransaction(store);
-  await writeOrderedSeriesKeysInTransaction(store, updater(currentKeys));
+  const nextKeys = updater(currentKeys);
+  const subscriptionRowsByKey =
+    storeName === SUBSCRIPTIONS_STORE
+      ? (await requestToPromise<SubscriptionRow[]>(store.getAll())).reduce<
+          Record<string, SubscriptionRow>
+        >((acc, row) => {
+          acc[row.seriesKey] = row;
+          return acc;
+        }, {})
+      : {};
+  if (storeName === SUBSCRIPTIONS_STORE) {
+    await writeOrderedSeriesKeysInTransaction(
+      store,
+      nextKeys,
+      (seriesKey) => ({
+        checkedAt: Number(subscriptionRowsByKey[seriesKey]?.checkedAt || 0),
+      }),
+    );
+  } else {
+    await writeOrderedSeriesKeysInTransaction(store, nextKeys);
+  }
   await done;
   await emitLibrarySignal(source, [scope], [seriesKey]);
 }
@@ -228,6 +249,29 @@ export async function setSeriesSubscription(
   subscribed: boolean,
 ) {
   return setSeriesSubscriptionByKey(buildSeriesKey(site, comicsID), subscribed);
+}
+
+export async function markSubscriptionCheckedByKey(
+  seriesKey: string,
+  checkedAt = Date.now(),
+) {
+  await ensureLibraryReady();
+  const db = await openLibraryDb();
+  const transaction = db.transaction([SUBSCRIPTIONS_STORE], "readwrite");
+  const done = transactionDone(transaction);
+  const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
+  const row = await requestToPromise<SubscriptionRow | undefined>(
+    subscriptionsStore.get(seriesKey),
+  );
+  if (row) {
+    await requestToPromise(
+      subscriptionsStore.put({
+        ...row,
+        checkedAt,
+      }),
+    );
+  }
+  await done;
 }
 
 export async function dismissSeriesUpdate(

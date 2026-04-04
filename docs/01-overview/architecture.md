@@ -35,6 +35,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - `subscriptions`
   - `history`
   - `updates`
+- `subscriptions` row 保留 UI 顯示排序 `position`，並額外記錄背景輪詢用的 `checkedAt`
 - `chrome.storage.local.librarySignal` 用於跨 context 通知資料已變更
 - repository 目前分成兩層 API：
   - config / import-export：`resetLibrary`、`exportLibraryDump`、`importLibraryDump`、`setLibraryVersion`
@@ -71,6 +72,8 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - Background：
   - `src/background.ts` 只保留 MV3 listener wiring
   - 更新檢查、安裝處理、通知點擊、ping 回應、reader redirect 解析集中在 `src/infra/services/background.ts`
+  - 訂閱更新檢查會依 `subscriptions.checkedAt` 由舊到新取批次輪詢
+  - 每輪 background refresh 使用固定上限並發與單筆 metadata fetch timeout，避免某個慢站拖住整輪 service worker 工作
 - Repository 測試基礎：
   - 真實 IndexedDB integration tests 使用 `fake-indexeddb`
   - 測試用 DB reset 與 module cache reset 集中在 `library/shared.ts` 的 test-only helper

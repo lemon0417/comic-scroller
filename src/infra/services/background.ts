@@ -1,4 +1,4 @@
-import { firstValueFrom } from "rxjs";
+import { firstValueFrom, timeout } from "rxjs";
 import type { FetchMetaOptions, SiteMeta, SiteMetaFetcher } from "@sites/types";
 import { getSiteAdapter } from "@sites/registry";
 import {
@@ -6,6 +6,7 @@ import {
   getSeriesSnapshot,
   getUpdateCount,
   listSubscriptionKeys,
+  markSubscriptionCheckedByKey,
   parseSeriesKey,
   resetLibrary,
   setLibraryVersion,
@@ -17,6 +18,9 @@ const comicbusRegex =
   /http\:\/\/(www|v)\.comicbus.com\/online\/(comic-\d+\.html\?ch=.*$)/;
 const READER_REDIRECT_BYPASS_PARAM = "cs_open_native";
 const UPDATE_NOTIFICATION_ID = "Comics Scroller Update";
+const BACKGROUND_UPDATE_BATCH_SIZE = 20;
+const BACKGROUND_UPDATE_CONCURRENCY = 4;
+const BACKGROUND_FETCH_TIMEOUT_MS = 15000;
 
 type BackgroundServiceDeps = {
   applyBackgroundSeriesRefresh: typeof applyBackgroundSeriesRefresh;
@@ -31,6 +35,7 @@ type BackgroundServiceDeps = {
   getSeriesSnapshot: typeof getSeriesSnapshot;
   getUpdateCount: typeof getUpdateCount;
   listSubscriptionKeys: typeof listSubscriptionKeys;
+  markSubscriptionCheckedByKey: typeof markSubscriptionCheckedByKey;
   openTab: (options: { url: string }) => void;
   parseSeriesKey: typeof parseSeriesKey;
   resetLibrary: typeof resetLibrary;
@@ -49,6 +54,13 @@ export type BackgroundSummary = {
   };
 };
 
+type BackgroundUpdateOptions = {
+  batchSize?: number;
+  concurrency?: number;
+  timeoutMs?: number;
+  now?: () => number;
+};
+
 function getDefaultDeps(): BackgroundServiceDeps {
   return {
     applyBackgroundSeriesRefresh,
@@ -60,6 +72,7 @@ function getDefaultDeps(): BackgroundServiceDeps {
     getSeriesSnapshot,
     getUpdateCount,
     listSubscriptionKeys,
+    markSubscriptionCheckedByKey,
     openTab: (options) => chrome.tabs.create(options),
     parseSeriesKey,
     resetLibrary,
@@ -73,13 +86,99 @@ function fetchLatestSiteMeta(
   url: string,
   options: FetchMetaOptions,
   getFetchChapterPage: BackgroundServiceDeps["getFetchChapterPage"],
+  timeoutMs: number,
 ): Promise<SiteMeta> {
   const fetchChapterPage = getFetchChapterPage(site);
   if (!fetchChapterPage) {
     return Promise.reject(new Error(`No fetchMeta adapter for site ${site}.`));
   }
 
-  return firstValueFrom(fetchChapterPage(url, options));
+  return firstValueFrom(
+    fetchChapterPage(url, options).pipe(timeout({ first: timeoutMs })),
+  );
+}
+
+async function runWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const poolSize = Math.max(1, Math.min(Math.floor(concurrency) || 1, items.length || 1));
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  await Promise.all(
+    Array.from({ length: poolSize }, async () => {
+      while (nextIndex < items.length) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+        results[currentIndex] = await worker(items[currentIndex]);
+      }
+    }),
+  );
+
+  return results;
+}
+
+async function checkSubscribedSeries(
+  seriesKey: string,
+  deps: BackgroundServiceDeps,
+  options: Required<BackgroundUpdateOptions>,
+) {
+  let shouldCountChecked = false;
+
+  try {
+    const { site, comicsID } = deps.parseSeriesKey(seriesKey);
+    const comic = await deps.getSeriesSnapshot(seriesKey);
+
+    if (!site || !comicsID || !comic?.url) {
+      return { checked: 0, updated: 0, errors: 0 };
+    }
+
+    shouldCountChecked = true;
+
+    const { title, chapterList, cover, chapters } = await fetchLatestSiteMeta(
+      site,
+      comic.url,
+      {
+        includeCover: !comic.cover,
+      },
+      deps.getFetchChapterPage,
+      options.timeoutMs,
+    );
+    const nextChapterIDs = (chapterList || []).filter(
+      (chapterID: string) => !comic.chapters?.[chapterID],
+    );
+
+    if (nextChapterIDs.length > 0) {
+      await deps.applyBackgroundSeriesRefresh(
+        site,
+        comicsID,
+        {
+          title,
+          chapterList,
+          cover,
+          chapters,
+          url: comic.url,
+        },
+        nextChapterIDs,
+      );
+    }
+
+    return {
+      checked: 1,
+      updated: nextChapterIDs.length,
+      errors: 0,
+    };
+  } catch {
+    return { checked: shouldCountChecked ? 1 : 0, updated: 0, errors: 1 };
+  } finally {
+    try {
+      await deps.markSubscriptionCheckedByKey(seriesKey, options.now());
+    } catch {
+      // Scheduling metadata must not break the whole background refresh batch.
+    }
+  }
 }
 
 export function setExtensionBadge(count: number) {
@@ -88,57 +187,38 @@ export function setExtensionBadge(count: number) {
 
 export async function runBackgroundUpdateSummary(
   deps: BackgroundServiceDeps = getDefaultDeps(),
+  options: BackgroundUpdateOptions = {},
 ): Promise<BackgroundSummary> {
-  const subscriptions = await deps.listSubscriptionKeys();
+  const normalizedOptions = {
+    batchSize: Math.max(
+      1,
+      Math.floor(options.batchSize || BACKGROUND_UPDATE_BATCH_SIZE),
+    ),
+    concurrency: Math.max(
+      1,
+      Math.floor(options.concurrency || BACKGROUND_UPDATE_CONCURRENCY),
+    ),
+    timeoutMs: Math.max(
+      1,
+      Math.floor(options.timeoutMs || BACKGROUND_FETCH_TIMEOUT_MS),
+    ),
+    now: options.now || (() => Date.now()),
+  };
+
+  const subscriptions = await deps.listSubscriptionKeys(normalizedOptions.batchSize);
   const beforeCount = await deps.getUpdateCount();
-  let checked = 0;
-  let updated = 0;
-  let errors = 0;
-  let latestUpdateCount = beforeCount;
+  const results = await runWithConcurrency(
+    subscriptions,
+    normalizedOptions.concurrency,
+    (seriesKey) => checkSubscribedSeries(seriesKey, deps, normalizedOptions),
+  );
 
-  for (const seriesKey of subscriptions) {
-    const { site, comicsID } = deps.parseSeriesKey(seriesKey);
-    const comic = await deps.getSeriesSnapshot(seriesKey);
-    if (!site || !comicsID || !comic?.url) {
-      continue;
-    }
-    checked += 1;
-
-    try {
-      const { title, chapterList, cover, chapters } = await fetchLatestSiteMeta(
-        site,
-        comic.url,
-        {
-          includeCover: !comic.cover,
-        },
-        deps.getFetchChapterPage,
-      );
-      const nextChapterIDs = (chapterList || []).filter(
-        (chapterID: string) => !comic.chapters?.[chapterID],
-      );
-      if (nextChapterIDs.length > 0) {
-        const { updatesCount } = await deps.applyBackgroundSeriesRefresh(
-          site,
-          comicsID,
-          {
-            title,
-            chapterList,
-            cover,
-            chapters,
-            url: comic.url,
-          },
-          nextChapterIDs,
-        );
-        latestUpdateCount = updatesCount;
-        updated += nextChapterIDs.length;
-      }
-    } catch {
-      errors += 1;
-    }
-  }
+  const checked = results.reduce((sum, result) => sum + result.checked, 0);
+  const updated = results.reduce((sum, result) => sum + result.updated, 0);
+  const errors = results.reduce((sum, result) => sum + result.errors, 0);
 
   const afterCount = await deps.getUpdateCount();
-  deps.setBadge(latestUpdateCount || afterCount);
+  deps.setBadge(afterCount);
 
   return {
     checked,
