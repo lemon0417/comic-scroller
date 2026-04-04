@@ -1,4 +1,5 @@
 import comics, {
+  concatImageList,
   resetImg,
   updateComicsID,
   updateInnerHeight,
@@ -44,5 +45,29 @@ describe("comics reducer", () => {
     const nextState = comics(withSite, updateComicsID("123") as any);
 
     expect(nextState.seriesKey).toBe("dm5:m123");
+  });
+
+  it("keeps paywall placeholder images non-loading", () => {
+    const prevState = comics(undefined, { type: "@@INIT" } as any) as any;
+    const nextState = comics(
+      prevState,
+      concatImageList([
+        {
+          chapter: "m1655813",
+          href: "https://www.dm5.com/m1655813/",
+          src: "",
+          type: "paywall",
+        },
+      ]) as any,
+    );
+
+    expect(nextState.imageList.entity[0]).toEqual(
+      expect.objectContaining({
+        chapter: "m1655813",
+        href: "https://www.dm5.com/m1655813/",
+        loading: false,
+        type: "paywall",
+      }),
+    );
   });
 });

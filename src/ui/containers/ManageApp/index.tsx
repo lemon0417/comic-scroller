@@ -24,6 +24,7 @@ import {
   selectPopupView,
 } from "@domain/selectors/popupView";
 import type { PopupFeedEntry } from "@infra/services/library/models";
+import { isDevLogEnabled, setDevLogEnabled } from "@utils/devLog";
 
 type ManageTab = "updates" | "following" | "history" | "data";
 
@@ -83,6 +84,7 @@ function ManageAppComponent(props: ManageAppProps) {
   } = props;
 
   const [selectedTab, setSelectedTab] = useState<ManageTab>(getInitialTab);
+  const [debugLogEnabled, setDebugLogEnabled] = useState(isDevLogEnabled);
   const [localError, setLocalError] = useState("");
   const downloadRef = useRef<HTMLAnchorElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -149,6 +151,16 @@ function ManageAppComponent(props: ManageAppProps) {
     setLocalError("");
     clearPopupNoticeProp();
     requestResetConfigProp();
+  };
+
+  const handleDebugLogToggle = () => {
+    const enabled = !debugLogEnabled;
+    if (!setDevLogEnabled(enabled)) {
+      setLocalError("Debug logging is unavailable in this context.");
+      return;
+    }
+    setLocalError("");
+    setDebugLogEnabled(enabled);
   };
 
   const handleForgetSeries = (item: PopupFeedEntry) => {
@@ -362,6 +374,54 @@ function ManageAppComponent(props: ManageAppProps) {
 
           {selectedTab === "data" ? (
             <div className="flex max-w-2xl flex-col gap-4">
+              <section className="rounded-xl border border-comic-ink/10 bg-comic-paper p-6">
+                <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-comic-ink">
+                  Diagnostics
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-comic-ink/60">
+                  Toggle dev logs for reader, popup, and manage pages without
+                  opening DevTools manually.
+                </p>
+                <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-comic-ink/10 bg-white px-4 py-3">
+                  <span className="flex min-w-0 flex-col gap-1">
+                    <span
+                      id="manage-debug-log-label"
+                      className="text-[14px] font-medium text-comic-ink"
+                    >
+                      Debug logging
+                    </span>
+                    <span
+                      id="manage-debug-log-desc"
+                      className="text-[12px] leading-5 text-comic-ink/60"
+                    >
+                      Writes Redux actions and parser traces to the console in
+                      development builds.
+                    </span>
+                  </span>
+                  <button
+                    id="manage-debug-log-toggle"
+                    type="button"
+                    role="switch"
+                    aria-checked={debugLogEnabled}
+                    aria-labelledby="manage-debug-log-label"
+                    aria-describedby="manage-debug-log-desc"
+                    className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-comic-accent focus-visible:ring-offset-2 focus-visible:ring-offset-comic-paper ${
+                      debugLogEnabled
+                        ? "border-blue-600 bg-blue-600"
+                        : "border-comic-ink/10 bg-comic-paper2"
+                    }`}
+                    onClick={handleDebugLogToggle}
+                  >
+                    <span
+                      className={`absolute left-0 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-sm transition-transform duration-150 ${
+                        debugLogEnabled
+                          ? "translate-x-[22px]"
+                          : "translate-x-[2px]"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </section>
               <section className="rounded-xl border border-comic-ink/10 bg-comic-paper p-6">
                 <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-comic-ink">
                   Data

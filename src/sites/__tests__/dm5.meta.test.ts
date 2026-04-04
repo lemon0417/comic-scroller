@@ -147,7 +147,7 @@ describe("dm5 fetchMeta$", () => {
 
     try {
       const result = await firstValueFrom(
-        fetchMeta$("https://www.dm5.com/manhua-rss-only/", undefined, {
+        fetchMeta$("https://www.dm5.com/manhua-rss-only/", {
           includeCover: false,
         }),
       );
@@ -187,7 +187,7 @@ describe("dm5 fetchMeta$", () => {
 
     try {
       const result = await firstValueFrom(
-        fetchMeta$("https://www.dm5.com/manhua-broken-rss/", undefined, {
+        fetchMeta$("https://www.dm5.com/manhua-broken-rss/", {
           includeCover: false,
         }),
       );

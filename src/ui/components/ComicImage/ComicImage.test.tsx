@@ -4,7 +4,9 @@ import { ComicImage } from ".";
 import { getImageRenderMetrics } from "@domain/utils/readerLayout";
 
 type ComicImageTestProps = {
+  chapter?: string;
   height: number;
+  href?: string;
   index: number;
   innerHeight: number;
   innerWidth: number;
@@ -153,5 +155,24 @@ describe("ComicImage shows Image", () => {
 
     expect(container.firstChild).not.toHaveClass("w-[980px]");
     expect(container.firstChild).not.toHaveClass("min-w-[980px]");
+  });
+});
+
+describe("ComicImage shows Paywall", () => {
+  it("renders a paywall card without loading state or image", () => {
+    const { getByRole, getByText, queryByRole, queryByText } =
+      renderComicImage({
+        type: "paywall",
+        loading: false,
+        href: "https://www.dm5.com/m1655813/",
+      });
+
+    expect(queryByText("Loading...")).not.toBeInTheDocument();
+    expect(queryByRole("img")).not.toBeInTheDocument();
+    expect(getByText("此章節需要付費解鎖")).toBeInTheDocument();
+    expect(getByRole("link", { name: "前往 DM5 章節頁" })).toHaveAttribute(
+      "href",
+      "https://www.dm5.com/m1655813/",
+    );
   });
 });

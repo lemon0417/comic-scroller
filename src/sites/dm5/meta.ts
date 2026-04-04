@@ -2,7 +2,8 @@ import { XMLParser } from "fast-xml-parser";
 import { from } from "rxjs";
 import { map as rxMap } from "rxjs/operators";
 import type { ChapterRecord } from "@infra/services/library/schema";
-import type { FetchMetaOptions } from "../types";
+import type { FetchMetaOptions, SiteMeta } from "../types";
+import { devLog } from "@utils/devLog";
 
 const baseURL = "https://www.dm5.com";
 const rssXmlParser = new XMLParser({
@@ -171,29 +172,58 @@ const parseCoverMeta = (html: string) => {
 
 export function fetchMeta$(
   url: string,
-  _comicsID?: string,
   { includeCover = true }: FetchMetaOptions = {},
 ) {
   const rssUrl = resolveRssUrl(url);
+  devLog("dm5:fetchMeta:start", {
+    url,
+    rssUrl,
+    includeCover,
+    useLegacyHtmlParser: rssUrl === url,
+  });
+
   if (rssUrl === url) {
     return from(fetch(url).then((response) => response.text())).pipe(
-      rxMap((html) => {
+      rxMap((html): SiteMeta => {
         const Parser = globalThis.DOMParser;
         if (Parser) {
           const doc = new Parser().parseFromString(html, "text/html");
-          return parseLegacyFromDocument(doc);
+          const meta = parseLegacyFromDocument(doc);
+          devLog("dm5:fetchMeta:legacyDomDone", {
+            url,
+            title: meta.title,
+            chapterListLength: meta.chapterList.length,
+            hasCover: Boolean(meta.cover),
+          });
+          return meta;
         }
-        return parseLegacyFromHtml(html);
+        const meta = parseLegacyFromHtml(html);
+        devLog("dm5:fetchMeta:legacyHtmlDone", {
+          url,
+          title: meta.title,
+          chapterListLength: meta.chapterList.length,
+          hasCover: Boolean(meta.cover),
+        });
+        return meta;
       }),
     );
   }
 
   if (!includeCover) {
     return from(fetch(rssUrl).then((response) => response.text())).pipe(
-      rxMap((rssXml) => ({
-        ...parseRssMeta(rssXml),
-        cover: "",
-      })),
+      rxMap((rssXml): SiteMeta => {
+        const meta = {
+          ...parseRssMeta(rssXml),
+          cover: "",
+        };
+        devLog("dm5:fetchMeta:rssOnlyDone", {
+          url,
+          rssUrl,
+          title: meta.title,
+          chapterListLength: meta.chapterList.length,
+        });
+        return meta;
+      }),
     );
   }
 
@@ -203,9 +233,19 @@ export function fetchMeta$(
       fetch(url).then((response) => response.text()),
     ]),
   ).pipe(
-    rxMap(([rssXml, comicHtml]) => ({
-      ...parseRssMeta(rssXml),
-      cover: parseCoverMeta(comicHtml),
-    })),
+    rxMap(([rssXml, comicHtml]): SiteMeta => {
+      const meta = {
+        ...parseRssMeta(rssXml),
+        cover: parseCoverMeta(comicHtml),
+      };
+      devLog("dm5:fetchMeta:rssWithCoverDone", {
+        url,
+        rssUrl,
+        title: meta.title,
+        chapterListLength: meta.chapterList.length,
+        hasCover: Boolean(meta.cover),
+      });
+      return meta;
+    }),
   );
 }

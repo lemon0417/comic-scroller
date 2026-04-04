@@ -7,13 +7,15 @@ export type ComicsChapterRecord = {
   title: string;
 };
 
-export type ComicsImageType = "end" | "image" | "natural" | "wide";
+export type ComicsImageType = "end" | "image" | "natural" | "paywall" | "wide";
 
 export type ComicsImageSource = {
   chapter: string;
+  href?: string;
   src: string;
   cid?: string;
   key?: string;
+  type?: ComicsImageType;
 };
 
 export type ComicsImageRecord = ComicsImageSource & {
@@ -198,9 +200,9 @@ export default function comics(
                   ...acc,
                   [state.imageList.result.length + k]: {
                     ...item,
-                    loading: true,
-                    height: 1400,
-                    type: "image",
+                    loading: item.type !== "paywall",
+                    height: item.type === "paywall" ? 320 : 1400,
+                    type: item.type || "image",
                     naturalWidth: 0,
                     naturalHeight: 0,
                   },

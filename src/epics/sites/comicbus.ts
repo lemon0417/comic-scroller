@@ -200,7 +200,7 @@ export const fetchChapterEpic: AppEpic = (action$) =>
             of(updateRenderIndex(0, 6)),
             of(fetchImgSrc(0, 6)),
             of(startScroll()),
-            fetchMeta$(`${baseURL}/html/${comicsID}.html`, comicsID).pipe(
+            fetchMeta$(`${baseURL}/html/${comicsID}.html`).pipe(
               mergeMap(({ title, cover, chapterList, chapters }) => {
                 const chapterIndex = findIndex(
                   chapterList,
@@ -228,7 +228,7 @@ export const fetchChapterEpic: AppEpic = (action$) =>
                       updateSiteInfo("comicbus", baseURL),
                       updateComicsID(comicsID),
                       updateSubscribe(subscribed),
-                      updateTitle(title),
+                      updateTitle(title || ""),
                       updateReadChapters(series?.read || []),
                       updateChapters(chapters),
                       updateChapterList(chapterList),

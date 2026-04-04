@@ -57,6 +57,14 @@ export function getImageRenderMetrics({
     };
   }
 
+  if (type === "paywall") {
+    return {
+      width,
+      height: Math.max(height || 0, getWideImageMaxHeight(innerHeight)),
+      type: "paywall",
+    };
+  }
+
   if (!naturalWidth || !naturalHeight) {
     return {
       width,

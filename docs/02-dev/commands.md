@@ -11,8 +11,10 @@
 - `yarn typecheck`
 
 ## 事件追蹤（Debug Logger）
-- `localStorage.setItem("CS_DEBUG", "1")` 後重新整理即可啟用
-- `localStorage.removeItem("CS_DEBUG")` 後重新整理即可關閉
+- 開啟 `manage.html` → `Data` → `Diagnostics` → `Debug logging`
+- 也可手動設定：
+  - `localStorage.setItem("CS_DEBUG", "1")`
+  - `localStorage.removeItem("CS_DEBUG")`
 
 ## 發佈與版本
 - `yarn version:bump <major|minor|patch|x.y.z>`：同步更新 `package.json` + 兩份 manifest

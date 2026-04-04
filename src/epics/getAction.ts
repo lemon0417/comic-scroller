@@ -1,5 +1,6 @@
 import { EMPTY } from "rxjs";
 import { getSiteAdapter } from "@sites/registry";
+import { devLog } from "@utils/devLog";
 
 const inferSite = (siteParam: string, chapterParam: string) => {
   if (siteParam) return siteParam;
@@ -16,6 +17,14 @@ const siteParam = searchParams.get("site") || "";
 const chapterParam = searchParams.get("chapter") || "";
 const _site = inferSite(siteParam, chapterParam);
 const adapter = getSiteAdapter(_site);
+
+devLog("reader:getAction", {
+  siteParam,
+  chapterParam,
+  inferredSite: _site,
+  hasAdapter: Boolean(adapter),
+  adapterKey: adapter?.key || "",
+});
 
 export const site = adapter?.key || "";
 export const baseURL = adapter?.baseURL || "";

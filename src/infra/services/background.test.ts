@@ -1,3 +1,4 @@
+import { of } from "rxjs";
 import {
   handleExtensionInstalled,
   handleNotificationClick,
@@ -13,9 +14,9 @@ describe("background service", () => {
     const applyBackgroundSeriesRefresh = jest.fn().mockResolvedValue({
       updatesCount: 2,
     });
-    const fetchChapterPage = jest.fn((_url: string, _comicsID?: string, options?: { includeCover?: boolean }) => ({
-      subscribe: (next: (value: any) => void) =>
-        next({
+    const fetchChapterPage = jest.fn(
+      (_url: string, options?: { includeCover?: boolean }) =>
+        of({
           title: "Demo",
           chapterList: ["m2", "m1"],
           ...(options?.includeCover ? { cover: "cover.jpg" } : {}),
@@ -24,7 +25,7 @@ describe("background service", () => {
             m2: { title: "Ch 2", href: "https://www.dm5.com/m123//2" },
           },
         }),
-    }));
+    );
 
     const summary = await runBackgroundUpdateSummary({
       applyBackgroundSeriesRefresh,
@@ -74,7 +75,6 @@ describe("background service", () => {
     expect(setBadge).toHaveBeenCalledWith(2);
     expect(fetchChapterPage).toHaveBeenCalledWith(
       "https://www.dm5.com/m123/",
-      undefined,
       { includeCover: false },
     );
   });
@@ -159,5 +159,14 @@ describe("background service", () => {
       url: "https://example.com/comic",
     });
     expect(clearNotification).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not redirect DM5 chapter links with the native-reader bypass marker", () => {
+    expect(
+      resolveReaderRedirect(
+        "https://www.dm5.com/m1655813/?cs_open_native=1",
+        (path) => `chrome-extension:///${path}`,
+      ),
+    ).toBe("");
   });
 });

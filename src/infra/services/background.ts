@@ -1,5 +1,5 @@
-import type { ChapterRecord } from "@infra/services/library/schema";
-import type { FetchMetaOptions } from "@sites/types";
+import { firstValueFrom } from "rxjs";
+import type { FetchMetaOptions, SiteMeta, SiteMetaFetcher } from "@sites/types";
 import { getSiteAdapter } from "@sites/registry";
 import {
   applyBackgroundSeriesRefresh,
@@ -15,21 +15,8 @@ const dm5Regex = /https\:\/\/(tel||www)\.dm5\.com\/(m\d+)\//;
 const sfRegex = /http\:\/\/comic\.sfacg\.com\/(HTML\/[^\/]+\/.+)$/;
 const comicbusRegex =
   /http\:\/\/(www|v)\.comicbus.com\/online\/(comic-\d+\.html\?ch=.*$)/;
+const READER_REDIRECT_BYPASS_PARAM = "cs_open_native";
 const UPDATE_NOTIFICATION_ID = "Comics Scroller Update";
-
-type SiteMeta = {
-  title?: string;
-  chapterList?: string[];
-  cover?: string;
-  chapters?: Record<string, ChapterRecord>;
-};
-
-type SiteMetaStream = {
-  subscribe: (
-    next: (value: SiteMeta) => void,
-    error?: (reason?: unknown) => void,
-  ) => void;
-};
 
 type BackgroundServiceDeps = {
   applyBackgroundSeriesRefresh: typeof applyBackgroundSeriesRefresh;
@@ -38,15 +25,7 @@ type BackgroundServiceDeps = {
     id: string,
     options: chrome.notifications.NotificationOptions,
   ) => void;
-  getFetchChapterPage: (
-    site: string,
-  ) =>
-    | ((
-        url: string,
-        comicsID?: string,
-        options?: FetchMetaOptions,
-      ) => SiteMetaStream)
-    | undefined;
+  getFetchChapterPage: (site: string) => SiteMetaFetcher | undefined;
   getManifestVersion: () => string;
   getRuntimeUrl: (path: string) => string;
   getSeriesSnapshot: typeof getSeriesSnapshot;
@@ -75,13 +54,7 @@ function getDefaultDeps(): BackgroundServiceDeps {
     applyBackgroundSeriesRefresh,
     clearNotification: (id) => chrome.notifications.clear(id),
     createNotification: (id, options) => chrome.notifications.create(id, options),
-    getFetchChapterPage: (site) => getSiteAdapter(site)?.fetchMeta as
-      | ((
-          url: string,
-          comicsID?: string,
-          options?: FetchMetaOptions,
-        ) => SiteMetaStream)
-      | undefined,
+    getFetchChapterPage: (site) => getSiteAdapter(site)?.fetchMeta,
     getManifestVersion: () => chrome.runtime.getManifest().version,
     getRuntimeUrl: (path) => chrome.runtime.getURL(path),
     getSeriesSnapshot,
@@ -97,27 +70,16 @@ function getDefaultDeps(): BackgroundServiceDeps {
 
 function fetchLatestSiteMeta(
   site: string,
-  comicsID: string,
   url: string,
   options: FetchMetaOptions,
   getFetchChapterPage: BackgroundServiceDeps["getFetchChapterPage"],
-) {
+): Promise<SiteMeta> {
   const fetchChapterPage = getFetchChapterPage(site);
   if (!fetchChapterPage) {
     return Promise.reject(new Error(`No fetchMeta adapter for site ${site}.`));
   }
 
-  const result$ =
-    site === "comicbus"
-      ? fetchChapterPage(url, comicsID, options)
-      : fetchChapterPage(url, undefined, options);
-
-  return new Promise<SiteMeta>((resolve, reject) => {
-    result$.subscribe(
-      (value) => resolve(value || {}),
-      (error) => reject(error),
-    );
-  });
+  return firstValueFrom(fetchChapterPage(url, options));
 }
 
 export function setExtensionBadge(count: number) {
@@ -145,7 +107,6 @@ export async function runBackgroundUpdateSummary(
     try {
       const { title, chapterList, cover, chapters } = await fetchLatestSiteMeta(
         site,
-        comicsID,
         comic.url,
         {
           includeCover: !comic.cover,
@@ -254,6 +215,14 @@ export function handlePingBackgroundMessage(
 }
 
 export function resolveReaderRedirect(url: string, getRuntimeUrl = (path: string) => chrome.runtime.getURL(path)) {
+  try {
+    if (new URL(url).searchParams.get(READER_REDIRECT_BYPASS_PARAM) === "1") {
+      return "";
+    }
+  } catch {
+    return "";
+  }
+
   if (comicbusRegex.test(url)) {
     const match = comicbusRegex.exec(url);
     if (!match) return "";

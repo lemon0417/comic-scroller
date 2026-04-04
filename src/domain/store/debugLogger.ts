@@ -1,21 +1,11 @@
 import { createLogger } from "redux-logger";
-
-const DEBUG_KEY = "CS_DEBUG";
-
-function isDebugEnabled() {
-  if (process.env.NODE_ENV === "production") return false;
-  if (typeof window === "undefined") return false;
-  try {
-    return window.localStorage?.getItem(DEBUG_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
+import { isDevLogEnabled } from "@utils/devLog";
 
 export function getDebugLogger() {
-  if (!isDebugEnabled()) return null;
+  if (process.env.NODE_ENV === "production") return null;
   return createLogger({
     collapsed: true,
     duration: true,
+    predicate: () => isDevLogEnabled(),
   });
 }

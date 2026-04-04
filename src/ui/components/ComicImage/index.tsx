@@ -9,6 +9,8 @@ import {
 import { getImageRenderMetrics } from "@domain/utils/readerLayout";
 
 type Props = {
+  chapter?: string;
+  href?: string;
   loading?: boolean;
   src?: string;
   type?: ComicsImageType;
@@ -69,6 +71,7 @@ export class ComicImage extends Component<Props, State> {
 
   render() {
     const variant = this.props.type || "init";
+    const paywallHref = this.props.href || "";
     const pageStyle =
       this.props.type === "end"
         ? undefined
@@ -87,14 +90,36 @@ export class ComicImage extends Component<Props, State> {
         data-variant={variant}
         style={pageStyle}
       >
-        {!this.state.showImage && this.props.type !== "end" ? (
+        {this.props.type === "paywall" ? (
+          <div className="reader-paywall-card">
+            <p className="reader-paywall-title">此章節需要付費解鎖</p>
+            <p className="reader-paywall-desc">
+              DM5 未提供免費圖片頁面，請回原站完成購買或閱讀。
+            </p>
+            {paywallHref ? (
+              <a
+                className="ds-btn-primary"
+                href={paywallHref}
+                target="_blank"
+                rel="noreferrer"
+              >
+                前往 DM5 章節頁
+              </a>
+            ) : undefined}
+          </div>
+        ) : undefined}
+        {!this.state.showImage &&
+        this.props.type !== "end" &&
+        this.props.type !== "paywall" ? (
           <div className="reader-page-loading">
             <span className="text-sm font-medium text-comic-ink/45">
               Loading...
             </span>
           </div>
         ) : undefined}
-        {!this.props.loading && this.props.type !== "end" ? (
+        {!this.props.loading &&
+        this.props.type !== "end" &&
+        this.props.type !== "paywall" ? (
           <img
             style={this.state.showImage ? undefined : { display: "none" }}
             className="block h-full w-full object-contain"
@@ -112,6 +137,7 @@ export class ComicImage extends Component<Props, State> {
 function createFallbackImageRecord(): ComicsImageRecord {
   return {
     chapter: "",
+    href: "",
     src: "",
     loading: true,
     height: 0,
@@ -128,6 +154,8 @@ function makeMapStateToProps(
   const { index } = props;
   return function mapStateToProps({ comics }: { comics: ComicsState }) {
     const {
+      chapter,
+      href,
       src,
       loading,
       type,
@@ -146,6 +174,8 @@ function makeMapStateToProps(
 
     return {
       src,
+      chapter,
+      href,
       loading,
       type,
       height,

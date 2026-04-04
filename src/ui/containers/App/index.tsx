@@ -12,6 +12,7 @@ import {
   getReaderSeriesState,
   subscribeToLibrarySignal,
 } from "@infra/services/library";
+import { devLog } from "@utils/devLog";
 import {
   fetchChapter,
   navigateChapter,
@@ -103,6 +104,13 @@ class App extends Component<AppProps, AppState> {
     });
     const params = new URLSearchParams(window.location.search);
     const chapter = params.get("chapter") || "";
+    devLog("reader:mount", {
+      chapter,
+      propsSite: this.props.site,
+      propsComicsID: this.props.comicsID,
+      propsSeriesKey: this.props.seriesKey,
+      search: window.location.search,
+    });
     if (chapter && this.props.fetchChapter) {
       this.props.fetchChapter(chapter);
     }

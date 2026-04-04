@@ -57,7 +57,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - Actions：`src/domain/actions/`
 - Reducers：`src/domain/reducers/`
 - Epics：`src/epics/`、`src/epics/sites/`、`src/epics/popup/`
-- Sites：`src/sites/`（`registry.ts`、`*/adapter.ts`、`*/meta.ts`）
+- Sites：`src/sites/`（`registry.ts`、`*/adapter.ts`、`*/meta.ts`、站點純 parser/resolver）
 - Services：`src/infra/services/`（`storage.ts`、`library.ts`、`background.ts`）
 - Store：`src/domain/store/`
 - Popup / Manage view state：
@@ -76,7 +76,8 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 ## 重構原則
 - Reducer 必須純函式
 - Side effects 一律放 epics 或 services
-- 站點解析邏輯集中在 `src/epics/sites/`
+- 站點 metadata 差異由 `src/sites/*/adapter.ts` 吃掉；`fetchMeta` 對外回傳 `Observable<SiteMeta>`，background 不應保留站點特例分支
+- 站點純 parser / resolver 優先放在 `src/sites/*`，`src/epics/sites/*` 只負責 ajax/action/repository orchestration
 - 不得在 component、reducer、background 中直接讀寫 IndexedDB 或拼接舊 schema
 - 所有持久化更新優先走 `library.ts`
 - 新增業務流程時，優先使用 query / mutation API，不要新增 `loadLibrary → mutate snapshot → saveLibrary`

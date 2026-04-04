@@ -33,7 +33,9 @@ RSS XML 沒有 cover，因此會再抓一次作品頁 HTML，只解析：
 若作品頁 URL 不是 `manhua-*` 形狀，則 fallback 回舊 HTML parser 流程，避免非標準 URL 直接失效。
 
 ## 3) 章節頁抓取
-來源：`src/epics/sites/dm5.ts`（`fetchImgs$`）
+來源：
+- `src/epics/sites/dm5.ts`：負責 ajax 與 action orchestration
+- `src/sites/dm5/chapter.ts`：負責章節頁 HTML parser、packer 解包、圖片 URL resolver
 
 從章節 HTML 解析：
 - `DM5_IMAGE_COUNT`
@@ -41,6 +43,11 @@ RSS XML 沒有 cover，因此會再抓一次作品頁 HTML，只解析：
 - `DM5_MID`
 - `DM5_VIEWSIGN_DT` / `DM5_VIEWSIGN`
 - `DM5_KEY`（可為空）
+
+若章節頁沒有 `DM5_IMAGE_COUNT`，但存在 `#view-chapterpay-btn` / `.view-pay-btn`，會視為付費章節：
+- 產生一張 `type: "paywall"` placeholder
+- 不自動預載上一章，避免付費卡片後面繼續串出其他章節
+- 原站連結會加上 `?cs_open_native=1`，background 收到這個 marker 時不再重導回 `app.html`
 
 ## 4) chapterfun.ashx（中介）
 ```
@@ -58,6 +65,8 @@ https://www.dm5.com/<DM5_CURL>/chapterfun.ashx
 回應為 obfuscated script（packer 格式）。
 
 ## 5) 解包與解析
+來源：`src/sites/dm5/chapter.ts`
+
 解出：
 - `pix`：CDN base URL
 - `pvalue` / `d` / `hd_c`：圖片路徑

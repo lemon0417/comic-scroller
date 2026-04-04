@@ -1,6 +1,7 @@
 import { from } from "rxjs";
 import { map as rxMap } from "rxjs/operators";
 import type { ChapterRecord } from "@infra/services/library/schema";
+import type { SiteMeta } from "../types";
 
 const baseURL = "http://www.comicbus.com";
 
@@ -116,9 +117,11 @@ const parseFromHtml = (html: string, comicsID: string) => {
   return { title, cover, chapterList, chapters };
 };
 
-export function fetchMeta$(url: string, comicsID: string) {
+export function fetchMeta$(url: string) {
+  const comicsID = extractComicsIDFromUrl(url);
+
   return from(fetch(url).then((response) => response.text())).pipe(
-    rxMap((html) => {
+    rxMap((html): SiteMeta => {
       const Parser = globalThis.DOMParser;
       if (Parser) {
         const doc = new Parser().parseFromString(html, "text/html");
@@ -128,3 +131,13 @@ export function fetchMeta$(url: string, comicsID: string) {
     }),
   );
 }
+const extractComicsIDFromUrl = (url: string) => {
+  try {
+    const pathname = new URL(url).pathname;
+    const match = /\/html\/(\d+)\.html\/?$/.exec(pathname);
+    return match ? match[1] : "";
+  } catch {
+    const match = /\/html\/(\d+)\.html\/?$/.exec(url);
+    return match ? match[1] : "";
+  }
+};
