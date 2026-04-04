@@ -18,6 +18,7 @@ import {
   updateTitle,
   updateComicsID,
   updateChapters,
+  updateCanPreloadPreviousChapter,
   updateChapterList,
   concatImageList,
   loadImgSrc,
@@ -135,10 +136,11 @@ export const fetchImgListEpic: AppEpic = (action$, state$) =>
       return fetchImgs$(chapterList[index]).pipe(
         mergeMap(({ imgList }) => {
           const nowImgList = state$.value.comics.imageList.result;
-          const nextActions: ReaderDispatchAction[] = [concatImageList(imgList)];
-          if (isDm5PaywalledImageList(imgList)) {
-            nextActions.push(updateChapterLatestIndex(-1));
-          }
+          const canPreloadPreviousChapter = !isDm5PaywalledImageList(imgList);
+          const nextActions: ReaderDispatchAction[] = [
+            concatImageList(imgList),
+            updateCanPreloadPreviousChapter(canPreloadPreviousChapter),
+          ];
 
           if (nowImgList.length === 0) {
             return [
@@ -222,6 +224,9 @@ export const fetchChapterEpic: AppEpic = (action$) =>
                       updateChapters(chapters),
                       updateChapterList(chapterList),
                       updateChapterNowIndex(chapterIndex),
+                      updateCanPreloadPreviousChapter(
+                        !isDm5PaywalledImageList(imgList),
+                      ),
                     ];
                     if (
                       chapterIndex > 0 &&
@@ -231,8 +236,6 @@ export const fetchChapterEpic: AppEpic = (action$) =>
                         fetchImgList(chapterIndex - 1),
                         updateChapterLatestIndex(chapterIndex - 1),
                       );
-                    } else if (isDm5PaywalledImageList(imgList)) {
-                      result$.push(updateChapterLatestIndex(-1));
                     } else {
                       result$.push(updateChapterLatestIndex(chapterIndex - 1));
                     }

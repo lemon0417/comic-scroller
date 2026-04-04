@@ -54,6 +54,7 @@ function fromScrollEvent(
     mergeMap(() => {
       const { entity, result } = state$.value.comics.imageList;
       const {
+        canPreloadPreviousChapter,
         chapterList,
         chapterLatestIndex,
         chapterNowIndex,
@@ -87,7 +88,11 @@ function fromScrollEvent(
           chapterList,
           (item) => item === imgChapter,
         );
-        if (chapterLatestIndex === imgChapterIndex && chapterLatestIndex > 0) {
+        if (
+          canPreloadPreviousChapter &&
+          chapterLatestIndex === imgChapterIndex &&
+          chapterLatestIndex > 0
+        ) {
           result$.push(fetchImgList(chapterLatestIndex - 1));
           result$.push(updateChapterLatestIndex(chapterLatestIndex - 1));
         }

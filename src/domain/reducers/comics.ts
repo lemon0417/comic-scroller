@@ -35,6 +35,7 @@ export type ComicsState = {
   title: string;
   chapterLatestIndex: number;
   chapterNowIndex: number;
+  canPreloadPreviousChapter: boolean;
   baseURL: string;
   subscribe: boolean;
   chapters: Record<string, ComicsChapterRecord>;
@@ -80,6 +81,7 @@ const initialState: ComicsState = {
   title: "",
   chapterLatestIndex: 0,
   chapterNowIndex: 0,
+  canPreloadPreviousChapter: true,
   baseURL: "",
   subscribe: false,
   chapters: {},
@@ -100,6 +102,8 @@ const UPDATE_CHAPTERS = "UPDATE_CHAPTERS";
 const UPDATE_CHAPTER_LIST = "UPDATE_CHAPTER_LIST";
 const UPDATE_CHAPTER_LATEST_INDEX = "UPDATE_CHAPTER_LATEST_INDEX";
 export const UPDATE_CHAPTER_NOW_INDEX = "UPDATE_CHAPTER_NOW_INDEX";
+const UPDATE_CAN_PRELOAD_PREVIOUS_CHAPTER =
+  "UPDATE_CAN_PRELOAD_PREVIOUS_CHAPTER";
 const UPDATE_RENDER_INDEX = "UPDATE_RENDER_INDEX";
 const UPDATE_READ_CHAPTERS = "UPDATE_READ_CHAPTERS";
 const CONCAT_IMAGE_LIST = "CONCAT_IMAGE_LIST";
@@ -235,6 +239,12 @@ export default function comics(
         ...state,
         chapterNowIndex: action.data,
       };
+    case UPDATE_CAN_PRELOAD_PREVIOUS_CHAPTER:
+      if (typeof action.data !== "boolean") return state;
+      return {
+        ...state,
+        canPreloadPreviousChapter: action.data,
+      };
     case UPDATE_RENDER_INDEX:
       return {
         ...state,
@@ -357,6 +367,10 @@ export function updateChapterLatestIndex(data: number) {
 
 export function updateChapterNowIndex(data: number) {
   return { type: UPDATE_CHAPTER_NOW_INDEX, data };
+}
+
+export function updateCanPreloadPreviousChapter(data: boolean) {
+  return { type: UPDATE_CAN_PRELOAD_PREVIOUS_CHAPTER, data };
 }
 
 export function updateRenderIndex(begin: number, end: number) {

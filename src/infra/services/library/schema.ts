@@ -168,7 +168,13 @@ export function canonicalizeComicsID(site: string, comicsID: string) {
   const raw = String(comicsID || "");
   if (!raw) return "";
   if (site === "dm5") {
-    return raw.startsWith("m") ? raw : `m${raw}`;
+    if (/^\d+$/.test(raw)) {
+      return `m${raw}`;
+    }
+    if (/^m\d+$/i.test(raw)) {
+      return `m${raw.slice(1)}`;
+    }
+    return raw;
   }
   return raw;
 }

@@ -47,7 +47,8 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - `updates`
 - `SeriesKey` 格式為 `${site}:${comicsID}`
 - `comicsID` 使用站點原生 canonical 格式：
-  - DM5 一律使用 `m123`
+  - DM5 作品系列可使用 `manhua-*` slug
+  - DM5 若傳入純數字或 `m123` 章節型 ID，才 canonical 成 `m123`
   - SF / ComicBus 維持原站點 ID
 - 舊版 storage schema 會在載入時自動 migration 到 IndexedDB
 - 匯出格式改為 DB dump JSON；匯入同時支援新 dump 與舊版 JSON
@@ -65,6 +66,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - `getPopupFeedSnapshot()` 直接回傳 UI 所需的 feed model，不再把 `LibrarySnapshotV2` 放進 popup store
 - Reader view state：
   - `comics` state 保存 canonical `seriesKey`
+  - 是否允許向前預載章節，由 `canPreloadPreviousChapter` 顯式控制，不使用 sentinel index 表示流程狀態
   - reader UI 同步 library 狀態時，優先使用單一 query `getReaderSeriesState()`，不要拆成多次查詢再自行拼裝
 - Background：
   - `src/background.ts` 只保留 MV3 listener wiring

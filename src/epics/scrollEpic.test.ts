@@ -14,6 +14,7 @@ function setup() {
   const { default: scrollEpic } = require("./scrollEpic");
   const { updateRenderIndex } = require("@domain/reducers/comics");
   const {
+    fetchImgList,
     fetchImgSrc,
     startScroll,
     updateRead,
@@ -24,6 +25,7 @@ function setup() {
     startScroll,
     updateRenderIndex,
     fetchImgSrc,
+    fetchImgList,
     updateRead,
   };
 }
@@ -87,6 +89,51 @@ describe("scrollEpic", () => {
         updateRead(0),
       ]),
     );
+
+    subscription.unsubscribe();
+    jest.useRealTimers();
+  });
+
+  it("does not auto-preload previous chapter when the preload flag is disabled", () => {
+    jest.useFakeTimers();
+
+    const { fetchImgList, scrollEpic, startScroll } = setup();
+
+    const state$ = {
+      value: {
+        comics: {
+          canPreloadPreviousChapter: false,
+          imageList: {
+            result: [0],
+            entity: {
+              0: { height: 100, type: "paywall", chapter: "c2" },
+            },
+          },
+          chapterList: ["c1", "c2"],
+          chapterLatestIndex: 1,
+          chapterNowIndex: 1,
+          renderBeginIndex: -6,
+          renderEndIndex: 6,
+          innerWidth: 1200,
+          innerHeight: 800,
+        },
+      },
+    };
+
+    Object.defineProperty(window, "pageYOffset", {
+      value: 0,
+      configurable: true,
+    });
+
+    const actions: any[] = [];
+    const subscription = scrollEpic(of(startScroll()), state$ as any).subscribe(
+      (action: any) => actions.push(action),
+    );
+
+    document.dispatchEvent(new Event("scroll"));
+    jest.runAllTimers();
+
+    expect(actions).not.toContainEqual(fetchImgList(0));
 
     subscription.unsubscribe();
     jest.useRealTimers();

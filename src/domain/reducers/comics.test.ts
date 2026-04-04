@@ -1,6 +1,7 @@
 import comics, {
   concatImageList,
   resetImg,
+  updateCanPreloadPreviousChapter,
   updateComicsID,
   updateInnerHeight,
   updateInnerWidth,
@@ -45,6 +46,30 @@ describe("comics reducer", () => {
     const nextState = comics(withSite, updateComicsID("123") as any);
 
     expect(nextState.seriesKey).toBe("dm5:m123");
+  });
+
+  it("keeps DM5 series slugs unchanged when building seriesKey", () => {
+    const prevState = comics(undefined, { type: "@@INIT" } as any) as any;
+    const withSite = comics(
+      prevState,
+      updateSiteInfo("dm5", "https://www.dm5.com") as any,
+    );
+    const nextState = comics(
+      withSite,
+      updateComicsID("manhua-bailianchengshen") as any,
+    );
+
+    expect(nextState.seriesKey).toBe("dm5:manhua-bailianchengshen");
+  });
+
+  it("updates canPreloadPreviousChapter explicitly", () => {
+    const prevState = comics(undefined, { type: "@@INIT" } as any) as any;
+    const nextState = comics(
+      prevState,
+      updateCanPreloadPreviousChapter(false) as any,
+    );
+
+    expect(nextState.canPreloadPreviousChapter).toBe(false);
   });
 
   it("keeps paywall placeholder images non-loading", () => {
