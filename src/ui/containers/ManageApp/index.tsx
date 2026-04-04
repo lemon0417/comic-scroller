@@ -41,7 +41,6 @@ type ManageRowsListProps = {
 };
 
 const MANAGE_ROW_DEFAULT_HEIGHT = 112;
-const MANAGE_LIST_MAX_HEIGHT = 720;
 const MANAGE_LIST_OVERSCAN_COUNT = 6;
 
 type ManageAppProps = PopupViewProps & {
@@ -324,18 +323,6 @@ function ManageAppComponent(props: ManageAppProps) {
     [currentRows, handleForgetSeries, requestRemoveCardProp, selectedTab],
   );
 
-  const listHeight = useMemo(
-    () =>
-      Math.min(
-        MANAGE_LIST_MAX_HEIGHT,
-        Math.max(
-          MANAGE_ROW_DEFAULT_HEIGHT,
-          currentRows.length * rowHeights.getAverageRowHeight(),
-        ),
-      ),
-    [currentRows.length, rowHeights],
-  );
-
   const renderRows = () => {
     if (isLoading) {
       return <LoadingRows count={4} />;
@@ -377,7 +364,7 @@ function ManageAppComponent(props: ManageAppProps) {
         rowHeight={rowHeights}
         rowProps={rowProps}
         style={{
-          height: listHeight,
+          height: "100%",
           width: "100%",
         }}
       />
@@ -385,8 +372,8 @@ function ManageAppComponent(props: ManageAppProps) {
   };
 
   return (
-    <div className="min-h-screen bg-comic-paper2 px-6 py-8 text-comic-ink">
-      <Panel className="mx-auto min-h-[calc(100vh-4rem)] w-full max-w-5xl overflow-hidden">
+    <div className="h-screen overflow-hidden bg-comic-paper2 px-6 py-8 text-comic-ink">
+      <Panel className="mx-auto h-[calc(100vh-4rem)] w-full max-w-5xl overflow-hidden">
         <div className="border-b border-comic-ink/10 px-6 py-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -419,7 +406,11 @@ function ManageAppComponent(props: ManageAppProps) {
             </Tabs>
           </div>
         </div>
-        <Content className="px-6 py-6">
+        <Content
+          className={`px-6 py-6 ${
+            selectedTab === "data" ? "overflow-y-auto" : "overflow-hidden"
+          }`}
+        >
           {localError ? (
             <div className="mb-4">
               <NoticeBanner

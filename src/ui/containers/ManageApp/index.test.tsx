@@ -34,6 +34,11 @@ function createFeedEntry(
 describe("ManageApp", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/manage.html?tab=history");
+    (global as any).ResizeObserver = class ResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
     (global as any).chrome = {
       runtime: {
         getURL: jest.fn((path: string) => `chrome-extension://test/${path}`),
@@ -46,6 +51,7 @@ describe("ManageApp", () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    delete (global as any).ResizeObserver;
   });
 
   it("confirms and forgets a history entry", () => {
