@@ -37,6 +37,12 @@ RSS XML 沒有 cover，因此會再抓一次作品頁 HTML，只解析：
 - `src/epics/sites/dm5.ts`：負責 ajax 與 action orchestration
 - `src/sites/dm5/chapter.ts`：負責章節頁 HTML parser、packer 解包、圖片 URL resolver
 
+DM5 reader 流程裡，章節身分和作品身分必須分開看：
+- `chapterID`：`m1753397` 這種章節頁 ID，來自 `app.html?site=dm5&chapter=m1753397`
+- `seriesSlug`：`manhua-bailianchengshen` 這種作品 slug，從章節頁作品連結或 `DM5_CURL` 解析出來
+
+parser 對外回傳 `chapterID + seriesSlug + imgList`，epic 只在寫入通用 reducer/repository 時，才把 `seriesSlug` 映射到既有 `comicsID` 欄位；不要在 DM5 parser/epic 內把兩者都叫 `comicsID`
+
 從章節 HTML 解析：
 - `DM5_IMAGE_COUNT`
 - `DM5_CID` / `DM5_CURL`

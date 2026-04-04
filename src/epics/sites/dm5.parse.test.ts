@@ -26,8 +26,8 @@ describe("dm5 parser helpers", () => {
     `;
 
     expect(parseDm5ChapterPage(html, "m1753397")).toEqual({
-      chapter: "m1753397",
-      comicsID: "manhua-demo",
+      chapterID: "m1753397",
+      seriesSlug: "manhua-demo",
       imgList: [
         {
           chapter: "m1753397",
@@ -105,8 +105,8 @@ describe("dm5 parser helpers", () => {
       `;
 
       expect(parseDm5ChapterPage(html, "m1753397")).toEqual({
-        chapter: "m1753397",
-        comicsID: "manhua-fallback",
+        chapterID: "m1753397",
+        seriesSlug: "manhua-fallback",
         imgList: [
           expect.objectContaining({
             chapter: "m1753397",
@@ -138,8 +138,8 @@ describe("dm5 parser helpers", () => {
     `;
 
     expect(parseDm5ChapterPage(html, "m1655813")).toEqual({
-      chapter: "m1655813",
-      comicsID: "manhua-paid",
+      chapterID: "m1655813",
+      seriesSlug: "manhua-paid",
       imgList: [
         {
           chapter: "m1655813",

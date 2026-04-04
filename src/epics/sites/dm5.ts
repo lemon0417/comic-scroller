@@ -63,23 +63,23 @@ const baseURL = "https://www.dm5.com";
 const isDm5PaywalledImageList = (imgList: Array<{ type?: string }>) =>
   imgList[0]?.type === "paywall";
 
-function fetchImgs$(chapter: string) {
+function fetchImgs$(chapterID: string) {
   devLog("dm5:fetchImgs:start", {
-    chapter,
-    url: `${baseURL}/${chapter}/`,
+    chapterID,
+    url: `${baseURL}/${chapterID}/`,
   });
 
   return ajax({
-    url: `${baseURL}/${chapter}/`,
+    url: `${baseURL}/${chapterID}/`,
     responseType: "text",
   }).pipe(
     mergeMap(function fetchImgPageHandler({ response }) {
       const html =
         typeof response === "string" ? response : String(response ?? "");
-      const parsedChapter = parseDm5ChapterPage(html, chapter);
+      const parsedChapter = parseDm5ChapterPage(html, chapterID);
       devLog("dm5:fetchImgs:parsed", {
-        chapter,
-        comicsID: parsedChapter.comicsID,
+        chapterID: parsedChapter.chapterID,
+        seriesSlug: parsedChapter.seriesSlug,
         imgListLength: parsedChapter.imgList.length,
         firstSrc: parsedChapter.imgList[0]?.src || "",
         firstCID: parsedChapter.imgList[0]?.cid || "",
@@ -160,26 +160,26 @@ export const fetchChapterEpic: AppEpic = (action$) =>
   action$.pipe(
     ofType(FETCH_CHAPTER),
     mergeMap((action) => {
-      const { chapter: actionChapter } = action as ReaderChapterAction;
+      const { chapter: actionChapterID } = action as ReaderChapterAction;
 
-      return fetchImgs$(actionChapter).pipe(
-        mergeMap(({ chapter, imgList, comicsID }) => {
-          const comicUrl = `${baseURL}/${comicsID}/`;
+      return fetchImgs$(actionChapterID).pipe(
+        mergeMap(({ chapterID, imgList, seriesSlug }) => {
+          const comicUrl = `${baseURL}/${seriesSlug}/`;
           devLog("dm5:fetchChapter:resolvedComic", {
-            actionChapter,
-            chapter,
-            comicsID,
+            actionChapterID,
+            chapterID,
+            seriesSlug,
             comicUrl,
             imgListLength: imgList.length,
           });
 
           return merge(
-            of(updateComicsID(comicsID)),
+            of(updateComicsID(seriesSlug)),
             of(concatImageList(imgList)),
             of(updateRenderIndex(0, 6)),
             of(fetchImgSrc(0, 6)),
             of(startScroll()),
-            from(getSeriesSnapshot(buildSeriesKey("dm5", comicsID))).pipe(
+            from(getSeriesSnapshot(buildSeriesKey("dm5", seriesSlug))).pipe(
               mergeMap((series) =>
                 fetchMeta$(comicUrl, {
                   includeCover: !series?.cover,
@@ -187,20 +187,20 @@ export const fetchChapterEpic: AppEpic = (action$) =>
               ),
               mergeMap(({ title, cover, chapterList, chapters }) => {
                 devLog("dm5:fetchChapter:metaLoaded", {
-                  comicsID,
+                  seriesSlug,
                   title: title || "",
                   cover,
                   chapterListLength: chapterList.length,
-                  currentChapter: chapter,
+                  currentChapterID: chapterID,
                 });
                 const chapterIndex = findIndex(
                   chapterList,
-                  (item) => item === chapter,
+                  (item) => item === chapterID,
                 );
                 return from(
                   applyReaderSeriesState(
                     "dm5",
-                    comicsID,
+                    seriesSlug,
                     {
                       title,
                       chapters,
@@ -208,7 +208,7 @@ export const fetchChapterEpic: AppEpic = (action$) =>
                       cover,
                       url: comicUrl,
                     },
-                    chapter,
+                    chapterID,
                   ),
                 ).pipe(
                   mergeMap(({ series, subscribed, updatesCount }) => {
@@ -217,7 +217,7 @@ export const fetchChapterEpic: AppEpic = (action$) =>
                     });
                     const result$: ReaderDispatchAction[] = [
                       updateSiteInfo("dm5", baseURL),
-                      updateComicsID(comicsID),
+                      updateComicsID(seriesSlug),
                       updateSubscribe(subscribed),
                       updateTitle(title || ""),
                       updateReadChapters(series?.read || []),
@@ -258,8 +258,8 @@ export const updateReadEpic: AppEpic = (action$, state$) =>
 
       return from(
         (() => {
-          const { comicsID, chapterList } = state$.value.comics;
-          return applyReadProgress("dm5", comicsID, chapterList[index]);
+          const { comicsID: seriesSlug, chapterList } = state$.value.comics;
+          return applyReadProgress("dm5", seriesSlug, chapterList[index]);
         })(),
       ).pipe(
         mergeMap(({ series, updatesCount }) => {

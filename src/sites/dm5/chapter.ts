@@ -13,8 +13,8 @@ export type Dm5ChapterImageEntry = {
 };
 
 export type Dm5ChapterPageMeta = {
-  chapter: string;
-  comicsID: string;
+  chapterID: string;
+  seriesSlug: string;
   imgList: Dm5ChapterImageEntry[];
 };
 
@@ -131,7 +131,7 @@ const extractScriptVar = (script: string, name: string) => {
   return (value || "").trim();
 };
 
-const parseDomChapterPage = (html: string, chapter: string) => {
+const parseDomChapterPage = (html: string, chapterID: string) => {
   const Parser = globalThis.DOMParser;
   if (!Parser) return null;
 
@@ -150,7 +150,7 @@ const parseDomChapterPage = (html: string, chapter: string) => {
   );
 
   return buildChapterPageMeta(
-    chapter,
+    chapterID,
     scriptText,
     anchor?.getAttribute("href") || "",
     dm5Key,
@@ -158,13 +158,13 @@ const parseDomChapterPage = (html: string, chapter: string) => {
   );
 };
 
-const parseHtmlChapterPage = (html: string, chapter: string) => {
+const parseHtmlChapterPage = (html: string, chapterID: string) => {
   const anchorMatch =
     /<div[^>]*class="title"[\s\S]*?<span[^>]*>\s*<a[^>]*href="([^"]+)"/i.exec(
       html,
     );
   return buildChapterPageMeta(
-    chapter,
+    chapterID,
     html,
     anchorMatch ? anchorMatch[1] : "",
     extractDm5InputKey(html),
@@ -180,14 +180,18 @@ const extractDm5InputKey = (html: string) => {
   return valueMatch ? valueMatch[1] : "";
 };
 
-const buildDm5PaywallHref = (chapter: string) => {
-  const paywallUrl = new URL(`/${chapter}/`, baseURL);
+const buildDm5PaywallHref = (chapterID: string) => {
+  const paywallUrl = new URL(`/${chapterID}/`, baseURL);
   paywallUrl.searchParams.set(READER_REDIRECT_BYPASS_PARAM, "1");
   return paywallUrl.toString();
 };
 
+const parseSeriesSlug = (comicHref: string, curlRaw: string) =>
+  comicHref.replace(/^\/+|\/+$/g, "") ||
+  curlRaw.replace(/^\/+|\/+$/g, "");
+
 function buildChapterPageMeta(
-  chapter: string,
+  chapterID: string,
   scriptText: string,
   comicHref: string,
   dm5KeyFallback: string,
@@ -204,13 +208,13 @@ function buildChapterPageMeta(
 
   if (imageCount <= 0 && paywalled) {
     return {
-      chapter,
-      comicsID: comicHref.replace(/\//g, "") || curlRaw.replace(/\//g, ""),
+      chapterID,
+      seriesSlug: parseSeriesSlug(comicHref, curlRaw),
       imgList: [
         {
-          chapter,
+          chapter: chapterID,
           cid,
-          href: buildDm5PaywallHref(chapter),
+          href: buildDm5PaywallHref(chapterID),
           key,
           src: "",
           type: "paywall",
@@ -220,8 +224,8 @@ function buildChapterPageMeta(
   }
 
   return {
-    chapter,
-    comicsID: comicHref.replace(/\//g, "") || curlRaw.replace(/\//g, ""),
+    chapterID,
+    seriesSlug: parseSeriesSlug(comicHref, curlRaw),
     imgList: Array.from({ length: imageCount }, (_v, k) => ({
       src:
         `${baseURL}/${curl}chapterfun.ashx?` +
@@ -234,7 +238,7 @@ function buildChapterPageMeta(
         `&_mid=${mid}` +
         `&_dt=${encodeURIComponent(viewSignDt).replace(/%20/g, "+")}` +
         `&_sign=${viewSign}`,
-      chapter: `m${cid}`,
+      chapter: chapterID,
       cid,
       key,
     })),
@@ -243,7 +247,8 @@ function buildChapterPageMeta(
 
 function hasValidChapterPageMeta(meta: Dm5ChapterPageMeta) {
   return (
-    Boolean(meta.comicsID) &&
+    Boolean(meta.seriesSlug) &&
+    Boolean(meta.chapterID) &&
     meta.imgList.length > 0 &&
     meta.imgList.every((item) =>
       item.type === "paywall"
@@ -334,11 +339,11 @@ export function resolveDm5ImageUrl(
 
 export function parseDm5ChapterPage(
   html: string,
-  chapter: string,
+  chapterID: string,
 ): Dm5ChapterPageMeta {
-  const domMeta = parseDomChapterPage(html, chapter);
+  const domMeta = parseDomChapterPage(html, chapterID);
   if (domMeta && hasValidChapterPageMeta(domMeta)) {
     return domMeta;
   }
-  return parseHtmlChapterPage(html, chapter);
+  return parseHtmlChapterPage(html, chapterID);
 }
