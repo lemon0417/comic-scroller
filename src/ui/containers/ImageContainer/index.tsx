@@ -1,86 +1,133 @@
-import { Component } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { connect } from "react-redux";
-import { createSelector } from "reselect";
-import map from "lodash/map";
+import {
+  List,
+  type RowComponentProps,
+  useDynamicRowHeight,
+} from "react-window";
 import Loading from "@components/Loading";
 import ConnectedComicImage from "@components/ComicImage";
+import { updateVisibleImageRange } from "@domain/actions/reader";
 import type { ComicsState } from "@domain/reducers/comics";
 import {
-  READER_BOTTOM_PADDING,
+  DEFAULT_IMAGE_HEIGHT,
   READER_HEADER_HEIGHT,
-  READER_TOP_PADDING,
-  buildImageOffsetLayout,
+  READER_IMAGE_GAP,
 } from "@domain/utils/readerLayout";
 
 type ImageContainerProps = {
-  paddingBottom: number;
-  paddingTop: number;
-  renderResult: number[];
+  imageListKey: string;
+  imageResult: number[];
+  innerHeight: number;
+  updateVisibleImageRange: typeof updateVisibleImageRange;
 };
 
-class ImageContainer extends Component<ImageContainerProps> {
-  render() {
+type ReaderImageRowProps = {
+  imageResult: number[];
+};
+
+const READER_LIST_OVERSCAN_COUNT = 6;
+const READER_DEFAULT_ROW_HEIGHT = DEFAULT_IMAGE_HEIGHT + 2 * READER_IMAGE_GAP;
+const EMPTY_VISIBLE_RANGE = { begin: -1, end: -1 };
+
+function ReaderImageRow({
+  ariaAttributes,
+  imageResult,
+  index,
+  style,
+}: RowComponentProps<ReaderImageRowProps>) {
+  const imageIndex = imageResult[index];
+  if (typeof imageIndex !== "number") {
+    return null;
+  }
+
+  return (
+    <div {...ariaAttributes} className="reader-image-row" style={style}>
+      <ConnectedComicImage index={imageIndex} />
+    </div>
+  );
+}
+
+function ImageContainer({
+  imageListKey,
+  imageResult,
+  innerHeight,
+  updateVisibleImageRange: updateVisibleImageRangeProp,
+}: ImageContainerProps) {
+  const lastVisibleRangeRef = useRef(EMPTY_VISIBLE_RANGE);
+  const rowHeights = useDynamicRowHeight({
+    defaultRowHeight: READER_DEFAULT_ROW_HEIGHT,
+    key: imageListKey,
+  });
+  const rowProps = useMemo<ReaderImageRowProps>(
+    () => ({ imageResult }),
+    [imageResult],
+  );
+
+  const handleRowsRendered = useCallback(
+    (visibleRows: { startIndex: number; stopIndex: number }) => {
+      const nextRange = {
+        begin: visibleRows.startIndex,
+        end: visibleRows.stopIndex,
+      };
+      const prevRange = lastVisibleRangeRef.current;
+      if (
+        prevRange.begin === nextRange.begin &&
+        prevRange.end === nextRange.end
+      ) {
+        return;
+      }
+      lastVisibleRangeRef.current = nextRange;
+      updateVisibleImageRangeProp(nextRange.begin, nextRange.end);
+    },
+    [updateVisibleImageRangeProp],
+  );
+
+  if (imageResult.length === 0) {
     return (
-      <main
-        className="reader-canvas"
-        aria-label="Comic pages"
-        style={{
-          paddingTop:
-            this.props.paddingTop + READER_HEADER_HEIGHT + READER_TOP_PADDING,
-          paddingBottom: this.props.paddingBottom + READER_BOTTOM_PADDING,
-        }}
-      >
-        {this.props.renderResult.length > 0 ? (
-          map(this.props.renderResult, (key) => (
-            <ConnectedComicImage key={key} index={key} />
-          ))
-        ) : (
-          <Loading />
-        )}
+      <main className="reader-canvas reader-loading" aria-label="Comic pages">
+        <Loading />
       </main>
     );
   }
+
+  return (
+    <List
+      className="reader-canvas popup-scrollbar scrollbar-stable"
+      onRowsRendered={handleRowsRendered}
+      overscanCount={READER_LIST_OVERSCAN_COUNT}
+      rowComponent={ReaderImageRow}
+      rowCount={imageResult.length}
+      rowHeight={rowHeights}
+      rowProps={rowProps}
+      style={{
+        height: Math.max(320, innerHeight - READER_HEADER_HEIGHT),
+        left: 0,
+        position: "fixed",
+        right: 0,
+        top: READER_HEADER_HEIGHT,
+        width: "100%",
+      }}
+    />
+  );
 }
 
-const getRenderResult = createSelector(
-  (comics: ComicsState) => comics.imageList.result,
-  (comics: ComicsState) => comics.renderBeginIndex,
-  (comics: ComicsState) => comics.renderEndIndex,
-  (result, begin, end) =>
-    result.slice(
-      Math.max(0, begin),
-      Math.max(0, Math.min(result.length, end + 1)),
-    ),
-);
-
-const getImageOffsetLayout = createSelector(
-  (comics: ComicsState) => comics.imageList.result,
-  (comics: ComicsState) => comics.imageList.entity,
-  (comics: ComicsState) => comics.innerWidth,
-  (comics: ComicsState) => comics.innerHeight,
-  buildImageOffsetLayout,
-);
-
-const getPaddingTop = createSelector(
-  getImageOffsetLayout,
-  (comics: ComicsState) => comics.renderBeginIndex,
-  (layout, begin) => layout.offsets[Math.max(0, Math.min(begin, layout.offsets.length - 1))],
-);
-
-const getPaddingBottom = createSelector(
-  getImageOffsetLayout,
-  (comics: ComicsState) => comics.renderEndIndex,
-  (layout, end) =>
-    layout.totalHeight -
-    layout.offsets[Math.max(0, Math.min(end + 1, layout.offsets.length - 1))],
-);
-
 function mapStateToProps({ comics }: { comics: ComicsState }) {
+  const imageResult = comics.imageList.result;
+  const firstImageIndex = imageResult[0];
+
   return {
-    paddingTop: getPaddingTop(comics),
-    paddingBottom: getPaddingBottom(comics),
-    renderResult: getRenderResult(comics),
+    imageListKey:
+      typeof firstImageIndex === "number"
+        ? comics.imageList.entity[firstImageIndex]?.chapter || "reader-list"
+        : "reader-list",
+    imageResult,
+    innerHeight: comics.innerHeight,
   };
 }
 
-export default connect(mapStateToProps)(ImageContainer);
+export { ImageContainer };
+
+export default connect(mapStateToProps, {
+  updateVisibleImageRange,
+})(ImageContainer);

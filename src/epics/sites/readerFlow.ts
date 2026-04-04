@@ -13,7 +13,6 @@ import {
   UPDATE_READ,
   fetchImgList,
   fetchImgSrc,
-  startScroll,
 } from "@domain/actions/reader";
 import {
   concatImageList,
@@ -25,7 +24,6 @@ import {
   updateChapters,
   updateComicsID,
   updateReadChapters,
-  updateRenderIndex,
   updateSiteInfo,
   updateSubscribe,
   updateTitle,
@@ -85,9 +83,7 @@ function buildInitialChapterActions(payload: ReaderChapterPayload): EpicAction[]
   return [
     updateComicsID(payload.seriesID),
     concatImageList(payload.imgList),
-    updateRenderIndex(0, 6),
     fetchImgSrc(0, 6),
-    startScroll(),
   ];
 }
 
@@ -171,12 +167,7 @@ export function createFetchImgListEpic(
             if (hasExistingImages) {
               return actions;
             }
-            return [
-              ...actions,
-              updateRenderIndex(0, 6),
-              fetchImgSrc(0, 6),
-              startScroll(),
-            ];
+            return [...actions, fetchImgSrc(0, 6)];
           }),
         );
       }),

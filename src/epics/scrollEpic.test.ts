@@ -12,35 +12,26 @@ function setup() {
   });
 
   const { default: scrollEpic } = require("./scrollEpic");
-  const { updateRenderIndex } = require("@domain/reducers/comics");
   const {
     fetchImgList,
     fetchImgSrc,
-    startScroll,
     updateRead,
+    updateVisibleImageRange,
   } = require("@domain/actions/reader");
 
   return {
     scrollEpic,
-    startScroll,
-    updateRenderIndex,
     fetchImgSrc,
     fetchImgList,
     updateRead,
+    updateVisibleImageRange,
   };
 }
 
 describe("scrollEpic", () => {
-  it("emits render and read updates on scroll", () => {
-    jest.useFakeTimers();
-
-    const {
-      scrollEpic,
-      startScroll,
-      updateRenderIndex,
-      fetchImgSrc,
-      updateRead,
-    } = setup();
+  it("emits image loading and read updates for the visible range", () => {
+    const { scrollEpic, fetchImgSrc, updateRead, updateVisibleImageRange } =
+      setup();
 
     const state$ = {
       value: {
@@ -54,8 +45,6 @@ describe("scrollEpic", () => {
           chapterList: ["c1"],
           chapterLatestIndex: 0,
           chapterNowIndex: 1,
-          renderBeginIndex: 1,
-          renderEndIndex: 1,
           innerWidth: 1200,
           innerHeight: 800,
         },
@@ -71,7 +60,7 @@ describe("scrollEpic", () => {
       configurable: true,
     });
 
-    const action$ = of(startScroll());
+    const action$ = of(updateVisibleImageRange(0, 0));
     const output$ = scrollEpic(action$, state$ as any);
 
     const actions: any[] = [];
@@ -79,25 +68,18 @@ describe("scrollEpic", () => {
       actions.push(action),
     );
 
-    document.dispatchEvent(new Event("scroll"));
-    jest.runAllTimers();
-
     expect(actions).toEqual(
       expect.arrayContaining([
-        updateRenderIndex(-6, 6),
         fetchImgSrc(-6, 6),
         updateRead(0),
       ]),
     );
 
     subscription.unsubscribe();
-    jest.useRealTimers();
   });
 
   it("does not auto-preload previous chapter when the preload flag is disabled", () => {
-    jest.useFakeTimers();
-
-    const { fetchImgList, scrollEpic, startScroll } = setup();
+    const { fetchImgList, scrollEpic, updateVisibleImageRange } = setup();
 
     const state$ = {
       value: {
@@ -112,30 +94,20 @@ describe("scrollEpic", () => {
           chapterList: ["c1", "c2"],
           chapterLatestIndex: 1,
           chapterNowIndex: 1,
-          renderBeginIndex: -6,
-          renderEndIndex: 6,
           innerWidth: 1200,
           innerHeight: 800,
         },
       },
     };
 
-    Object.defineProperty(window, "pageYOffset", {
-      value: 0,
-      configurable: true,
-    });
-
     const actions: any[] = [];
-    const subscription = scrollEpic(of(startScroll()), state$ as any).subscribe(
-      (action: any) => actions.push(action),
-    );
-
-    document.dispatchEvent(new Event("scroll"));
-    jest.runAllTimers();
+    const subscription = scrollEpic(
+      of(updateVisibleImageRange(0, 0)),
+      state$ as any,
+    ).subscribe((action: any) => actions.push(action));
 
     expect(actions).not.toContainEqual(fetchImgList(0));
 
     subscription.unsubscribe();
-    jest.useRealTimers();
   });
 });

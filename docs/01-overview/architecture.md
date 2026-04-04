@@ -68,6 +68,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - `getPopupFeedSnapshot()` 直接回傳 UI 所需的 feed model，不再把 `LibrarySnapshotV2` 放進 popup store
 - Reader view state：
   - `comics` state 保存 canonical `seriesKey`
+  - 圖片閱讀列表使用 `react-window` 虛擬化；`ImageContainer` 透過 `onRowsRendered` 回報目前可視 row 範圍，再由 `scrollEpic` 觸發圖片載入、已讀更新與前章預載
   - 是否允許向前預載章節，由 `canPreloadPreviousChapter` 顯式控制，不使用 sentinel index 表示流程狀態
   - reader UI 同步 library 狀態時，優先使用單一 query `getReaderSeriesState()`，不要拆成多次查詢再自行拼裝
 - Background：

@@ -7,6 +7,7 @@ export const STOP_SCROLL_EPIC = "STOP_SCROLL_EPIC";
 export const START_RESIZE_EPIC = "START_RESIZE_EPIC";
 export const NAVIGATE_CHAPTER = "NAVIGATE_CHAPTER";
 export const TOGGLE_SUBSCRIBE = "TOGGLE_SUBSCRIBE";
+export const UPDATE_VISIBLE_IMAGE_RANGE = "UPDATE_VISIBLE_IMAGE_RANGE";
 
 export function fetchChapter(chapter: string) {
   return { type: FETCH_CHAPTER, chapter };
@@ -42,4 +43,8 @@ export function navigateChapter(index: number) {
 
 export function toggleSubscribe() {
   return { type: TOGGLE_SUBSCRIBE };
+}
+
+export function updateVisibleImageRange(begin: number, end: number) {
+  return { type: UPDATE_VISIBLE_IMAGE_RANGE, begin, end };
 }

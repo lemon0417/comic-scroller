@@ -359,11 +359,15 @@
   }
 
   .reader-canvas {
-    @apply flex min-h-screen w-full flex-col items-center justify-start overflow-x-hidden;
+    @apply fixed inset-x-0 bottom-0 top-12 overflow-x-hidden;
+  }
+
+  .reader-image-row {
+    @apply flex w-full items-center justify-center py-4;
   }
 
   .reader-page-surface {
-    @apply my-4 flex items-center justify-center overflow-hidden rounded-[18px];
+    @apply flex items-center justify-center overflow-hidden rounded-[18px];
     border: 1px solid rgba(15, 23, 42, 0.08);
     background: #ffffff;
     box-shadow:
@@ -376,7 +380,7 @@
   }
 
   .reader-end-marker {
-    @apply my-4 inline-flex h-[72px] items-center justify-center rounded-full px-5 text-[13px] font-medium tracking-[0.02em] text-comic-ink/55;
+    @apply inline-flex h-[72px] items-center justify-center rounded-full px-5 text-[13px] font-medium tracking-[0.02em] text-comic-ink/55;
     border: 1px solid rgba(15, 23, 42, 0.08);
     background: rgba(255, 255, 255, 0.92);
   }
