@@ -10,7 +10,6 @@ import Content from "@components/Content";
 import EmptyState from "@components/EmptyState";
 import LoadingRows from "@components/LoadingRows";
 import NoticeBanner from "@components/NoticeBanner";
-import Panel from "@components/Panel";
 import SeriesRow from "@components/SeriesRow";
 import Tabs from "@components/Tabs";
 import {
@@ -54,6 +53,17 @@ type ManageAppProps = PopupViewProps & {
 };
 
 const TAB_OPTIONS: ManageTab[] = ["updates", "following", "history", "data"];
+
+function renderTabLabel(label: string, count?: number) {
+  return (
+    <span className="manage-tab-label">
+      <span>{label}</span>
+      {typeof count === "number" ? (
+        <span className="manage-tab-count">{count}</span>
+      ) : null}
+    </span>
+  );
+}
 
 function getInitialTab(): ManageTab {
   const params = new URLSearchParams(window.location.search);
@@ -372,159 +382,153 @@ function ManageAppComponent(props: ManageAppProps) {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-comic-paper2 px-6 py-8 text-comic-ink">
-      <Panel className="mx-auto h-[calc(100vh-4rem)] w-full max-w-5xl overflow-hidden">
-        <div className="border-b border-comic-ink/10 px-6 py-6">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <div className="text-[24px] font-semibold tracking-[-0.02em] text-comic-ink">
-                Library
-              </div>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-comic-ink/60">
-                Followed series, reading history, updates, and extension data
-                in one place.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="ds-count-badge">
-                {subscribe.length} following
-              </span>
-              <span className="ds-count-badge">{update.length} updates</span>
-            </div>
-          </div>
-          <div className="mt-6">
-            <Tabs
-              value={selectedTab}
-              onValueChange={(value) => setSelectedTab(value as ManageTab)}
-            >
-              <Tabs.List className="max-w-[560px]">
-                <Tabs.Trigger value="updates">{`Updates ${update.length}`}</Tabs.Trigger>
-                <Tabs.Trigger value="following">{`Following ${subscribe.length}`}</Tabs.Trigger>
-                <Tabs.Trigger value="history">{`History ${history.length}`}</Tabs.Trigger>
-                <Tabs.Trigger value="data">Data</Tabs.Trigger>
-              </Tabs.List>
-            </Tabs>
+    <div className="manage-shell">
+      <div className="manage-window">
+        <div className="manage-topbar">
+          <div className="min-w-0 flex-1">
+            <div className="manage-title">Library</div>
+            <p className="manage-subtitle">
+              Followed series, reading history, updates, and extension data in
+              one place.
+            </p>
           </div>
         </div>
+
+        <Tabs
+          value={selectedTab}
+          onValueChange={(value) => setSelectedTab(value as ManageTab)}
+        >
+          <Tabs.List className="manage-tabbar">
+            <Tabs.Trigger className="manage-tab" value="updates">
+              {renderTabLabel("Updates", update.length)}
+            </Tabs.Trigger>
+            <Tabs.Trigger className="manage-tab" value="following">
+              {renderTabLabel("Following", subscribe.length)}
+            </Tabs.Trigger>
+            <Tabs.Trigger className="manage-tab" value="history">
+              {renderTabLabel("History", history.length)}
+            </Tabs.Trigger>
+            <Tabs.Trigger className="manage-tab" value="data">
+              {renderTabLabel("Data")}
+            </Tabs.Trigger>
+          </Tabs.List>
+        </Tabs>
+
         <Content
-          className={`px-6 py-6 ${
+          className={`manage-content ${
             selectedTab === "data" ? "overflow-y-auto" : "overflow-hidden"
           }`}
         >
-          {localError ? (
-            <div className="mb-4">
-              <NoticeBanner
-                message={localError}
-                tone="error"
-                onDismiss={() => setLocalError("")}
-              />
-            </div>
-          ) : null}
-          {notice ? (
-            <div className="mb-4">
-              <NoticeBanner
-                message={notice.message}
-                tone={notice.tone}
-                onDismiss={clearPopupNoticeProp}
-              />
-            </div>
-          ) : null}
+            {localError ? (
+              <div className="mb-4">
+                <NoticeBanner
+                  message={localError}
+                  tone="error"
+                  onDismiss={() => setLocalError("")}
+                />
+              </div>
+            ) : null}
+            {notice ? (
+              <div className="mb-4">
+                <NoticeBanner
+                  message={notice.message}
+                  tone={notice.tone}
+                  onDismiss={clearPopupNoticeProp}
+                />
+              </div>
+            ) : null}
 
-          {selectedTab === "data" ? (
-            <div className="flex max-w-2xl flex-col gap-4">
-              <section className="rounded-xl border border-comic-ink/10 bg-comic-paper p-6">
-                <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-comic-ink">
-                  Diagnostics
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-comic-ink/60">
-                  Toggle dev logs for reader, popup, and manage pages without
-                  opening DevTools manually.
-                </p>
-                <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-comic-ink/10 bg-white px-4 py-3">
-                  <span className="flex min-w-0 flex-col gap-1">
-                    <span
-                      id="manage-debug-log-label"
-                      className="text-[14px] font-medium text-comic-ink"
-                    >
-                      Debug logging
+            {selectedTab === "data" ? (
+              <div className="manage-settings-stack">
+                <section className="manage-settings-section">
+                  <h2 className="manage-section-title">Diagnostics</h2>
+                  <p className="manage-section-desc">
+                    Toggle dev logs for reader, popup, and manage pages without
+                    opening DevTools manually.
+                  </p>
+                  <div className="manage-setting-row">
+                    <span className="flex min-w-0 flex-col gap-1">
+                      <span
+                        id="manage-debug-log-label"
+                        className="text-[14px] font-medium text-comic-ink"
+                      >
+                        Debug logging
+                      </span>
+                      <span
+                        id="manage-debug-log-desc"
+                        className="text-[12px] leading-5 text-comic-ink/60"
+                      >
+                        Writes Redux actions and parser traces to the console in
+                        development builds.
+                      </span>
                     </span>
-                    <span
-                      id="manage-debug-log-desc"
-                      className="text-[12px] leading-5 text-comic-ink/60"
-                    >
-                      Writes Redux actions and parser traces to the console in
-                      development builds.
-                    </span>
-                  </span>
-                  <button
-                    id="manage-debug-log-toggle"
-                    type="button"
-                    role="switch"
-                    aria-checked={debugLogEnabled}
-                    aria-labelledby="manage-debug-log-label"
-                    aria-describedby="manage-debug-log-desc"
-                    className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-comic-accent focus-visible:ring-offset-2 focus-visible:ring-offset-comic-paper ${
-                      debugLogEnabled
-                        ? "border-blue-600 bg-blue-600"
-                        : "border-comic-ink/10 bg-comic-paper2"
-                    }`}
-                    onClick={handleDebugLogToggle}
-                  >
-                    <span
-                      className={`absolute left-0 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-sm transition-transform duration-150 ${
+                    <button
+                      id="manage-debug-log-toggle"
+                      type="button"
+                      role="switch"
+                      aria-checked={debugLogEnabled}
+                      aria-labelledby="manage-debug-log-label"
+                      aria-describedby="manage-debug-log-desc"
+                      className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-comic-accent focus-visible:ring-offset-2 focus-visible:ring-offset-comic-paper ${
                         debugLogEnabled
-                          ? "translate-x-[22px]"
-                          : "translate-x-[2px]"
+                          ? "border-blue-600 bg-blue-600"
+                          : "border-comic-ink/10 bg-comic-paper2"
                       }`}
-                    />
-                  </button>
-                </div>
-              </section>
-              <section className="rounded-xl border border-comic-ink/10 bg-comic-paper p-6">
-                <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-comic-ink">
-                  Data
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-comic-ink/60">
-                  Import or export your config, or reset everything back to the
-                  extension defaults.
-                </p>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    className="ds-btn-primary"
-                    disabled={busy}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Import config
-                  </button>
-                  <button
-                    type="button"
-                    className="ds-btn-secondary"
-                    disabled={busy}
-                    onClick={() => {
-                      setLocalError("");
-                      clearPopupNoticeProp();
-                      requestExportConfigProp();
-                    }}
-                  >
-                    Export config
-                  </button>
-                  <button
-                    type="button"
-                    className="ds-btn-danger"
-                    disabled={busy}
-                    onClick={handleReset}
-                  >
-                    Reset all data
-                  </button>
-                </div>
-              </section>
-            </div>
-          ) : (
-            renderRows()
-          )}
+                      onClick={handleDebugLogToggle}
+                    >
+                      <span
+                        className={`absolute left-0 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow-sm transition-transform duration-150 ${
+                          debugLogEnabled
+                            ? "translate-x-[22px]"
+                            : "translate-x-[2px]"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </section>
+                <section className="manage-settings-section">
+                  <h2 className="manage-section-title">Data</h2>
+                  <p className="manage-section-desc">
+                    Import or export your config, or reset everything back to
+                    the extension defaults.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      className="ds-btn-primary"
+                      disabled={busy}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Import config
+                    </button>
+                    <button
+                      type="button"
+                      className="ds-btn-secondary"
+                      disabled={busy}
+                      onClick={() => {
+                        setLocalError("");
+                        clearPopupNoticeProp();
+                        requestExportConfigProp();
+                      }}
+                    >
+                      Export config
+                    </button>
+                    <button
+                      type="button"
+                      className="ds-btn-danger"
+                      disabled={busy}
+                      onClick={handleReset}
+                    >
+                      Reset all data
+                    </button>
+                  </div>
+                </section>
+              </div>
+            ) : (
+              renderRows()
+            )}
         </Content>
-      </Panel>
+      </div>
       <a ref={downloadRef} className="hidden">
         Download Config
       </a>
