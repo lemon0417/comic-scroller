@@ -1,57 +1,15 @@
-import { from, merge, of } from "rxjs";
+import { of } from "rxjs";
 import { ajax } from "rxjs/ajax";
-import { filter as rxFilter, map as rxMap, mergeMap } from "rxjs/operators";
-import { ofType } from "redux-observable";
-import findIndex from "lodash/findIndex";
-import {
-  FETCH_CHAPTER,
-  FETCH_IMAGE_SRC,
-  FETCH_IMG_LIST,
-  UPDATE_READ,
-  fetchImgSrc,
-  fetchImgList,
-  startScroll,
-} from "@domain/actions/reader";
+import { mergeMap } from "rxjs/operators";
 import { fetchMeta$ } from "@sites/sf/meta";
 import {
-  updateSiteInfo,
-  updateTitle,
-  updateComicsID,
-  updateChapters,
-  updateChapterList,
-  concatImageList,
-  loadImgSrc,
-  updateChapterLatestIndex,
-  updateChapterNowIndex,
-  updateRenderIndex,
-  updateReadChapters,
-  updateSubscribe,
-} from "@domain/reducers/comics";
-import {
-  applyReadProgress,
-  applyReaderSeriesState,
-} from "@infra/services/library";
-import type { AppEpic } from "../types";
+  createDirectFetchImgSrcEpic,
+  createFetchChapterEpic,
+  createFetchImgListEpic,
+  createUpdateReadEpic,
+} from "./readerFlow";
 
 const baseURL = "http://comic.sfacg.com";
-
-type ReaderChapterAction = {
-  chapter: string;
-};
-
-type ReaderIndexAction = {
-  index: number;
-};
-
-type ReaderRangeAction = {
-  begin: number;
-  end: number;
-};
-
-type ReaderDispatchAction = {
-  type: string;
-  [key: string]: unknown;
-};
 
 function fetchImgs$(chapter: string) {
   return ajax({
@@ -120,146 +78,32 @@ function fetchScript$(scriptURL: string, chapter: string) {
   );
 }
 
-export const fetchImgSrcEpic: AppEpic = (action$, state$) =>
-  action$.pipe(
-    ofType(FETCH_IMAGE_SRC),
-    mergeMap((action) => {
-      const { begin, end } = action as ReaderRangeAction;
-      const { result, entity } = state$.value.comics.imageList;
-      return from(result).pipe(
-        rxFilter((item: number) => {
-          return (
-            item >= begin &&
-            item <= end &&
-            entity[item].loading &&
-            entity[item].type !== "end"
-          );
-        }),
-        rxMap((id: number) => {
-          return loadImgSrc(entity[id].src, id);
-        }),
-      );
-    }),
+function fetchChapterImages$(chapterID: string) {
+  return fetchImgs$(chapterID).pipe(
+    mergeMap(({ chapter, scriptURL, comicsID }) =>
+      fetchScript$(scriptURL, chapter).pipe(
+        mergeMap(({ imgList }) =>
+          of({
+            chapterID: chapter,
+            seriesID: comicsID,
+            comicUrl: `${baseURL}/${comicsID}`,
+            imgList,
+          }),
+        ),
+      ),
+    ),
   );
+}
 
-export const fetchImgListEpic: AppEpic = (action$, state$) =>
-  action$.pipe(
-    ofType(FETCH_IMG_LIST),
-    mergeMap((action) => {
-      const { index } = action as ReaderIndexAction;
-      const { chapterList } = state$.value.comics;
-      const chapter = chapterList[index];
-      return fetchImgs$(chapter).pipe(
-        mergeMap(({ scriptURL }) => {
-          return fetchScript$(scriptURL, chapter).pipe(
-            mergeMap(({ imgList }) => {
-              const nowImgList = state$.value.comics.imageList.result;
-              if (nowImgList.length === 0) {
-                return [
-                  concatImageList(imgList),
-                  updateRenderIndex(0, 6),
-                  fetchImgSrc(0, 6),
-                  startScroll(),
-                ];
-              }
-              return [concatImageList(imgList)];
-            }),
-          );
-        }),
-      );
-    }),
-  );
+export const fetchImgSrcEpic = createDirectFetchImgSrcEpic();
 
-export const fetchChapterEpic: AppEpic = (action$) =>
-  action$.pipe(
-    ofType(FETCH_CHAPTER),
-    mergeMap((action) => {
-      const { chapter: actionChapter } = action as ReaderChapterAction;
-      return fetchImgs$(actionChapter).pipe(
-        mergeMap(({ chapter, scriptURL, comicsID }) => {
-          return merge(
-            of(updateComicsID(comicsID)),
-            fetchScript$(scriptURL, actionChapter).pipe(
-              mergeMap(({ imgList }) => [
-                concatImageList(imgList),
-                updateRenderIndex(0, 6),
-                fetchImgSrc(0, 6),
-                startScroll(),
-              ]),
-            ),
-            fetchMeta$(`${baseURL}/${comicsID}`).pipe(
-              mergeMap(({ title, cover, chapterList, chapters }) => {
-                const chapterIndex = findIndex(
-                  chapterList,
-                  (item) => item === chapter,
-                );
-                return from(
-                  applyReaderSeriesState(
-                    "sf",
-                    comicsID,
-                    {
-                      title: title || "",
-                      chapters,
-                      chapterList,
-                      cover,
-                      url: `${baseURL}/${comicsID}`,
-                    },
-                    chapter,
-                  ),
-                ).pipe(
-                  mergeMap(({ series, subscribed, updatesCount }) => {
-                    chrome.action.setBadgeText({
-                      text: `${updatesCount === 0 ? "" : updatesCount}`,
-                    });
-                    const result$: ReaderDispatchAction[] = [
-                      updateSiteInfo("sf", baseURL),
-                      updateComicsID(comicsID),
-                      updateSubscribe(subscribed),
-                      updateTitle(title || ""),
-                      updateReadChapters(series?.read || []),
-                      updateChapters(chapters),
-                      updateChapterList(chapterList),
-                      updateChapterNowIndex(chapterIndex),
-                    ];
-                    if (chapterIndex > 0) {
-                      result$.push(
-                        fetchImgList(chapterIndex - 1),
-                        updateChapterLatestIndex(chapterIndex - 1),
-                      );
-                    } else {
-                      result$.push(updateChapterLatestIndex(chapterIndex - 1));
-                    }
-                    return result$;
-                  }),
-                );
-              }),
-            ),
-          );
-        }),
-      );
-    }),
-  );
+export const fetchImgListEpic = createFetchImgListEpic(fetchChapterImages$);
 
-export const updateReadEpic: AppEpic = (action$, state$) =>
-  action$.pipe(
-    ofType(UPDATE_READ),
-    mergeMap((action) => {
-      const { index } = action as ReaderIndexAction;
-      return from(
-        (() => {
-          const { comicsID, chapterList } = state$.value.comics;
-          return applyReadProgress("sf", comicsID, chapterList[index]);
-        })(),
-      ).pipe(
-        mergeMap(({ series, updatesCount }) => {
-          chrome.action.setBadgeText({
-            text: `${updatesCount === 0 ? "" : updatesCount}`,
-          });
-          return [
-            updateReadChapters(series?.read || []),
-            updateChapterNowIndex(index),
-          ];
-        }),
-      );
-    }),
-  );
+export const fetchChapterEpic = createFetchChapterEpic({
+  site: "sf",
+  baseURL,
+  fetchChapterImages$,
+  fetchMeta$,
+});
+
+export const updateReadEpic = createUpdateReadEpic("sf");

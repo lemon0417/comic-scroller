@@ -60,6 +60,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - Reducers：`src/domain/reducers/`
 - Epics：`src/epics/`、`src/epics/sites/`、`src/epics/popup/`
 - Sites：`src/sites/`（`registry.ts`、`*/adapter.ts`、`*/meta.ts`、站點純 parser/resolver）
+- Site reader orchestration：`src/epics/sites/readerFlow.ts` 提供共用 `fetchChapter / fetchImgList / updateRead` 模板，各站點 epic 只保留章節圖片抓取與站點特例 hook
 - Services：`src/infra/services/`（`storage.ts`、`library.ts`、`background.ts`）
 - Store：`src/domain/store/`
 - Popup / Manage view state：
@@ -83,6 +84,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - Side effects 一律放 epics 或 services
 - 站點 metadata 差異由 `src/sites/*/adapter.ts` 吃掉；`fetchMeta` 對外回傳 `Observable<SiteMeta>`，background 不應保留站點特例分支
 - 站點純 parser / resolver 優先放在 `src/sites/*`，`src/epics/sites/*` 只負責 ajax/action/repository orchestration
+- 若 orchestration 在多個站點重複，優先抽到 `src/epics/sites/readerFlow.ts`，不要在每個站點 epic 複製 `FETCH_CHAPTER / FETCH_IMG_LIST / UPDATE_READ` 樣板
 - 不得在 component、reducer、background 中直接讀寫 IndexedDB 或拼接舊 schema
 - 所有持久化更新優先走 `library.ts`
 - 新增業務流程時，優先使用 query / mutation API，不要新增 `loadLibrary → mutate snapshot → saveLibrary`
