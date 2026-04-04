@@ -13,27 +13,29 @@ describe("background service", () => {
     const applyBackgroundSeriesRefresh = jest.fn().mockResolvedValue({
       updatesCount: 2,
     });
+    const fetchChapterPage = jest.fn((_url: string, _comicsID?: string, options?: { includeCover?: boolean }) => ({
+      subscribe: (next: (value: any) => void) =>
+        next({
+          title: "Demo",
+          chapterList: ["m2", "m1"],
+          ...(options?.includeCover ? { cover: "cover.jpg" } : {}),
+          chapters: {
+            m1: { title: "Ch 1", href: "https://www.dm5.com/m123//1" },
+            m2: { title: "Ch 2", href: "https://www.dm5.com/m123//2" },
+          },
+        }),
+    }));
 
     const summary = await runBackgroundUpdateSummary({
       applyBackgroundSeriesRefresh,
       clearNotification: jest.fn(),
       createNotification: jest.fn(),
-      getFetchChapterPage: jest.fn(() => (url: string) => ({
-        subscribe: (next: (value: any) => void) =>
-          next({
-            title: "Demo",
-            chapterList: ["m2", "m1"],
-            cover: "cover.jpg",
-            chapters: {
-              m1: { title: "Ch 1", href: `${url}/1` },
-              m2: { title: "Ch 2", href: `${url}/2` },
-            },
-          }),
-      })),
+      getFetchChapterPage: jest.fn(() => fetchChapterPage),
       getManifestVersion: jest.fn(() => "4.0.99"),
       getRuntimeUrl: jest.fn((path: string) => `chrome-extension:///${path}`),
       getSeriesSnapshot: jest.fn().mockResolvedValue({
         url: "https://www.dm5.com/m123/",
+        cover: "persisted-cover.jpg",
         chapters: {
           m1: { title: "Ch 1", href: "https://www.dm5.com/m123/1" },
         },
@@ -70,6 +72,11 @@ describe("background service", () => {
       ["m2"],
     );
     expect(setBadge).toHaveBeenCalledWith(2);
+    expect(fetchChapterPage).toHaveBeenCalledWith(
+      "https://www.dm5.com/m123/",
+      undefined,
+      { includeCover: false },
+    );
   });
 
   it("handles install and update lifecycle actions", async () => {

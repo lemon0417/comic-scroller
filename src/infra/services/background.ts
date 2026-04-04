@@ -1,4 +1,5 @@
 import type { ChapterRecord } from "@infra/services/library/schema";
+import type { FetchMetaOptions } from "@sites/types";
 import { getSiteAdapter } from "@sites/registry";
 import {
   applyBackgroundSeriesRefresh,
@@ -37,7 +38,15 @@ type BackgroundServiceDeps = {
     id: string,
     options: chrome.notifications.NotificationOptions,
   ) => void;
-  getFetchChapterPage: (site: string) => ((url: string, comicsID?: string) => SiteMetaStream) | undefined;
+  getFetchChapterPage: (
+    site: string,
+  ) =>
+    | ((
+        url: string,
+        comicsID?: string,
+        options?: FetchMetaOptions,
+      ) => SiteMetaStream)
+    | undefined;
   getManifestVersion: () => string;
   getRuntimeUrl: (path: string) => string;
   getSeriesSnapshot: typeof getSeriesSnapshot;
@@ -67,7 +76,11 @@ function getDefaultDeps(): BackgroundServiceDeps {
     clearNotification: (id) => chrome.notifications.clear(id),
     createNotification: (id, options) => chrome.notifications.create(id, options),
     getFetchChapterPage: (site) => getSiteAdapter(site)?.fetchMeta as
-      | ((url: string, comicsID?: string) => SiteMetaStream)
+      | ((
+          url: string,
+          comicsID?: string,
+          options?: FetchMetaOptions,
+        ) => SiteMetaStream)
       | undefined,
     getManifestVersion: () => chrome.runtime.getManifest().version,
     getRuntimeUrl: (path) => chrome.runtime.getURL(path),
@@ -86,6 +99,7 @@ function fetchLatestSiteMeta(
   site: string,
   comicsID: string,
   url: string,
+  options: FetchMetaOptions,
   getFetchChapterPage: BackgroundServiceDeps["getFetchChapterPage"],
 ) {
   const fetchChapterPage = getFetchChapterPage(site);
@@ -94,7 +108,9 @@ function fetchLatestSiteMeta(
   }
 
   const result$ =
-    site === "comicbus" ? fetchChapterPage(url, comicsID) : fetchChapterPage(url);
+    site === "comicbus"
+      ? fetchChapterPage(url, comicsID, options)
+      : fetchChapterPage(url, undefined, options);
 
   return new Promise<SiteMeta>((resolve, reject) => {
     result$.subscribe(
@@ -131,6 +147,9 @@ export async function runBackgroundUpdateSummary(
         site,
         comicsID,
         comic.url,
+        {
+          includeCover: !comic.cover,
+        },
         deps.getFetchChapterPage,
       );
       const nextChapterIDs = (chapterList || []).filter(

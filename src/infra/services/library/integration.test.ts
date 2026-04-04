@@ -1,7 +1,10 @@
 import "fake-indexeddb/auto";
 
 import { exportLibraryDump, importLibraryDump } from "./compat";
-import { dismissSeriesUpdate } from "./mutations";
+import {
+  applyBackgroundSeriesRefresh,
+  dismissSeriesUpdate,
+} from "./mutations";
 import {
   getPopupFeedSnapshot,
   getReaderSeriesState,
@@ -222,6 +225,68 @@ describe("library integration", () => {
     expect(exported.data.subscriptions).toEqual([
       { seriesKey: "dm5:m123", position: 0 },
     ]);
+  });
+
+  it("keeps existing cover when refresh payload omits a replacement cover", async () => {
+    await importLibraryDump({
+      format: "comic-scroller-db-dump",
+      formatVersion: 1,
+      exportedAt: 1,
+      dbSchemaVersion: 1,
+      data: {
+        series: [
+          {
+            seriesKey: "dm5:m123",
+            site: "dm5",
+            comicsID: "m123",
+            title: "Demo",
+            cover: "persisted-cover.jpg",
+            url: "https://www.dm5.com/m123/",
+            lastRead: "m1",
+            read: ["m1"],
+            updatedAt: 1,
+          },
+        ],
+        chapters: [
+          {
+            seriesKey: "dm5:m123",
+            chapterID: "m1",
+            title: "Ch 1",
+            href: "https://www.dm5.com/m123/1.html",
+            orderIndex: 0,
+          },
+        ],
+        subscriptions: [{ seriesKey: "dm5:m123", position: 0 }],
+        history: [{ seriesKey: "dm5:m123", position: 0 }],
+        updates: [],
+      },
+    });
+
+    await applyBackgroundSeriesRefresh(
+      "dm5",
+      "m123",
+      {
+        title: "Demo",
+        chapterList: ["m2", "m1"],
+        chapters: {
+          m1: {
+            title: "Ch 1",
+            href: "https://www.dm5.com/m123/1.html",
+          },
+          m2: {
+            title: "Ch 2",
+            href: "https://www.dm5.com/m123/2.html",
+          },
+        },
+        cover: "",
+        url: "https://www.dm5.com/m123/",
+      },
+      ["m2"],
+    );
+
+    const readerState = await getReaderSeriesState("dm5:m123");
+    expect(readerState.series?.cover).toBe("persisted-cover.jpg");
+    expect(readerState.series?.chapterList).toEqual(["m2", "m1"]);
   });
 
   it("migrates legacy chrome.storage data into IndexedDB on first repository query", async () => {

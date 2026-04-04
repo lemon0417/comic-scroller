@@ -30,7 +30,9 @@ import {
 import {
   applyReadProgress,
   applyReaderSeriesState,
+  getSeriesSnapshot,
 } from "@infra/services/library";
+import { buildSeriesKey } from "@infra/services/library/schema";
 import type { AppEpic } from "../types";
 
 type ReaderChapterAction = {
@@ -373,7 +375,12 @@ export const fetchChapterEpic: AppEpic = (action$) =>
             of(updateRenderIndex(0, 6)),
             of(fetchImgSrc(0, 6)),
             of(startScroll()),
-            fetchMeta$(comicUrl).pipe(
+            from(getSeriesSnapshot(buildSeriesKey("dm5", comicsID))).pipe(
+              mergeMap((series) =>
+                fetchMeta$(comicUrl, undefined, {
+                  includeCover: !series?.cover,
+                }),
+              ),
               mergeMap(({ title, cover, chapterList, chapters }) => {
                 const chapterIndex = findIndex(
                   chapterList,

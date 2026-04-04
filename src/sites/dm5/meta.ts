@@ -1,8 +1,14 @@
+import { XMLParser } from "fast-xml-parser";
 import { from } from "rxjs";
 import { map as rxMap } from "rxjs/operators";
 import type { ChapterRecord } from "@infra/services/library/schema";
+import type { FetchMetaOptions } from "../types";
 
 const baseURL = "https://www.dm5.com";
+const rssXmlParser = new XMLParser({
+  ignoreAttributes: true,
+  trimValues: true,
+});
 
 const stripTags = (input: string) =>
   input
@@ -10,13 +16,73 @@ const stripTags = (input: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+function resolveRssUrl(comicUrl: string) {
+  try {
+    const parsedUrl = new URL(comicUrl);
+    const pathname = parsedUrl.pathname.replace(/^\/+|\/+$/g, "");
+    if (!pathname.startsWith("manhua-")) {
+      return comicUrl;
+    }
+    return `${parsedUrl.origin}/rss-${pathname.slice("manhua-".length)}/`;
+  } catch {
+    return comicUrl;
+  }
+}
+
 const pickBlock = (source: string, marker: string) => {
   const idx = source.indexOf(marker);
   if (idx === -1) return source;
   return source.slice(idx, idx + 20000);
 };
 
-const parseFromDocument = (doc: Document) => {
+function parseChapterIDFromUrl(rawUrl: string) {
+  try {
+    const parsedUrl = new URL(rawUrl);
+    return parsedUrl.pathname.replace(/^\/+|\/+$/g, "");
+  } catch {
+    return rawUrl.replace(/^https?:\/\/www\.dm5\.com\//, "").replace(/\//g, "");
+  }
+}
+
+function toRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
+}
+
+function toText(value: unknown) {
+  return typeof value === "string" || typeof value === "number"
+    ? String(value).trim()
+    : "";
+}
+
+function toRssItems(value: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(value)) {
+    return value.map((item) => toRecord(item));
+  }
+  if (value && typeof value === "object") {
+    return [toRecord(value)];
+  }
+  return [];
+}
+
+const parseCoverFromDocument = (doc: Document) =>
+  (
+    doc.querySelector(
+      ".banner_detail .cover > img",
+    ) as HTMLImageElement | null
+  )?.src || "";
+
+const parseCoverFromHtml = (html: string) => {
+  const coverMatch =
+    /banner_detail[\s\S]*?class="cover"[\s\S]*?<img[^>]+src="([^"]+)"/i.exec(
+      html,
+    );
+  return coverMatch ? coverMatch[1] : "";
+};
+
+const parseLegacyFromDocument = (doc: Document) => {
   const chapterNodes = doc.querySelectorAll<HTMLAnchorElement>(
     "#chapterlistload li > a",
   );
@@ -25,12 +91,7 @@ const parseFromDocument = (doc: Document) => {
   )
     .trim()
     .split(/\s+/)[0];
-  const cover =
-    (
-      doc.querySelector(
-        ".banner_detail .cover > img",
-      ) as HTMLImageElement | null
-    )?.src || "";
+  const cover = parseCoverFromDocument(doc);
   const chapterList = Array.from(chapterNodes)
     .map((n) => {
       const href = n.getAttribute("href") || "";
@@ -52,7 +113,7 @@ const parseFromDocument = (doc: Document) => {
   return { title, cover, chapterList, chapters };
 };
 
-const parseFromHtml = (html: string) => {
+const parseLegacyFromHtml = (html: string) => {
   const block = pickBlock(html, "chapterlistload");
   const anchorRegex = /<a[^>]+href="\/(m\d+\/?)"[^>]*>([\s\S]*?)<\/a>/gi;
   const titleMatch =
@@ -60,11 +121,7 @@ const parseFromHtml = (html: string) => {
     /<title>([^<]+)</i.exec(html);
   const title =
     stripTags(titleMatch ? titleMatch[1] : "").split(/\s+/)[0] || "";
-  const coverMatch =
-    /banner_detail[\s\S]*?class="cover"[\s\S]*?<img[^>]+src="([^"]+)"/i.exec(
-      html,
-    );
-  const cover = coverMatch ? coverMatch[1] : "";
+  const cover = parseCoverFromHtml(html);
 
   const chapterList: string[] = [];
   const chapters: Record<string, ChapterRecord> = {};
@@ -82,15 +139,73 @@ const parseFromHtml = (html: string) => {
   return { title, cover, chapterList, chapters };
 };
 
-export function fetchMeta$(url: string) {
-  return from(fetch(url).then((response) => response.text())).pipe(
-    rxMap((html) => {
-      const Parser = globalThis.DOMParser;
-      if (Parser) {
-        const doc = new Parser().parseFromString(html, "text/html");
-        return parseFromDocument(doc);
-      }
-      return parseFromHtml(html);
-    }),
+const parseRssMeta = (xml: string) => {
+  const parsedXml = toRecord(rssXmlParser.parse(xml));
+  const channel = toRecord(toRecord(parsedXml.rss).channel);
+  const title = toText(channel.title);
+  const chapterList: string[] = [];
+  const chapters: Record<string, ChapterRecord> = {};
+
+  for (const item of toRssItems(channel.item)) {
+    const chapterHref = toText(item.link);
+    const chapterID = parseChapterIDFromUrl(chapterHref);
+    if (!chapterID || !chapterHref) continue;
+    chapterList.push(chapterID);
+    chapters[chapterID] = {
+      title: stripTags(toText(item.title)).replaceAll(/\s+/g, " "),
+      href: chapterHref,
+    };
+  }
+
+  return { title, chapterList, chapters };
+};
+
+const parseCoverMeta = (html: string) => {
+  const Parser = globalThis.DOMParser;
+  if (Parser) {
+    const doc = new Parser().parseFromString(html, "text/html");
+    return parseCoverFromDocument(doc);
+  }
+  return parseCoverFromHtml(html);
+};
+
+export function fetchMeta$(
+  url: string,
+  _comicsID?: string,
+  { includeCover = true }: FetchMetaOptions = {},
+) {
+  const rssUrl = resolveRssUrl(url);
+  if (rssUrl === url) {
+    return from(fetch(url).then((response) => response.text())).pipe(
+      rxMap((html) => {
+        const Parser = globalThis.DOMParser;
+        if (Parser) {
+          const doc = new Parser().parseFromString(html, "text/html");
+          return parseLegacyFromDocument(doc);
+        }
+        return parseLegacyFromHtml(html);
+      }),
+    );
+  }
+
+  if (!includeCover) {
+    return from(fetch(rssUrl).then((response) => response.text())).pipe(
+      rxMap((rssXml) => ({
+        ...parseRssMeta(rssXml),
+        cover: "",
+      })),
+    );
+  }
+
+  return from(
+    Promise.all([
+      fetch(rssUrl).then((response) => response.text()),
+      fetch(url).then((response) => response.text()),
+    ]),
+  ).pipe(
+    rxMap(([rssXml, comicHtml]) => ({
+      ...parseRssMeta(rssXml),
+      cover: parseCoverMeta(comicHtml),
+    })),
   );
 }

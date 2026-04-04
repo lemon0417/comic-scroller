@@ -66,10 +66,7 @@ async function persistSeriesRecordState(
     ? composeSeriesRecord(previousRow, previousChapters)
     : normalizeSeriesRecord(site, comicsID, {});
 
-  const mergedRecord = normalizeSeriesRecord(site, comicsID, {
-    ...previousRecord,
-    ...(input.record || {}),
-  });
+  const mergedRecord = mergeSeriesRecord(site, comicsID, previousRecord, input.record);
 
   if (input.readChapterID) {
     mergedRecord.lastRead = input.readChapterID;
@@ -126,6 +123,22 @@ async function persistSeriesRecordState(
     subscribed,
     updatesCount: Number(updatesCount || 0),
   };
+}
+
+function mergeSeriesRecord(
+  site: SiteKey,
+  comicsID: string,
+  previousRecord: SeriesRecord,
+  record?: Partial<SeriesRecord>,
+) {
+  const nextRecord = normalizeSeriesRecord(site, comicsID, {
+    ...previousRecord,
+    ...(record || {}),
+  });
+  if (!record?.cover && previousRecord.cover) {
+    nextRecord.cover = previousRecord.cover;
+  }
+  return nextRecord;
 }
 
 async function rewriteUpdatesForSeries(
@@ -358,10 +371,7 @@ export async function applyBackgroundSeriesRefresh(
   const previousRecord = previousRow
     ? composeSeriesRecord(previousRow, previousChapters)
     : normalizeSeriesRecord(site, comicsID, {});
-  const mergedRecord = normalizeSeriesRecord(site, comicsID, {
-    ...previousRecord,
-    ...(record || {}),
-  });
+  const mergedRecord = mergeSeriesRecord(site, comicsID, previousRecord, record);
 
   await requestToPromise(seriesStore.put(createSeriesRow(seriesKey, mergedRecord)));
   await replaceSeriesChaptersInTransaction(chaptersStore, seriesKey, mergedRecord);
