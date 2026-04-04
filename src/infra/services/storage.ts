@@ -7,16 +7,15 @@ export function storageGet<T = Record<string, unknown>>(
     | string
     | string[]
     | Record<string, unknown>
-    | StorageCallback<T>
-    | null,
+    | StorageCallback<T>,
   cb?: StorageCallback<T>,
 ) {
   if (typeof keys === "function") {
-    return chrome.storage.local.get(keys as ChromeStorageCallback);
+    return chrome.storage.local.get(undefined, (items) => keys(items as T));
   }
   return chrome.storage.local.get(
-    keys ?? null,
-    (cb || (() => undefined)) as ChromeStorageCallback,
+    keys,
+    (items) => (cb || (() => undefined))(items as T),
   );
 }
 
@@ -24,8 +23,8 @@ export function storageGetAll<T = Record<string, unknown>>(
   cb?: StorageCallback<T>,
 ) {
   return chrome.storage.local.get(
-    null,
-    (cb || (() => undefined)) as ChromeStorageCallback,
+    undefined,
+    (items) => (cb || (() => undefined))(items as T),
   );
 }
 

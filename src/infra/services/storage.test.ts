@@ -25,17 +25,19 @@ describe("storage service", () => {
     storageGet({ foo: true }, cb);
     expect((global as any).chrome.storage.local.get).toHaveBeenCalledWith(
       { foo: true },
-      cb,
+      expect.any(Function),
     );
+    expect(cb).toHaveBeenCalledWith({});
   });
 
-  it("calls chrome.storage.local.get with null for getAll", () => {
+  it("calls chrome.storage.local.get with undefined for getAll", () => {
     const cb = jest.fn();
     storageGetAll(cb);
     expect((global as any).chrome.storage.local.get).toHaveBeenCalledWith(
-      null,
-      cb,
+      undefined,
+      expect.any(Function),
     );
+    expect(cb).toHaveBeenCalledWith({});
   });
 
   it("calls chrome.storage.local.set", () => {

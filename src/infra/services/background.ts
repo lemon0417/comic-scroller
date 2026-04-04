@@ -33,7 +33,10 @@ type SiteMetaStream = {
 type BackgroundServiceDeps = {
   applyBackgroundSeriesRefresh: typeof applyBackgroundSeriesRefresh;
   clearNotification: (id: string) => void;
-  createNotification: (id: string, options: ChromeNotificationOptions) => void;
+  createNotification: (
+    id: string,
+    options: chrome.notifications.NotificationOptions,
+  ) => void;
   getFetchChapterPage: (site: string) => ((url: string, comicsID?: string) => SiteMetaStream) | undefined;
   getManifestVersion: () => string;
   getRuntimeUrl: (path: string) => string;

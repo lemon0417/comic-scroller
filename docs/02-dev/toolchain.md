@@ -31,3 +31,8 @@
 ## Extension
 - Manifest：MV3
 - Header 規則：`public/rules.json`（DNR）
+
+## TypeScript 型別來源
+- Chrome Extension API 使用官方 `chrome-types`，不要長期維護自製整包 `chrome` global 宣告。
+- Vite / SVGR / CSS / HMR 優先使用工具鏈內建型別：`vite/client`、`vite-plugin-svgr/client`。
+- `src/types/` 只保留真的無法由依賴套件提供、且範圍足夠小的 local declarations。

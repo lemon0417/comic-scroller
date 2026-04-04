@@ -7,7 +7,7 @@ export function subscribeToLibrarySignal(listener: (signal: LibrarySignal) => vo
     return () => undefined;
   }
   const handleChange = (
-    changes: Record<string, ChromeStorageChange>,
+    changes: Record<string, chrome.storage.StorageChange>,
     areaName: string,
   ) => {
     if (areaName !== "local" || !changes?.[LIBRARY_SIGNAL_KEY]?.newValue) return;
