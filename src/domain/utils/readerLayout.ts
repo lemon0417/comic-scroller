@@ -22,6 +22,11 @@ type ImageRenderMetrics = {
   width: number;
 };
 
+export type ImageOffsetLayout = {
+  offsets: number[];
+  totalHeight: number;
+};
+
 export function getReaderSidePadding(innerWidth = 0) {
   if (innerWidth >= 1280) return 32;
   if (innerWidth >= 768) return 24;
@@ -103,4 +108,58 @@ export function getImageBlockHeight(
     innerWidth,
     innerHeight,
   }).height;
+}
+
+export function buildImageOffsetLayout(
+  result: number[],
+  entity: Record<number, ImageLayoutInput | undefined>,
+  innerWidth?: number,
+  innerHeight?: number,
+): ImageOffsetLayout {
+  if (result.length === 0) {
+    return {
+      offsets: [0],
+      totalHeight: 0,
+    };
+  }
+
+  const offsets = new Array<number>(result.length + 1);
+  offsets[0] = 0;
+
+  for (let index = 0; index < result.length; index += 1) {
+    offsets[index + 1] =
+      offsets[index] +
+      getImageBlockHeight(entity[result[index]] || {}, innerWidth, innerHeight) +
+      2 * READER_IMAGE_GAP;
+  }
+
+  return {
+    offsets,
+    totalHeight: offsets[result.length],
+  };
+}
+
+export function findImageIndexAtScrollOffset(
+  layout: ImageOffsetLayout,
+  scrollOffset: number,
+) {
+  const maxIndex = layout.offsets.length - 2;
+  if (maxIndex <= 0) {
+    return 0;
+  }
+
+  const targetOffset = Math.max(0, scrollOffset - READER_IMAGE_GAP);
+  let begin = 0;
+  let end = maxIndex;
+
+  while (begin < end) {
+    const middle = Math.floor((begin + end) / 2);
+    if (layout.offsets[middle + 1] > targetOffset) {
+      end = middle;
+    } else {
+      begin = middle + 1;
+    }
+  }
+
+  return begin;
 }

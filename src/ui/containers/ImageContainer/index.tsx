@@ -2,17 +2,14 @@ import { Component } from "react";
 import { connect } from "react-redux";
 import { createSelector } from "reselect";
 import map from "lodash/map";
-import reduce from "lodash/reduce";
-import filter from "lodash/filter";
 import Loading from "@components/Loading";
 import ConnectedComicImage from "@components/ComicImage";
 import type { ComicsState } from "@domain/reducers/comics";
 import {
   READER_BOTTOM_PADDING,
   READER_HEADER_HEIGHT,
-  READER_IMAGE_GAP,
   READER_TOP_PADDING,
-  getImageBlockHeight,
+  buildImageOffsetLayout,
 } from "@domain/utils/readerLayout";
 
 type ImageContainerProps = {
@@ -50,47 +47,32 @@ const getRenderResult = createSelector(
   (comics: ComicsState) => comics.renderBeginIndex,
   (comics: ComicsState) => comics.renderEndIndex,
   (result, begin, end) =>
-    filter(result, (item) => item >= begin && item <= end),
+    result.slice(
+      Math.max(0, begin),
+      Math.max(0, Math.min(result.length, end + 1)),
+    ),
+);
+
+const getImageOffsetLayout = createSelector(
+  (comics: ComicsState) => comics.imageList.result,
+  (comics: ComicsState) => comics.imageList.entity,
+  (comics: ComicsState) => comics.innerWidth,
+  (comics: ComicsState) => comics.innerHeight,
+  buildImageOffsetLayout,
 );
 
 const getPaddingTop = createSelector(
-  (comics: ComicsState) => comics.imageList.result,
-  (comics: ComicsState) => comics.imageList.entity,
+  getImageOffsetLayout,
   (comics: ComicsState) => comics.renderBeginIndex,
-  (comics: ComicsState) => comics.innerWidth,
-  (comics: ComicsState) => comics.innerHeight,
-  (result, entity, begin, innerWidth, innerHeight) =>
-    reduce(
-      filter(result, (item) => item < begin),
-      (acc, i) => {
-        return (
-          acc +
-          getImageBlockHeight(entity[i], innerWidth, innerHeight) +
-          2 * READER_IMAGE_GAP
-        );
-      },
-      0,
-    ),
+  (layout, begin) => layout.offsets[Math.max(0, Math.min(begin, layout.offsets.length - 1))],
 );
 
 const getPaddingBottom = createSelector(
-  (comics: ComicsState) => comics.imageList.result,
-  (comics: ComicsState) => comics.imageList.entity,
+  getImageOffsetLayout,
   (comics: ComicsState) => comics.renderEndIndex,
-  (comics: ComicsState) => comics.innerWidth,
-  (comics: ComicsState) => comics.innerHeight,
-  (result, entity, end, innerWidth, innerHeight) =>
-    reduce(
-      filter(result, (item) => item > end),
-      (acc, i) => {
-        return (
-          acc +
-          getImageBlockHeight(entity[i], innerWidth, innerHeight) +
-          2 * READER_IMAGE_GAP
-        );
-      },
-      0,
-    ),
+  (layout, end) =>
+    layout.totalHeight -
+    layout.offsets[Math.max(0, Math.min(end + 1, layout.offsets.length - 1))],
 );
 
 function mapStateToProps({ comics }: { comics: ComicsState }) {

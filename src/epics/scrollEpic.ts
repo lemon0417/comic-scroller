@@ -1,6 +1,7 @@
 import { fromEvent, type Observable } from "rxjs";
 import { mergeMap, takeUntil, throttleTime } from "rxjs/operators";
 import { ofType } from "redux-observable";
+import { createSelector } from "reselect";
 import findIndex from "lodash/findIndex";
 import type { RootState } from "@domain/reducers";
 import {
@@ -11,12 +12,13 @@ import {
   updateRead,
 } from "@domain/actions/reader";
 import {
+  type ComicsState,
   updateChapterLatestIndex,
   updateRenderIndex,
 } from "@domain/reducers/comics";
 import {
-  READER_IMAGE_GAP,
-  getImageBlockHeight,
+  buildImageOffsetLayout,
+  findImageIndexAtScrollOffset,
 } from "@domain/utils/readerLayout";
 
 declare var document: Document;
@@ -45,6 +47,14 @@ declare var document: Document;
 //   return { begin: -1, end: -1 };
 // }
 
+const getImageOffsetLayout = createSelector(
+  (comics: ComicsState) => comics.imageList.result,
+  (comics: ComicsState) => comics.imageList.entity,
+  (comics: ComicsState) => comics.innerWidth,
+  (comics: ComicsState) => comics.innerHeight,
+  buildImageOffsetLayout,
+);
+
 function fromScrollEvent(
   state$: { value: RootState },
   cancel$: Observable<{ type: string }>,
@@ -60,23 +70,17 @@ function fromScrollEvent(
         chapterNowIndex,
         renderBeginIndex,
         renderEndIndex,
-        innerWidth,
         innerHeight,
       } = state$.value.comics;
-      let accHeight = READER_IMAGE_GAP;
-      let viewIndex = 0;
-      // $FlowFixMe
-      const scrollTop = window.pageYOffset + 0.75 * innerHeight;
-      const len = result.length;
-      for (let i = 0; i < len; i += 1) {
-        accHeight +=
-          getImageBlockHeight(entity[result[i]], innerWidth, innerHeight) +
-          2 * READER_IMAGE_GAP;
-        if (accHeight > scrollTop) {
-          viewIndex = i;
-          break;
-        }
+      if (result.length === 0) {
+        return [];
       }
+
+      const scrollTop = window.pageYOffset + 0.75 * innerHeight;
+      const viewIndex = findImageIndexAtScrollOffset(
+        getImageOffsetLayout(state$.value.comics),
+        scrollTop,
+      );
       const result$ = [];
       if ((renderBeginIndex + renderEndIndex) / 2 !== viewIndex) {
         result$.push(updateRenderIndex(viewIndex - 6, viewIndex + 6));
