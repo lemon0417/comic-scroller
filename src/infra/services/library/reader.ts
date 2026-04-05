@@ -5,6 +5,7 @@ export {
   applyReaderSeriesState,
   applyReadProgress,
   setSeriesSubscriptionByKey,
+  toggleSeriesSubscriptionByKey,
 } from "./mutations";
 export {
   getReaderSeriesState,

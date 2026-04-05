@@ -12,7 +12,6 @@ import { getSiteAdapter } from "@sites/registry";
 import type { FetchMetaOptions, SiteMeta, SiteMetaFetcher } from "@sites/types";
 import { firstValueFrom, timeout } from "rxjs";
 
-const dm5Regex = /https\:\/\/(tel||www)\.dm5\.com\/(m\d+)\//;
 const sfRegex = /http\:\/\/comic\.sfacg\.com\/(HTML\/[^\/]+\/.+)$/;
 const comicbusRegex =
   /http\:\/\/(www|v)\.comicbus.com\/online\/(comic-\d+\.html\?ch=.*$)/;
@@ -295,11 +294,16 @@ export function handlePingBackgroundMessage(
 }
 
 export function resolveReaderRedirect(url: string, getRuntimeUrl = (path: string) => chrome.runtime.getURL(path)) {
+  let parsedUrl: URL | null = null;
   try {
-    if (new URL(url).searchParams.get(READER_REDIRECT_BYPASS_PARAM) === "1") {
+    parsedUrl = new URL(url);
+    if (parsedUrl.searchParams.get(READER_REDIRECT_BYPASS_PARAM) === "1") {
       return "";
     }
   } catch {
+    return "";
+  }
+  if (!parsedUrl) {
     return "";
   }
 
@@ -313,10 +317,12 @@ export function resolveReaderRedirect(url: string, getRuntimeUrl = (path: string
     if (!match) return "";
     return `${getRuntimeUrl("app.html")}?site=sf&chapter=${match[1]}`;
   }
-  if (dm5Regex.test(url)) {
-    const match = dm5Regex.exec(url);
-    if (!match) return "";
-    return `${getRuntimeUrl("app.html")}?site=dm5&chapter=${match[2]}`;
+
+  const isDm5Host =
+    parsedUrl.hostname === "www.dm5.com" || parsedUrl.hostname === "tel.dm5.com";
+  const dm5PathMatch = /^\/(m\d+)\/?$/.exec(parsedUrl.pathname);
+  if (isDm5Host && dm5PathMatch) {
+    return `${getRuntimeUrl("app.html")}?site=dm5&chapter=${dm5PathMatch[1]}`;
   }
   return "";
 }

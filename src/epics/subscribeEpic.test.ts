@@ -9,15 +9,13 @@ jest.mock("@infra/services/library/reader", () => {
   const actual = jest.requireActual("@infra/services/library/reader");
   return {
     ...actual,
-    isSeriesSubscribedByKey: jest.fn(),
-    setSeriesSubscriptionByKey: jest.fn(),
+    toggleSeriesSubscriptionByKey: jest.fn(),
   };
 });
 
-const {
-  isSeriesSubscribedByKey,
-  setSeriesSubscriptionByKey,
-} = jest.requireMock("@infra/services/library/reader");
+const { toggleSeriesSubscriptionByKey } = jest.requireMock(
+  "@infra/services/library/reader",
+);
 
 describe("subscribeEpic", () => {
   beforeEach(() => {
@@ -25,8 +23,7 @@ describe("subscribeEpic", () => {
   });
 
   it("adds subscribe and updates state", async () => {
-    isSeriesSubscribedByKey.mockResolvedValue(false);
-    setSeriesSubscriptionByKey.mockResolvedValue(true);
+    toggleSeriesSubscriptionByKey.mockResolvedValue(true);
 
     const state$ = { value: { comics: { seriesKey: "dm5:m123" } } };
     const actions = await lastValueFrom(
@@ -34,6 +31,6 @@ describe("subscribeEpic", () => {
     );
 
     expect(actions).toEqual([updateSubscribe(true)]);
-    expect(setSeriesSubscriptionByKey).toHaveBeenCalledWith("dm5:m123", true);
+    expect(toggleSeriesSubscriptionByKey).toHaveBeenCalledWith("dm5:m123");
   });
 });

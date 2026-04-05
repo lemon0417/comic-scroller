@@ -66,14 +66,10 @@ describe("library queries", () => {
 
     const stores = {
       [SERIES_STORE]: {
-        get: jest.fn((seriesKey: string) => seriesRows[seriesKey as keyof typeof seriesRows]),
+        getAll: jest.fn(() => Object.values(seriesRows)),
       },
       [CHAPTERS_STORE]: {
-        index: jest.fn(() => ({
-          getAll: jest.fn(
-            (seriesKey: string) => chapterRows[seriesKey as keyof typeof chapterRows] || [],
-          ),
-        })),
+        getAll: jest.fn(() => Object.values(chapterRows).flat()),
       },
       [SUBSCRIPTIONS_STORE]: {
         getAll: jest.fn(() => [{ seriesKey: "dm5:m123", position: 0 }]),
@@ -199,7 +195,8 @@ describe("library queries", () => {
         continueHref: "https://www.dm5.com/m123/1.html",
       },
     });
-    expect(stores[SERIES_STORE].get).toHaveBeenCalledWith("dm5:m123");
+    expect(stores[SERIES_STORE].getAll).toHaveBeenCalledTimes(1);
+    expect(stores[CHAPTERS_STORE].getAll).toHaveBeenCalledTimes(1);
     expect(transaction.objectStore).toHaveBeenCalledWith(SERIES_STORE);
     expect(transaction.objectStore).toHaveBeenCalledWith(CHAPTERS_STORE);
   });

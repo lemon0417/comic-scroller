@@ -4,6 +4,7 @@ import type { Observable } from "rxjs";
 
 export type FetchMetaOptions = {
   includeCover?: boolean;
+  deferCover?: boolean;
 };
 
 export type SiteMeta = {

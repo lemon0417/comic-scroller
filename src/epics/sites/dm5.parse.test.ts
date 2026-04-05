@@ -145,4 +145,10 @@ describe("dm5 parser helpers", () => {
       ],
     });
   });
+
+  test("throws when both DM5 chapter parsers fail to produce a usable payload", () => {
+    expect(() =>
+      parseDm5ChapterPage("<html><body><div>broken</div></body></html>", "m404"),
+    ).toThrow("Unable to parse DM5 chapter metadata for m404.");
+  });
 });

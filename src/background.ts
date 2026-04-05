@@ -37,7 +37,12 @@ chrome.webNavigation.onBeforeNavigate.addListener(
     url: [
       { urlMatches: "comicbus.com/online/.*$" },
       { urlMatches: "comic.sfacg.com/HTML/[^/]+/.+$" },
-      { urlMatches: "https://(tel||www).dm5.com/md*" },
+      {
+        urlMatches: "^https://www\\.dm5\\.com/m\\d+/?(?:\\?.*)?$",
+      },
+      {
+        urlMatches: "^https://tel\\.dm5\\.com/m\\d+/?(?:\\?.*)?$",
+      },
     ],
   },
 );

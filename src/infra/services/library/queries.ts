@@ -232,10 +232,12 @@ export async function getPopupFeedSnapshot() {
   const historyStore = transaction.objectStore(HISTORY_STORE);
   const updatesStore = transaction.objectStore(UPDATES_STORE);
 
-  const [subscriptions, history, updates] = await Promise.all([
+  const [subscriptions, history, updates, seriesRows, chapterRows] = await Promise.all([
     requestToPromise<SubscriptionRow[]>(subscriptionsStore.getAll()),
     requestToPromise<HistoryRow[]>(historyStore.getAll()),
     requestToPromise<UpdateRow[]>(updatesStore.getAll()),
+    requestToPromise<SeriesRow[]>(seriesStore.getAll()),
+    requestToPromise<ChapterRow[]>(chaptersStore.getAll()),
   ]);
 
   const referencedKeys = Array.from(
@@ -246,14 +248,29 @@ export async function getPopupFeedSnapshot() {
     ]),
   );
 
+  const referencedKeySet = new Set(referencedKeys);
+  const chapterRowsBySeriesKey = chapterRows.reduce<Record<string, ChapterRow[]>>(
+    (acc, row) => {
+      if (!referencedKeySet.has(row.seriesKey)) {
+        return acc;
+      }
+      if (!acc[row.seriesKey]) {
+        acc[row.seriesKey] = [];
+      }
+      acc[row.seriesKey].push(row);
+      return acc;
+    },
+    {},
+  );
   const seriesByKey: Record<string, SeriesRecord> = {};
-  for (const seriesKey of referencedKeys) {
-    const row = await requestToPromise<SeriesRow | undefined>(seriesStore.get(seriesKey));
-    if (!row) continue;
-    const chapterRows = await requestToPromise<ChapterRow[]>(
-      chaptersStore.index("seriesKey").getAll(seriesKey),
+  for (const row of seriesRows) {
+    if (!referencedKeySet.has(row.seriesKey)) {
+      continue;
+    }
+    seriesByKey[row.seriesKey] = composeSeriesRecord(
+      row,
+      chapterRowsBySeriesKey[row.seriesKey] || [],
     );
-    seriesByKey[seriesKey] = composeSeriesRecord(row, chapterRows);
   }
 
   await done;

@@ -267,6 +267,29 @@ describe("background service", () => {
     expect(clearNotification).toHaveBeenCalledTimes(2);
   });
 
+  it("only redirects supported DM5 hosts and chapter paths", () => {
+    expect(
+      resolveReaderRedirect(
+        "https://tel.dm5.com/m1655813/",
+        (path) => `chrome-extension:///${path}`,
+      ),
+    ).toBe("chrome-extension:///app.html?site=dm5&chapter=m1655813");
+
+    expect(
+      resolveReaderRedirect(
+        "https://.dm5.com/m1655813/",
+        (path) => `chrome-extension:///${path}`,
+      ),
+    ).toBe("");
+
+    expect(
+      resolveReaderRedirect(
+        "https://www.dm5.com/manhua-demo/",
+        (path) => `chrome-extension:///${path}`,
+      ),
+    ).toBe("");
+  });
+
   it("does not redirect DM5 chapter links with the native-reader bypass marker", () => {
     expect(
       resolveReaderRedirect(

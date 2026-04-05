@@ -1,4 +1,7 @@
-import { removeSeriesCascade } from "./mutations";
+import {
+  removeSeriesCascade,
+  toggleSeriesSubscriptionByKey,
+} from "./mutations";
 import {
   CHAPTERS_STORE,
   HISTORY_STORE,
@@ -103,6 +106,57 @@ describe("library mutations", () => {
       "removeSeries",
       ["series", "subscriptions", "history", "updates"],
       ["dm5:m123"],
+    );
+  });
+
+  it("toggles subscription state in a single mutation and preserves checkedAt", async () => {
+    const subscriptionsStore = {
+      getAll: jest.fn(() => [
+        { seriesKey: "dm5:m123", position: 0, checkedAt: 200 },
+        { seriesKey: "sf:77", position: 1, checkedAt: 100 },
+      ]),
+    };
+    const stores = {
+      [SUBSCRIPTIONS_STORE]: subscriptionsStore,
+    };
+    const transaction = {
+      objectStore: jest.fn(
+        (storeName: keyof typeof stores) => stores[storeName],
+      ),
+    };
+    const db = {
+      transaction: jest.fn(() => transaction),
+    };
+
+    shared.openLibraryDb.mockResolvedValue(db);
+    shared.loadOrderedSeriesKeysInTransaction.mockResolvedValue([
+      "dm5:m123",
+      "sf:77",
+    ]);
+
+    await expect(toggleSeriesSubscriptionByKey("dm5:m123")).resolves.toBe(false);
+    expect(shared.writeOrderedSeriesKeysInTransaction).toHaveBeenCalledWith(
+      subscriptionsStore,
+      ["sf:77"],
+      expect.any(Function),
+    );
+    expect(shared.emitLibrarySignal).toHaveBeenCalledWith(
+      "toggleSubscription",
+      ["subscriptions"],
+      ["dm5:m123"],
+    );
+
+    jest.clearAllMocks();
+
+    shared.openLibraryDb.mockResolvedValue(db);
+    shared.loadOrderedSeriesKeysInTransaction.mockResolvedValue(["sf:77"]);
+    subscriptionsStore.getAll.mockReturnValue([{ seriesKey: "sf:77", position: 0, checkedAt: 100 }]);
+
+    await expect(toggleSeriesSubscriptionByKey("dm5:m123")).resolves.toBe(true);
+    expect(shared.writeOrderedSeriesKeysInTransaction).toHaveBeenCalledWith(
+      subscriptionsStore,
+      ["dm5:m123", "sf:77"],
+      expect.any(Function),
     );
   });
 });

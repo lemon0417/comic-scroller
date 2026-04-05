@@ -9,9 +9,15 @@ import {
 import { fetchMeta$ } from "@sites/dm5/meta";
 import { devLog } from "@utils/devLog";
 import { ofType } from "redux-observable";
-import { from, of } from "rxjs";
+import { EMPTY, from, of } from "rxjs";
 import { ajax } from "rxjs/ajax";
-import { filter as rxFilter, map as rxMap, mergeMap } from "rxjs/operators";
+import {
+  catchError,
+  filter as rxFilter,
+  finalize,
+  map as rxMap,
+  mergeMap,
+} from "rxjs/operators";
 
 import type { AppEpic } from "../types";
 import {
@@ -28,6 +34,11 @@ type ReaderRangeAction = {
 const baseURL = "https://www.dm5.com";
 const isDm5PaywalledImageList = (imgList: Array<{ type?: string }>) =>
   imgList[0]?.type === "paywall";
+const inFlightImageSrcRequests = new Set<string>();
+
+function buildImageRequestKey(id: number, src: string) {
+  return `${id}:${src}`;
+}
 
 function fetchImgs$(chapterID: string) {
   devLog("dm5:fetchImgs:start", {
@@ -52,6 +63,13 @@ function fetchImgs$(chapterID: string) {
         hasFirstKey: Boolean(parsedChapter.imgList[0]?.key),
       });
       return of(parsedChapter);
+    }),
+    catchError((error) => {
+      devLog("dm5:fetchImgs:error", {
+        chapterID,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      return EMPTY;
     }),
   );
 }
@@ -95,20 +113,43 @@ export const fetchImgSrcEpic: AppEpic = (action$, state$) =>
           );
         }),
         mergeMap((id: number) => {
+          const currentEntity = entity[id];
+          const requestUrl = String(currentEntity?.src || "");
+          const requestKey = buildImageRequestKey(id, requestUrl);
+          if (!requestUrl || inFlightImageSrcRequests.has(requestKey)) {
+            return EMPTY;
+          }
+
+          inFlightImageSrcRequests.add(requestKey);
           return ajax({
-            url: entity[id].src,
+            url: requestUrl,
             responseType: "text",
             headers: {
               "Content-Type": "text/html; charset=utf-8",
             },
           }).pipe(
-            rxMap(function fetchImgSrcHandler({ response }) {
+            mergeMap(function fetchImgSrcHandler({ response }) {
               const responseText =
                 typeof response === "string"
                   ? response
                   : String(response ?? "");
-              const resolved = resolveDm5ImageUrl(responseText, entity[id]);
-              return loadImgSrc(resolved, id);
+              const resolved = resolveDm5ImageUrl(responseText, currentEntity);
+              const latestEntity = state$.value.comics.imageList.entity[id];
+              if (!latestEntity || latestEntity.src !== requestUrl) {
+                return EMPTY;
+              }
+              return of(loadImgSrc(resolved, id));
+            }),
+            catchError((error) => {
+              devLog("dm5:fetchImgSrc:error", {
+                id,
+                requestUrl,
+                reason: error instanceof Error ? error.message : String(error),
+              });
+              return EMPTY;
+            }),
+            finalize(() => {
+              inFlightImageSrcRequests.delete(requestKey);
             }),
           );
         }),
@@ -134,9 +175,13 @@ export const fetchChapterEpic = createFetchChapterEpic({
   },
   resolveFetchMetaOptions$: (payload) =>
     from(getSeriesSnapshot(buildSeriesKey("dm5", payload.seriesID))).pipe(
-      rxMap((series) => ({
-        includeCover: !series?.cover,
-      })),
+      rxMap((series) => {
+        const shouldFetchCover = !series?.cover;
+        return {
+          includeCover: shouldFetchCover,
+          deferCover: shouldFetchCover,
+        };
+      }),
     ),
 });
 

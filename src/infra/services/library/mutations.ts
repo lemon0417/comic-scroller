@@ -220,6 +220,40 @@ export async function setSeriesSubscriptionByKey(seriesKey: string, subscribed: 
   return subscribed;
 }
 
+export async function toggleSeriesSubscriptionByKey(seriesKey: string) {
+  await ensureLibraryReady();
+  const db = await openLibraryDb();
+  const transaction = db.transaction([SUBSCRIPTIONS_STORE], "readwrite");
+  const done = transactionDone(transaction);
+  const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
+  const subscriptionRows = await requestToPromise<SubscriptionRow[]>(
+    subscriptionsStore.getAll(),
+  );
+  const nextSubscribed = !subscriptionRows.some((row) => row.seriesKey === seriesKey);
+  const currentKeys = await loadOrderedSeriesKeysInTransaction(subscriptionsStore);
+  const rowsBySeriesKey = subscriptionRows.reduce<Record<string, SubscriptionRow>>(
+    (acc, row) => {
+      acc[row.seriesKey] = row;
+      return acc;
+    },
+    {},
+  );
+  const nextKeys = nextSubscribed
+    ? uniqueStrings([seriesKey, ...currentKeys])
+    : currentKeys.filter((item) => item !== seriesKey);
+
+  await writeOrderedSeriesKeysInTransaction(
+    subscriptionsStore,
+    nextKeys,
+    (currentSeriesKey) => ({
+      checkedAt: Number(rowsBySeriesKey[currentSeriesKey]?.checkedAt || 0),
+    }),
+  );
+  await done;
+  await emitLibrarySignal("toggleSubscription", ["subscriptions"], [seriesKey]);
+  return nextSubscribed;
+}
+
 export async function setSeriesSubscription(
   site: SiteKey,
   comicsID: string,

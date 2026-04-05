@@ -258,6 +258,16 @@ function hasValidChapterPageMeta(meta: Dm5ChapterPageMeta) {
   );
 }
 
+function assertValidChapterPageMeta(
+  meta: Dm5ChapterPageMeta | null,
+  chapterID: string,
+) {
+  if (meta && hasValidChapterPageMeta(meta)) {
+    return meta;
+  }
+  throw new Error(`Unable to parse DM5 chapter metadata for ${chapterID}.`);
+}
+
 const unpackPacker = (source: string) => {
   const match = PACKER_REGEX.exec(source);
   if (!match) return source;
@@ -342,8 +352,12 @@ export function parseDm5ChapterPage(
   chapterID: string,
 ): Dm5ChapterPageMeta {
   const domMeta = parseDomChapterPage(html, chapterID);
-  if (domMeta && hasValidChapterPageMeta(domMeta)) {
-    return domMeta;
+  if (domMeta) {
+    try {
+      return assertValidChapterPageMeta(domMeta, chapterID);
+    } catch {
+      // Fall through to the string parser when DOM extraction is incomplete.
+    }
   }
-  return parseHtmlChapterPage(html, chapterID);
+  return assertValidChapterPageMeta(parseHtmlChapterPage(html, chapterID), chapterID);
 }

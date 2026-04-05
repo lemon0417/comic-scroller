@@ -1,8 +1,7 @@
 import { TOGGLE_SUBSCRIBE } from "@domain/actions/reader";
 import { updateSubscribe } from "@domain/reducers/comics";
 import {
-  isSeriesSubscribedByKey,
-  setSeriesSubscriptionByKey,
+  toggleSeriesSubscriptionByKey,
 } from "@infra/services/library/reader";
 import { ofType } from "redux-observable";
 import { from } from "rxjs";
@@ -21,9 +20,7 @@ const subscribeEpic: AppEpic = (action$, state$) =>
             return null;
           }
 
-          const nextSubscribe = !(await isSeriesSubscribedByKey(resolvedSeriesKey));
-          await setSeriesSubscriptionByKey(resolvedSeriesKey, nextSubscribe);
-          return nextSubscribe;
+          return toggleSeriesSubscriptionByKey(resolvedSeriesKey);
         })(),
       ).pipe(
         mergeMap((nextSubscribe) =>

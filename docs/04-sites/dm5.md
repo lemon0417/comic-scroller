@@ -8,6 +8,12 @@
 chrome-extension://<ext-id>/app.html?site=dm5&chapter=m1753397
 ```
 
+僅以下 URL 會被重導：
+- `https://www.dm5.com/m\d+/`
+- `https://tel.dm5.com/m\d+/`
+
+若章節頁 URL 帶有 `?cs_open_native=1`，則視為刻意回原站閱讀，background 不會重導。
+
 ## 2) 作品 metadata 抓取
 來源：`src/sites/dm5/meta.ts`（`fetchMeta$`）
 
@@ -29,6 +35,14 @@ RSS XML 沒有 cover，因此會再抓一次作品頁 HTML，只解析：
 - `.banner_detail .cover > img` 的 `src`
 
 封面屬於次要資訊，只有 repository 內尚未有既有 `cover` 時才會補抓作品頁 HTML；背景更新檢查若已有封面，會只抓 RSS，不再重抓 HTML cover。
+
+reader 流程若需要補抓 cover，會採兩段式 hydration：
+- 先發出只有 `title + chapterList + chapters` 的最小 metadata，讓 header / 章節列表 / 訂閱狀態先完成初始化
+- cover 抓到後再補一筆帶 `cover` 的 metadata
+
+背景更新檢查不走兩段式；若需要 cover，會等待完整 metadata 後再比對更新。
+
+若 RSS request 失敗，或 RSS 雖成功但沒有任何可用章節連結，會 fallback 回舊 HTML parser 流程，避免 RSS 成為單點故障。
 
 若作品頁 URL 不是 `manhua-*` 形狀，則 fallback 回舊 HTML parser 流程，避免非標準 URL 直接失效。
 
@@ -55,6 +69,8 @@ parser 對外回傳 `chapterID + seriesSlug + imgList`，epic 只在寫入通用
 - 不自動預載上一章，避免付費卡片後面繼續串出其他章節
 - 原站連結會加上 `?cs_open_native=1`，background 收到這個 marker 時不再重導回 `app.html`
 
+若 DOM parser 與字串 fallback parser 都無法產出有效的 `chapterID + seriesSlug + imgList`，parser 會直接拋錯並中止後續流程；不允許帶著空的 `seriesSlug` 或壞的 `comicUrl` 繼續寫入 state / repository。
+
 ## 4) chapterfun.ashx（中介）
 ```
 https://www.dm5.com/<DM5_CURL>/chapterfun.ashx
@@ -69,6 +85,8 @@ https://www.dm5.com/<DM5_CURL>/chapterfun.ashx
   &_sign=<DM5_VIEWSIGN>
 ```
 回應為 obfuscated script（packer 格式）。
+
+reader 只會對目前可視範圍與 overscan 範圍內、且尚未解析完成的頁面請求 `chapterfun.ashx`。同一張圖在 request 尚未完成前，會做 in-flight dedupe，避免快速捲動時重複打同一頁。
 
 ## 5) 解包與解析
 來源：`src/sites/dm5/chapter.ts`

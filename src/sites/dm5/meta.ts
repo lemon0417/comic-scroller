@@ -1,8 +1,13 @@
 import type { ChapterRecord } from "@infra/services/library/schema";
 import { devLog } from "@utils/devLog";
 import { XMLParser } from "fast-xml-parser";
-import { from } from "rxjs";
-import { map as rxMap } from "rxjs/operators";
+import { concat, EMPTY, from, of } from "rxjs";
+import {
+  catchError,
+  defaultIfEmpty,
+  map as rxMap,
+  mergeMap,
+} from "rxjs/operators";
 
 import type { FetchMetaOptions, SiteMeta } from "../types";
 
@@ -17,6 +22,14 @@ const stripTags = (input: string) =>
     .replace(/<[^>]*>/g, "")
     .replace(/\s+/g, " ")
     .trim();
+
+function resolveDm5Url(pathOrUrl: string) {
+  try {
+    return new URL(pathOrUrl, baseURL).toString();
+  } catch {
+    return pathOrUrl;
+  }
+}
 
 function resolveRssUrl(comicUrl: string) {
   try {
@@ -106,7 +119,7 @@ const parseLegacyFromDocument = (doc: Document) => {
       if (!href) return acc;
       acc[href.replace(/\//g, "")] = {
         title: n.textContent?.trim().replaceAll(/\s+/g, " ") || "",
-        href: n.href,
+        href: resolveDm5Url(n.getAttribute("href") || n.href || ""),
       };
       return acc;
     },
@@ -162,6 +175,14 @@ const parseRssMeta = (xml: string) => {
   return { title, chapterList, chapters };
 };
 
+const parseRssMetaStrict = (xml: string) => {
+  const meta = parseRssMeta(xml);
+  if (meta.chapterList.length === 0) {
+    throw new Error("DM5 RSS metadata did not include any usable chapter links.");
+  }
+  return meta;
+};
+
 const parseCoverMeta = (html: string) => {
   const Parser = globalThis.DOMParser;
   if (Parser) {
@@ -171,35 +192,65 @@ const parseCoverMeta = (html: string) => {
   return parseCoverFromHtml(html);
 };
 
+const parseLegacyMeta = (html: string): SiteMeta => {
+  const Parser = globalThis.DOMParser;
+  if (Parser) {
+    const doc = new Parser().parseFromString(html, "text/html");
+    return parseLegacyFromDocument(doc);
+  }
+  return parseLegacyFromHtml(html);
+};
+
+async function fetchText(url: string, source: string) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`DM5 ${source} request failed: ${response.status}`);
+  }
+  return response.text();
+}
+
+function buildLegacyFallback$(
+  url: string,
+  preferredHtmlPromise?: Promise<string> | null,
+) {
+  const html$ = preferredHtmlPromise
+    ? from(preferredHtmlPromise).pipe(
+        catchError(() => from(fetchText(url, "comic html fallback"))),
+      )
+    : from(fetchText(url, "comic html fallback"));
+
+  return html$.pipe(
+    rxMap((html): SiteMeta => {
+      const meta = parseLegacyMeta(html);
+      devLog("dm5:fetchMeta:htmlFallbackDone", {
+        url,
+        title: meta.title,
+        chapterListLength: meta.chapterList.length,
+        hasCover: Boolean(meta.cover),
+      });
+      return meta;
+    }),
+  );
+}
+
 export function fetchMeta$(
   url: string,
-  { includeCover = true }: FetchMetaOptions = {},
+  { includeCover = true, deferCover = false }: FetchMetaOptions = {},
 ) {
   const rssUrl = resolveRssUrl(url);
   devLog("dm5:fetchMeta:start", {
     url,
     rssUrl,
     includeCover,
+    deferCover,
     useLegacyHtmlParser: rssUrl === url,
   });
 
   if (rssUrl === url) {
-    return from(fetch(url).then((response) => response.text())).pipe(
+    return from(fetchText(url, "comic html")).pipe(
       rxMap((html): SiteMeta => {
-        const Parser = globalThis.DOMParser;
-        if (Parser) {
-          const doc = new Parser().parseFromString(html, "text/html");
-          const meta = parseLegacyFromDocument(doc);
-          devLog("dm5:fetchMeta:htmlDocumentDone", {
-            url,
-            title: meta.title,
-            chapterListLength: meta.chapterList.length,
-            hasCover: Boolean(meta.cover),
-          });
-          return meta;
-        }
-        const meta = parseLegacyFromHtml(html);
-        devLog("dm5:fetchMeta:htmlStringDone", {
+        const meta = parseLegacyMeta(html);
+        devLog("dm5:fetchMeta:htmlDone", {
           url,
           title: meta.title,
           chapterListLength: meta.chapterList.length,
@@ -210,43 +261,71 @@ export function fetchMeta$(
     );
   }
 
-  if (!includeCover) {
-    return from(fetch(rssUrl).then((response) => response.text())).pipe(
-      rxMap((rssXml): SiteMeta => {
-        const meta = {
-          ...parseRssMeta(rssXml),
-          cover: "",
-        };
-        devLog("dm5:fetchMeta:rssOnlyDone", {
-          url,
-          rssUrl,
-          title: meta.title,
-          chapterListLength: meta.chapterList.length,
-        });
-        return meta;
-      }),
-    );
-  }
+  const rssTextPromise = fetchText(rssUrl, "rss");
+  const coverHtmlPromise = includeCover ? fetchText(url, "comic html") : null;
 
-  return from(
-    Promise.all([
-      fetch(rssUrl).then((response) => response.text()),
-      fetch(url).then((response) => response.text()),
-    ]),
-  ).pipe(
-    rxMap(([rssXml, comicHtml]): SiteMeta => {
-      const meta = {
-        ...parseRssMeta(rssXml),
-        cover: parseCoverMeta(comicHtml),
+  return from(rssTextPromise).pipe(
+    rxMap(parseRssMetaStrict),
+    mergeMap((rssMeta) => {
+      const minimalMeta: SiteMeta = {
+        ...rssMeta,
+        cover: "",
       };
-      devLog("dm5:fetchMeta:rssWithCoverDone", {
+      devLog("dm5:fetchMeta:rssDone", {
         url,
         rssUrl,
-        title: meta.title,
-        chapterListLength: meta.chapterList.length,
-        hasCover: Boolean(meta.cover),
+        title: minimalMeta.title,
+        chapterListLength: minimalMeta.chapterList.length,
+        includeCover,
+        deferCover,
       });
-      return meta;
+
+      if (!includeCover || !coverHtmlPromise) {
+        return of(minimalMeta);
+      }
+
+      const hydratedCover$ = from(coverHtmlPromise).pipe(
+        rxMap((comicHtml) => parseCoverMeta(comicHtml)),
+        mergeMap((cover) => {
+          if (!cover) {
+            return EMPTY;
+          }
+          const hydratedMeta: SiteMeta = {
+            ...minimalMeta,
+            cover,
+          };
+          devLog("dm5:fetchMeta:coverHydrated", {
+            url,
+            rssUrl,
+            title: hydratedMeta.title,
+            chapterListLength: hydratedMeta.chapterList.length,
+            hasCover: true,
+            deferCover,
+          });
+          return of(hydratedMeta);
+        }),
+      );
+
+      if (!deferCover) {
+        return hydratedCover$.pipe(
+          defaultIfEmpty(minimalMeta),
+          catchError(() => of(minimalMeta)),
+        );
+      }
+
+      return concat(
+        of(minimalMeta),
+        hydratedCover$.pipe(catchError(() => EMPTY)),
+      );
+    }),
+    catchError((error) => {
+      devLog("dm5:fetchMeta:rssFallback", {
+        url,
+        rssUrl,
+        includeCover,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      return buildLegacyFallback$(url, coverHtmlPromise);
     }),
   );
 }
