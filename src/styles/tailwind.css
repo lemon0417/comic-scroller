@@ -64,15 +64,6 @@
       0 16px 40px rgba(15, 23, 42, 0.04);
   }
 
-  .ds-header {
-    @apply relative z-[100] flex h-12 select-none items-center gap-2 px-4;
-    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-  }
-
-  .ds-header-group {
-    @apply relative z-[100] flex h-9 flex-1 items-center gap-2;
-  }
-
   .ds-tabbar {
     @apply relative z-[100] inline-flex max-w-full items-end gap-0 overflow-x-auto rounded-t-[18px] rounded-b-none border border-comic-ink/10 border-b-0 bg-[#d8e8eb] px-2 pt-2 pb-0;
     box-shadow:
@@ -197,29 +188,6 @@
   .manage-setting-row {
     @apply mt-4 flex items-center justify-between gap-4 rounded-[16px] bg-slate-50 px-4 py-3;
     border: 1px solid rgba(15, 23, 42, 0.08);
-  }
-
-  .ds-menu-btn {
-    @apply relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl transition-colors duration-150;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    background: #ffffff;
-  }
-
-  .ds-menu-panel {
-    @apply absolute right-0 top-[42px] z-[200] w-[180px] origin-top rounded-xl transition-[transform,opacity] duration-[160ms] ease-in-out;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    background: #ffffff;
-    box-shadow:
-      0 1px 2px rgba(15, 23, 42, 0.04),
-      0 12px 32px rgba(15, 23, 42, 0.06);
-  }
-
-  .ds-menu-item {
-    @apply h-9 cursor-pointer px-4 text-left text-[13px] font-medium leading-9 text-comic-ink/70 transition-colors duration-150 hover:bg-comic-paper2 hover:text-comic-ink;
-  }
-
-  .ds-overlay {
-    @apply absolute bottom-0 left-0 right-0 top-12 z-[50] bg-comic-ink/10 backdrop-blur-[2px];
   }
 
   .ds-content {

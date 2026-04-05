@@ -30,14 +30,11 @@ type Action = {
   source?: HydrationSource;
   url?: string;
   filename?: string;
-  tone?: "success" | "error" | "info";
-  message?: string;
 };
 
 const HYDRATE_POPUP_FEED = "HYDRATE_POPUP_FEED";
 const SET_EXPORT_CONFIG = "SET_EXPORT_CONFIG";
 const CLEAR_EXPORT_CONFIG = "CLEAR_EXPORT_CONFIG";
-const SET_POPUP_NOTICE = "SET_POPUP_NOTICE";
 const CLEAR_POPUP_NOTICE = "CLEAR_POPUP_NOTICE";
 
 const initialState: PopupState = {
@@ -118,16 +115,6 @@ export default function popupState(
         exportUrl: "",
         exportFilename: "",
       };
-    case SET_POPUP_NOTICE:
-      return {
-        ...state,
-        notice: action.message
-          ? {
-              tone: action.tone || "info",
-              message: action.message,
-            }
-          : null,
-      };
     case CLEAR_POPUP_NOTICE:
       return {
         ...state,
@@ -151,13 +138,6 @@ export function setExportConfig(url: string, filename: string) {
 
 export function clearExportConfig() {
   return { type: CLEAR_EXPORT_CONFIG };
-}
-
-export function setPopupNotice(
-  message: string,
-  tone: "success" | "error" | "info" = "info",
-) {
-  return { type: SET_POPUP_NOTICE, message, tone };
 }
 
 export function clearPopupNotice() {

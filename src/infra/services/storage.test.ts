@@ -1,6 +1,5 @@
 import {
   storageClear,
-  storageGet,
   storageGetAll,
   storageRemove,
   storageSet,
@@ -18,16 +17,6 @@ describe("storage service", () => {
         },
       },
     };
-  });
-
-  it("calls chrome.storage.local.get with keys", () => {
-    const cb = jest.fn();
-    storageGet({ foo: true }, cb);
-    expect((global as any).chrome.storage.local.get).toHaveBeenCalledWith(
-      { foo: true },
-      expect.any(Function),
-    );
-    expect(cb).toHaveBeenCalledWith({});
   });
 
   it("calls chrome.storage.local.get with undefined for getAll", () => {

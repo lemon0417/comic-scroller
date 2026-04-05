@@ -373,10 +373,6 @@ export function updateCanPreloadPreviousChapter(data: boolean) {
   return { type: UPDATE_CAN_PRELOAD_PREVIOUS_CHAPTER, data };
 }
 
-export function updateRenderIndex(begin: number, end: number) {
-  return { type: UPDATE_RENDER_INDEX, begin, end };
-}
-
 export function concatImageList(data: ComicsImageSource[]) {
   return { type: CONCAT_IMAGE_LIST, data };
 }

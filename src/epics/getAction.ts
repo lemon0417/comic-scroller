@@ -26,9 +26,6 @@ devLog("reader:getAction", {
   adapterKey: adapter?.key || "",
 });
 
-export const site = adapter?.key || "";
-export const baseURL = adapter?.baseURL || "";
-
 export const {
   fetchChapterEpic = noopEpic,
   fetchImgSrcEpic = noopEpic,

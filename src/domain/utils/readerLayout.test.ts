@@ -1,43 +1,35 @@
 import {
-  buildImageOffsetLayout,
-  findImageIndexAtScrollOffset,
-  READER_IMAGE_GAP,
+  getImageRenderMetrics,
+  READER_HEADER_HEIGHT,
 } from "./readerLayout";
 
 describe("readerLayout", () => {
-  it("builds prefix offsets for image blocks", () => {
-    const layout = buildImageOffsetLayout(
-      [0, 1],
-      {
-        0: { height: 100, type: "image" },
-        1: { height: 200, type: "image" },
-      },
-      1200,
-      800,
-    );
+  it("caps wide image height to the viewport-aware maximum", () => {
+    const layout = getImageRenderMetrics({
+      type: "wide",
+      naturalWidth: 1200,
+      naturalHeight: 1000,
+      innerWidth: 1280,
+      innerHeight: 900,
+    });
 
     expect(layout).toEqual({
-      offsets: [0, 100 + 2 * READER_IMAGE_GAP, 300 + 4 * READER_IMAGE_GAP],
-      totalHeight: 300 + 4 * READER_IMAGE_GAP,
+      width: 974,
+      height: 812,
+      type: "wide",
     });
   });
 
-  it("finds the current image index with binary search semantics", () => {
-    const layout = buildImageOffsetLayout(
-      [0, 1, 2],
-      {
-        0: { height: 100, type: "image" },
-        1: { height: 200, type: "image" },
-        2: { height: 300, type: "image" },
-      },
-      1200,
-      800,
-    );
+  it("reserves full-screen height for paywall cards", () => {
+    const layout = getImageRenderMetrics({
+      type: "paywall",
+      height: 0,
+      innerWidth: 1024,
+      innerHeight: 900,
+    });
 
-    expect(findImageIndexAtScrollOffset(layout, 0)).toBe(0);
-    expect(
-      findImageIndexAtScrollOffset(layout, 100 + 2 * READER_IMAGE_GAP + 16),
-    ).toBe(1);
-    expect(findImageIndexAtScrollOffset(layout, 99999)).toBe(2);
+    expect(layout.height).toBe(900 - READER_HEADER_HEIGHT - 40);
+    expect(layout.width).toBe(976);
+    expect(layout.type).toBe("paywall");
   });
 });

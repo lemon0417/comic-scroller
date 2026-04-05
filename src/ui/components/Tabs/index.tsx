@@ -96,4 +96,3 @@ const Tabs = Object.assign(TabsRoot, {
 }) as TabsComponent;
 
 export default Tabs;
-export { Tab,TabsList };

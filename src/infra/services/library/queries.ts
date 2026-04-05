@@ -6,7 +6,6 @@ import {
   type ReaderSeriesState,
 } from "./models";
 import {
-  buildSeriesKey,
   type ChapterRow,
   CHAPTERS_STORE,
   HISTORY_STORE,
@@ -14,7 +13,6 @@ import {
   SERIES_STORE,
   type SeriesRecord,
   type SeriesRow,
-  SITE_KEYS,
   type SubscriptionRow,
   SUBSCRIPTIONS_STORE,
   type UpdateRow,
@@ -183,10 +181,6 @@ export async function getReaderSeriesState(
   };
 }
 
-export async function getSeriesMeta(siteOrSeriesKey: string, comicsID?: string) {
-  return getSeriesSnapshot(siteOrSeriesKey, comicsID);
-}
-
 export async function getUpdateCount() {
   await ensureLibraryReady();
   const db = await openLibraryDb();
@@ -222,29 +216,6 @@ export async function listSubscriptionKeys(limit = Number.POSITIVE_INFINITY) {
     .filter(Boolean);
   await done;
   return seriesKeys;
-}
-
-export async function findExistingSeriesKey(comicsID: string, preferredSite?: string) {
-  await ensureLibraryReady();
-  const db = await openLibraryDb();
-  const transaction = db.transaction([SERIES_STORE], "readonly");
-  const done = transactionDone(transaction);
-  const seriesStore = transaction.objectStore(SERIES_STORE);
-  const candidates = preferredSite
-    ? [preferredSite, ...SITE_KEYS.filter((site) => site !== preferredSite)]
-    : [...SITE_KEYS];
-
-  for (const candidate of candidates) {
-    const candidateKey = buildSeriesKey(candidate, comicsID);
-    const row = await requestToPromise(seriesStore.get(candidateKey));
-    if (row) {
-      await done;
-      return candidateKey;
-    }
-  }
-
-  await done;
-  return "";
 }
 
 export async function getPopupFeedSnapshot() {

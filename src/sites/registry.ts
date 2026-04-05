@@ -12,7 +12,3 @@ const adapters: Record<string, SiteAdapter> = {
 export function getSiteAdapter(site: string) {
   return adapters[site];
 }
-
-export function getSiteAdapters() {
-  return adapters;
-}
