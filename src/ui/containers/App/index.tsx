@@ -1,4 +1,4 @@
-import { Component } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { connect } from "react-redux";
 import MenuIcon from "@imgs/menu.svg?react";
 import NextIcon from "@imgs/circle-right.svg?react";
@@ -44,10 +44,6 @@ type AppDispatchProps = {
 
 type AppProps = AppStateProps & AppDispatchProps;
 
-type AppState = {
-  showChapterList: boolean;
-};
-
 function getTagIconClass(chapterTitle: string, subscribe: boolean) {
   if (chapterTitle === "") {
     return "fill-current text-comic-ink/25 transition-colors duration-150";
@@ -65,15 +61,28 @@ function getNavigationIconClass(enabled: boolean) {
   return "fill-current text-comic-ink/60 transition-colors duration-150";
 }
 
-class App extends Component<AppProps, AppState> {
-  state = {
-    showChapterList: false,
-  };
+function App(props: AppProps) {
+  const [showChapterList, setShowChapterList] = useState(false);
+  const {
+    chapterList,
+    chapterNowIndex,
+    chapterTitle,
+    comicsID,
+    fetchChapter: fetchChapterProp,
+    navigateChapter: navigateChapterProp,
+    nextable,
+    prevable,
+    seriesKey,
+    site,
+    startResize: startResizeProp,
+    subscribe,
+    title,
+    toggleSubscribe: toggleSubscribeProp,
+    updateSubscribe: updateSubscribeProp,
+    url,
+  } = props;
 
-  unsubscribeLibrary?: () => void;
-
-  syncLibraryState = async () => {
-    const { seriesKey } = this.props;
+  const syncLibraryState = useCallback(async () => {
     if (!seriesKey) return;
     const { series, subscribed } = await getReaderSeriesState(seriesKey);
     if (!series) {
@@ -84,14 +93,19 @@ class App extends Component<AppProps, AppState> {
       });
       return;
     }
-    this.props.updateSubscribe(subscribed);
-  };
+    updateSubscribeProp(subscribed);
+  }, [seriesKey, updateSubscribeProp]);
 
-  componentDidMount() {
-    this.props.startResize();
-    void this.syncLibraryState();
-    this.unsubscribeLibrary = subscribeToLibrarySignal((signal) => {
-      const { seriesKey } = this.props;
+  useEffect(() => {
+    startResizeProp();
+  }, [startResizeProp]);
+
+  useEffect(() => {
+    void syncLibraryState();
+  }, [syncLibraryState]);
+
+  useEffect(() => {
+    const unsubscribeLibrary = subscribeToLibrarySignal((signal) => {
       if (!seriesKey) return;
       if (
         signal.seriesKeys?.length &&
@@ -100,123 +114,122 @@ class App extends Component<AppProps, AppState> {
       ) {
         return;
       }
-      void this.syncLibraryState();
+      void syncLibraryState();
     });
+    return unsubscribeLibrary;
+  }, [seriesKey, syncLibraryState]);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const chapter = params.get("chapter") || "";
     devLog("reader:mount", {
       chapter,
-      propsSite: this.props.site,
-      propsComicsID: this.props.comicsID,
-      propsSeriesKey: this.props.seriesKey,
+      propsSite: site,
+      propsComicsID: comicsID,
+      propsSeriesKey: seriesKey,
       search: window.location.search,
     });
-    if (chapter && this.props.fetchChapter) {
-      this.props.fetchChapter(chapter);
+    if (chapter && fetchChapterProp) {
+      fetchChapterProp(chapter);
     }
-  }
+  }, [comicsID, fetchChapterProp, seriesKey, site]);
 
-  componentWillUnmount() {
-    this.unsubscribeLibrary?.();
-  }
-
-  showChapterListHandler = () => {
+  useEffect(() => {
     const body = document.body;
     if (!(body instanceof HTMLElement)) {
       return;
     }
-    if (!this.state.showChapterList) {
+    if (showChapterList) {
       body.style.overflowY = "hidden";
     } else {
-      body.removeAttribute("style");
+      body.style.removeProperty("overflow-y");
     }
-    this.setState({ showChapterList: !this.state.showChapterList });
-  };
+    return () => {
+      body.style.removeProperty("overflow-y");
+    };
+  }, [showChapterList]);
 
-  prevChapterHandler = () => {
-    const index = this.props.chapterNowIndex + 1;
-    this.props.navigateChapter(index);
-  };
+  const showChapterListHandler = useCallback(() => {
+    setShowChapterList((prevState) => !prevState);
+  }, []);
 
-  nextChapterHandler = () => {
-    const index = this.props.chapterNowIndex - 1;
-    this.props.navigateChapter(index);
-  };
+  const prevChapterHandler = useCallback(() => {
+    const index = chapterNowIndex + 1;
+    navigateChapterProp(index);
+  }, [chapterNowIndex, navigateChapterProp]);
 
-  subscribeHandler = () => {
-    this.props.toggleSubscribe();
-  };
+  const nextChapterHandler = useCallback(() => {
+    const index = chapterNowIndex - 1;
+    navigateChapterProp(index);
+  }, [chapterNowIndex, navigateChapterProp]);
 
-  render() {
-    const { prevable, nextable, chapterTitle, subscribe } = this.props;
-    return (
-      <div className="reader-shell">
-        <header className="fixed left-0 top-0 z-[900] flex h-12 w-full items-center justify-between border-b border-comic-ink/10 bg-white/88 px-3 text-comic-ink backdrop-blur-md will-change-[scroll-position] sm:px-4">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <IconButton
-              ariaLabel="開啟章節列表"
-              onClickHandler={this.showChapterListHandler}
-            >
-              <MenuIcon className="fill-current text-comic-ink/60" />
-            </IconButton>
-            <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-              <span className="hidden shrink-0 text-[11px] font-medium text-comic-ink/40 sm:inline">
-                Comic Scroller
-              </span>
-              <span
-                className="hidden h-4 w-px shrink-0 bg-comic-ink/10 sm:inline-block"
-                aria-hidden="true"
-              />
-              <a
-                className="min-w-0 shrink truncate text-[14px] font-semibold text-comic-ink transition-colors duration-150 hover:text-comic-accent"
-                target="_blank"
-                rel="noreferrer"
-                href={this.props.url}
-              >{`${this.props.title}`}</a>
-              <span className="shrink-0 text-comic-ink/20" aria-hidden="true">
-                /
-              </span>
-              <span className="min-w-0 shrink truncate text-[13px] text-comic-ink/60">
-                {this.props.chapterList.length > 0
-                  ? this.props.chapterTitle
-                  : "載入中..."}
-              </span>
-            </div>
+  const subscribeHandler = useCallback(() => {
+    toggleSubscribeProp();
+  }, [toggleSubscribeProp]);
+
+  return (
+    <div className="reader-shell">
+      <header className="fixed left-0 top-0 z-[900] flex h-12 w-full items-center justify-between border-b border-comic-ink/10 bg-white/88 px-3 text-comic-ink backdrop-blur-md will-change-[scroll-position] sm:px-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <IconButton
+            ariaLabel="開啟章節列表"
+            onClickHandler={showChapterListHandler}
+          >
+            <MenuIcon className="fill-current text-comic-ink/60" />
+          </IconButton>
+          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+            <span className="hidden shrink-0 text-[11px] font-medium text-comic-ink/40 sm:inline">
+              Comic Scroller
+            </span>
+            <span
+              className="hidden h-4 w-px shrink-0 bg-comic-ink/10 sm:inline-block"
+              aria-hidden="true"
+            />
+            <a
+              className="min-w-0 shrink truncate text-[14px] font-semibold text-comic-ink transition-colors duration-150 hover:text-comic-accent"
+              target="_blank"
+              rel="noreferrer"
+              href={url}
+            >{`${title}`}</a>
+            <span className="shrink-0 text-comic-ink/20" aria-hidden="true">
+              /
+            </span>
+            <span className="min-w-0 shrink truncate text-[13px] text-comic-ink/60">
+              {chapterList.length > 0 ? chapterTitle : "載入中..."}
+            </span>
           </div>
           <div className="ml-3 flex shrink-0 items-center gap-1.5">
-            <IconButton
-              ariaLabel="上一章"
-              disabled={!prevable}
-              onClickHandler={prevable ? this.prevChapterHandler : undefined}
-            >
-              <PrevIcon className={getNavigationIconClass(prevable)} />
-            </IconButton>
-            <IconButton
-              ariaLabel="下一章"
-              disabled={!nextable}
-              onClickHandler={nextable ? this.nextChapterHandler : undefined}
-            >
-              <NextIcon className={getNavigationIconClass(nextable)} />
-            </IconButton>
-            <IconButton
-              ariaLabel={subscribe ? "取消追蹤" : "追蹤作品"}
-              disabled={chapterTitle === ""}
-              onClickHandler={
-                chapterTitle !== "" ? this.subscribeHandler : undefined
-              }
-            >
-              <TagIcon className={getTagIconClass(chapterTitle, subscribe)} />
-            </IconButton>
+          <IconButton
+            ariaLabel="上一章"
+            disabled={!prevable}
+            onClickHandler={prevable ? prevChapterHandler : undefined}
+          >
+            <PrevIcon className={getNavigationIconClass(prevable)} />
+          </IconButton>
+          <IconButton
+            ariaLabel="下一章"
+            disabled={!nextable}
+            onClickHandler={nextable ? nextChapterHandler : undefined}
+          >
+            <NextIcon className={getNavigationIconClass(nextable)} />
+          </IconButton>
+          <IconButton
+            ariaLabel={subscribe ? "取消追蹤" : "追蹤作品"}
+            disabled={chapterTitle === ""}
+            onClickHandler={chapterTitle !== "" ? subscribeHandler : undefined}
+          >
+            <TagIcon className={getTagIconClass(chapterTitle, subscribe)} />
+          </IconButton>
           </div>
-        </header>
-        <ImageContainer />
-        <ChapterList
-          show={this.state.showChapterList}
-          showChapterListHandler={this.showChapterListHandler}
-        />
-      </div>
-    );
-  }
+        </div>
+      </header>
+      <ImageContainer />
+      <ChapterList
+        show={showChapterList}
+        showChapterListHandler={showChapterListHandler}
+      />
+    </div>
+  );
 }
 
 function mapStateToProps({ comics }: { comics: ComicsState }): AppStateProps {
