@@ -1,9 +1,10 @@
+import type { ChapterRecord } from "@infra/services/library/schema";
+import { devLog } from "@utils/devLog";
 import { XMLParser } from "fast-xml-parser";
 import { from } from "rxjs";
 import { map as rxMap } from "rxjs/operators";
-import type { ChapterRecord } from "@infra/services/library/schema";
+
 import type { FetchMetaOptions, SiteMeta } from "../types";
-import { devLog } from "@utils/devLog";
 
 const baseURL = "https://www.dm5.com";
 const rssXmlParser = new XMLParser({

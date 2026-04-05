@@ -1,6 +1,3 @@
-import { firstValueFrom, timeout } from "rxjs";
-import type { FetchMetaOptions, SiteMeta, SiteMetaFetcher } from "@sites/types";
-import { getSiteAdapter } from "@sites/registry";
 import {
   applyBackgroundSeriesRefresh,
   getSeriesSnapshot,
@@ -11,6 +8,9 @@ import {
   resetLibrary,
   setLibraryVersion,
 } from "@infra/services/library/background";
+import { getSiteAdapter } from "@sites/registry";
+import type { FetchMetaOptions, SiteMeta, SiteMetaFetcher } from "@sites/types";
+import { firstValueFrom, timeout } from "rxjs";
 
 const dm5Regex = /https\:\/\/(tel||www)\.dm5\.com\/(m\d+)\//;
 const sfRegex = /http\:\/\/comic\.sfacg\.com\/(HTML\/[^\/]+\/.+)$/;

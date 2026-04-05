@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+
 import { ImageContainer } from "./index";
 
 jest.mock("@components/ComicImage", () => ({

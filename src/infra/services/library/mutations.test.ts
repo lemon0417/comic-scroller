@@ -1,3 +1,4 @@
+import { removeSeriesCascade } from "./mutations";
 import {
   CHAPTERS_STORE,
   HISTORY_STORE,
@@ -5,7 +6,6 @@ import {
   SUBSCRIPTIONS_STORE,
   UPDATES_STORE,
 } from "./schema";
-import { removeSeriesCascade } from "./mutations";
 
 jest.mock("./shared", () => {
   const actual = jest.requireActual("./shared");

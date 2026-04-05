@@ -1,8 +1,9 @@
-import { fromEvent } from "rxjs";
-import { mergeMap, throttleTime } from "rxjs/operators";
-import { ofType } from "redux-observable";
 import { START_RESIZE_EPIC } from "@domain/actions/reader";
 import { updateInnerHeight, updateInnerWidth } from "@domain/reducers/comics";
+import { ofType } from "redux-observable";
+import { fromEvent } from "rxjs";
+import { mergeMap, throttleTime } from "rxjs/operators";
+
 import type { AppEpic } from "./types";
 
 function fromResizeEvent() {

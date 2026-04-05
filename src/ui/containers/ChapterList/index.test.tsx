@@ -1,5 +1,6 @@
-import type { ComponentProps } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
+
 import { ChapterList } from "./index";
 
 type ChapterListProps = ComponentProps<typeof ChapterList>;

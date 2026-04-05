@@ -1,6 +1,7 @@
+import type { ComicsChapterRecord } from "@domain/reducers/comics";
 import type { MouseEvent } from "react";
 import type { CellComponentProps } from "react-window";
-import type { ComicsChapterRecord } from "@domain/reducers/comics";
+
 import { CHAPTER_CELL_GUTTER } from "./layout";
 
 type VirtualChapterCellProps = {

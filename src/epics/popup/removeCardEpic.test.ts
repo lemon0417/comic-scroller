@@ -1,9 +1,10 @@
-import { lastValueFrom, of } from "rxjs";
-import { toArray } from "rxjs/operators";
-import removeCardEpic from "./removeCardEpic";
 import { requestRemoveCard } from "@domain/actions/popup";
 import { hydratePopupFeed } from "@domain/reducers/popupState";
 import type { PopupFeedSnapshot } from "@infra/services/library/models";
+import { lastValueFrom, of } from "rxjs";
+import { toArray } from "rxjs/operators";
+
+import removeCardEpic from "./removeCardEpic";
 
 jest.mock("@infra/services/library/popup", () => {
   const actual = jest.requireActual("@infra/services/library/popup");

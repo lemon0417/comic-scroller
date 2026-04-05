@@ -1,5 +1,5 @@
-import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@utils/cn";
+import type { HTMLAttributes, ReactNode } from "react";
 
 type OverlayProps = HTMLAttributes<HTMLButtonElement> & {
   children?: ReactNode;

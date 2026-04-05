@@ -1,25 +1,21 @@
+export {
+  exportLibraryDump,
+  importLibraryDump,
+  resetLibrary,
+} from "./compat";
 export type {
   PopupFeedCategory,
   PopupFeedEntry,
   PopupFeedSnapshot,
 } from "./models";
-
 export {
-  resetLibrary,
-  exportLibraryDump,
-  importLibraryDump,
-} from "./compat";
-
+  dismissSeriesUpdate,
+  removeSeriesCascade,
+  setSeriesSubscription,
+} from "./mutations";
 export {
   getPopupFeedSnapshot,
 } from "./queries";
-
-export {
-  setSeriesSubscription,
-  dismissSeriesUpdate,
-  removeSeriesCascade,
-} from "./mutations";
-
 export {
   subscribeToLibrarySignal,
 } from "./signal";

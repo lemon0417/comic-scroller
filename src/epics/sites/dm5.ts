@@ -1,17 +1,18 @@
-import { from, of } from "rxjs";
-import { ajax } from "rxjs/ajax";
-import { filter as rxFilter, map as rxMap, mergeMap } from "rxjs/operators";
-import { ofType } from "redux-observable";
 import { FETCH_IMAGE_SRC } from "@domain/actions/reader";
-import { fetchMeta$ } from "@sites/dm5/meta";
 import { loadImgSrc } from "@domain/reducers/comics";
 import { getSeriesSnapshot } from "@infra/services/library/reader";
+import { buildSeriesKey } from "@infra/services/library/schema";
 import {
   parseDm5ChapterPage,
   resolveDm5ImageUrl,
 } from "@sites/dm5/chapter";
-import { buildSeriesKey } from "@infra/services/library/schema";
+import { fetchMeta$ } from "@sites/dm5/meta";
 import { devLog } from "@utils/devLog";
+import { ofType } from "redux-observable";
+import { from, of } from "rxjs";
+import { ajax } from "rxjs/ajax";
+import { filter as rxFilter, map as rxMap, mergeMap } from "rxjs/operators";
+
 import type { AppEpic } from "../types";
 import {
   createFetchChapterEpic,

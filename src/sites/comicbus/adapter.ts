@@ -1,6 +1,7 @@
 import * as reader from "@epics/sites/comicbus";
-import { fetchMeta$ } from "./meta";
+
 import type { SiteAdapter } from "../types";
+import { fetchMeta$ } from "./meta";
 
 const comicbusAdapter: SiteAdapter = {
   key: "comicbus",

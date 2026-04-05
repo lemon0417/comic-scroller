@@ -1,15 +1,15 @@
 import {
+  getPopupFeedSnapshot,
+  getReaderSeriesState,
+  listSubscriptionKeys,
+} from "./queries";
+import {
   CHAPTERS_STORE,
   HISTORY_STORE,
   SERIES_STORE,
   SUBSCRIPTIONS_STORE,
   UPDATES_STORE,
 } from "./schema";
-import {
-  getPopupFeedSnapshot,
-  getReaderSeriesState,
-  listSubscriptionKeys,
-} from "./queries";
 
 jest.mock("./shared", () => {
   const actual = jest.requireActual("./shared");

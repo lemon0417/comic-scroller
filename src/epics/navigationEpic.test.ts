@@ -1,5 +1,3 @@
-import { of } from "rxjs";
-import navigationEpic from "./navigationEpic";
 import {
   fetchImgList,
   navigateChapter,
@@ -7,6 +5,9 @@ import {
   updateRead,
 } from "@domain/actions/reader";
 import { resetImg, updateChapterLatestIndex } from "@domain/reducers/comics";
+import { of } from "rxjs";
+
+import navigationEpic from "./navigationEpic";
 
 describe("navigationEpic", () => {
   it("dispatches the expected navigation sequence", () => {

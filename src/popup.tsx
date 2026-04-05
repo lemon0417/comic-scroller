@@ -1,8 +1,9 @@
-import { createRoot } from "react-dom/client";
-import { Provider } from "react-redux";
 import "@styles/tailwind.css";
+
 import PopupApp from "@containers/PopupApp";
 import configureStore from "@domain/store/configurePopStore";
+import { createRoot } from "react-dom/client";
+import { Provider } from "react-redux";
 
 const store = configureStore();
 const rootEl = document.getElementById("app");

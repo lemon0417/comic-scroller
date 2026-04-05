@@ -1,6 +1,6 @@
-import type { Observable } from "rxjs";
 import type { RootState } from "@domain/reducers";
 import type { PopupState } from "@domain/reducers/popupState";
+import type { Observable } from "rxjs";
 
 export type EpicAction = {
   type: string;

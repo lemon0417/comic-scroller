@@ -1,6 +1,7 @@
-import { type MouseEvent, type ReactNode, useCallback, useRef } from "react";
-import ripple from "../Ripple";
 import { cn } from "@utils/cn";
+import { type MouseEvent, type ReactNode, useCallback, useRef } from "react";
+
+import ripple from "../Ripple";
 
 type IconButtonProps = {
   children?: ReactNode;

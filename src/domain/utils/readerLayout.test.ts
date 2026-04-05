@@ -1,7 +1,7 @@
 import {
-  READER_IMAGE_GAP,
   buildImageOffsetLayout,
   findImageIndexAtScrollOffset,
+  READER_IMAGE_GAP,
 } from "./readerLayout";
 
 describe("readerLayout", () => {

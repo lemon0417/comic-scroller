@@ -1,5 +1,5 @@
-import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@utils/cn";
+import type { HTMLAttributes, ReactNode } from "react";
 
 type EmptyStateProps = HTMLAttributes<HTMLDivElement> & {
   title?: string;

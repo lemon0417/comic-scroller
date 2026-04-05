@@ -1,9 +1,9 @@
 import {
+  storageClear,
   storageGet,
   storageGetAll,
-  storageSet,
-  storageClear,
   storageRemove,
+  storageSet,
 } from "./storage";
 
 describe("storage service", () => {

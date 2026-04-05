@@ -1,7 +1,8 @@
-import { fireEvent, render } from "@testing-library/react";
 import type { ComicsImageType } from "@domain/reducers/comics";
-import { ComicImage } from ".";
 import { getImageRenderMetrics } from "@domain/utils/readerLayout";
+import { fireEvent, render } from "@testing-library/react";
+
+import { ComicImage } from ".";
 
 type ComicImageTestProps = {
   chapter?: string;

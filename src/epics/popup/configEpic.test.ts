@@ -1,5 +1,3 @@
-import { lastValueFrom, of } from "rxjs";
-import { toArray } from "rxjs/operators";
 import {
   requestExportConfig,
   requestImportConfig,
@@ -14,6 +12,8 @@ import type {
   PopupFeedEntry,
   PopupFeedSnapshot,
 } from "@infra/services/library/models";
+import { lastValueFrom, of } from "rxjs";
+import { toArray } from "rxjs/operators";
 
 jest.mock("@infra/services/library/popup", () => ({
   exportLibraryDump: jest.fn(),

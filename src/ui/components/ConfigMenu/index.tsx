@@ -1,6 +1,6 @@
+import DropdownMenu from "@components/DropdownMenu";
 import type { ChangeEventHandler, ReactNode } from "react";
 import { useEffect, useRef } from "react";
-import DropdownMenu from "@components/DropdownMenu";
 
 type ConfigMenuProps = {
   open: boolean;

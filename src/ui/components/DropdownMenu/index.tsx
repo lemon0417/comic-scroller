@@ -1,6 +1,6 @@
+import { cn } from "@utils/cn";
 import type { MouseEventHandler, ReactNode } from "react";
 import { createContext, useContext } from "react";
-import { cn } from "@utils/cn";
 
 type DropdownMenuContextValue = {
   open: boolean;

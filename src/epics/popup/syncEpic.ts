@@ -1,12 +1,13 @@
-import { Observable } from "rxjs";
-import { exhaustMap } from "rxjs/operators";
-import { ofType } from "redux-observable";
 import { REQUEST_POPUP_DATA } from "@domain/actions/popup";
 import { hydratePopupFeed } from "@domain/reducers/popupState";
 import {
   getPopupFeedSnapshot,
   subscribeToLibrarySignal,
 } from "@infra/services/library/popup";
+import { ofType } from "redux-observable";
+import { Observable } from "rxjs";
+import { exhaustMap } from "rxjs/operators";
+
 import type { PopupEpic } from "../types";
 
 function observeLibraryChanges() {

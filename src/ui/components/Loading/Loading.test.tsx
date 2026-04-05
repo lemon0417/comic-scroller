@@ -1,4 +1,5 @@
 import { render } from "@testing-library/react";
+
 import Loading from "./index";
 
 test("Loading contains circle svg", () => {

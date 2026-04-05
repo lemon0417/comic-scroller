@@ -1,6 +1,7 @@
+import type { ChapterRecord } from "@infra/services/library/schema";
 import { from } from "rxjs";
 import { map as rxMap } from "rxjs/operators";
-import type { ChapterRecord } from "@infra/services/library/schema";
+
 import type { SiteMeta } from "../types";
 
 const baseURL = "http://comic.sfacg.com";

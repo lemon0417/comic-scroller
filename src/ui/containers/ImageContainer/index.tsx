@@ -1,12 +1,5 @@
-import { useCallback, useMemo, useRef } from "react";
-import { connect } from "react-redux";
-import {
-  List,
-  type RowComponentProps,
-  useDynamicRowHeight,
-} from "react-window";
-import Loading from "@components/Loading";
 import ConnectedComicImage from "@components/ComicImage";
+import Loading from "@components/Loading";
 import { updateVisibleImageRange } from "@domain/actions/reader";
 import type { ComicsState } from "@domain/reducers/comics";
 import {
@@ -14,6 +7,13 @@ import {
   READER_HEADER_HEIGHT,
   READER_IMAGE_GAP,
 } from "@domain/utils/readerLayout";
+import { useCallback, useMemo, useRef } from "react";
+import { connect } from "react-redux";
+import {
+  List,
+  type RowComponentProps,
+  useDynamicRowHeight,
+} from "react-window";
 
 type ImageContainerProps = {
   imageListKey: string;

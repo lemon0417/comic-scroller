@@ -1,15 +1,16 @@
 import { combineEpics } from "redux-observable";
+
 import {
   fetchChapterEpic,
-  fetchImgSrcEpic,
   fetchImgListEpic,
+  fetchImgSrcEpic,
   updateReadEpic,
 } from "./getAction";
-import scrollEpic from "./scrollEpic";
-import resizeEpic from "./resizeEpic";
 import navigationEpic from "./navigationEpic";
-import subscribeEpic from "./subscribeEpic";
 import readerLocationEpic from "./readerLocationEpic";
+import resizeEpic from "./resizeEpic";
+import scrollEpic from "./scrollEpic";
+import subscribeEpic from "./subscribeEpic";
 
 const rootEpic = combineEpics(
   fetchChapterEpic,

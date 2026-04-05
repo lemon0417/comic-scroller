@@ -1,6 +1,3 @@
-import { from, type Observable } from "rxjs";
-import { mergeMap } from "rxjs/operators";
-import { ofType } from "redux-observable";
 import {
   REQUEST_EXPORT_CONFIG,
   REQUEST_IMPORT_CONFIG,
@@ -11,13 +8,17 @@ import {
   hydratePopupFeed,
   setExportConfig,
 } from "@domain/reducers/popupState";
+import type { PopupFeedEntry } from "@infra/services/library/models";
 import {
   exportLibraryDump,
   getPopupFeedSnapshot,
   importLibraryDump,
   resetLibrary,
 } from "@infra/services/library/popup";
-import type { PopupFeedEntry } from "@infra/services/library/models";
+import { ofType } from "redux-observable";
+import { from, type Observable } from "rxjs";
+import { mergeMap } from "rxjs/operators";
+
 import type { PopupEpic } from "../types";
 
 type PopupConfigAction = {

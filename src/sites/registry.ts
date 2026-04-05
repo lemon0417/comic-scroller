@@ -1,6 +1,6 @@
+import comicbusAdapter from "./comicbus/adapter";
 import dm5Adapter from "./dm5/adapter";
 import sfAdapter from "./sf/adapter";
-import comicbusAdapter from "./comicbus/adapter";
 import type { SiteAdapter } from "./types";
 
 const adapters: Record<string, SiteAdapter> = {

@@ -1,24 +1,24 @@
-import { useCallback, useEffect, useState } from "react";
-import { connect } from "react-redux";
-import MenuIcon from "@imgs/menu.svg?react";
-import NextIcon from "@imgs/circle-right.svg?react";
-import PrevIcon from "@imgs/circle-left.svg?react";
-import TagIcon from "@imgs/tag.svg?react";
 import IconButton from "@components/IconButton";
-import ImageContainer from "@containers/ImageContainer";
 import ChapterList from "@containers/ChapterList";
-import { type ComicsState, updateSubscribe } from "@domain/reducers/comics";
-import {
-  getReaderSeriesState,
-  subscribeToLibrarySignal,
-} from "@infra/services/library/reader";
-import { devLog } from "@utils/devLog";
+import ImageContainer from "@containers/ImageContainer";
 import {
   fetchChapter,
   navigateChapter,
   startResize,
   toggleSubscribe,
 } from "@domain/actions/reader";
+import { type ComicsState, updateSubscribe } from "@domain/reducers/comics";
+import PrevIcon from "@imgs/circle-left.svg?react";
+import NextIcon from "@imgs/circle-right.svg?react";
+import MenuIcon from "@imgs/menu.svg?react";
+import TagIcon from "@imgs/tag.svg?react";
+import {
+  getReaderSeriesState,
+  subscribeToLibrarySignal,
+} from "@infra/services/library/reader";
+import { devLog } from "@utils/devLog";
+import { useCallback, useEffect, useState } from "react";
+import { connect } from "react-redux";
 
 type AppStateProps = {
   chapterList: string[];

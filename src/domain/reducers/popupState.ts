@@ -1,11 +1,11 @@
-import type { PopupFeedSnapshot } from "@infra/services/library/models";
-import { createEmptyPopupFeedSnapshot } from "@infra/services/library/models";
 import {
   REQUEST_EXPORT_CONFIG,
   REQUEST_IMPORT_CONFIG,
   REQUEST_POPUP_DATA,
   REQUEST_RESET_CONFIG,
 } from "@domain/actions/popup";
+import type { PopupFeedSnapshot } from "@infra/services/library/models";
+import { createEmptyPopupFeedSnapshot } from "@infra/services/library/models";
 
 type HydrationSource = "load" | "import" | "reset";
 type ActiveAction = "import" | "export" | "reset" | null;

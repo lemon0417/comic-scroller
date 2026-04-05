@@ -1,11 +1,12 @@
-import { type MouseEvent, useCallback, useEffect } from "react";
-import { connect } from "react-redux";
-import { Grid } from "react-window";
 import { navigateChapter } from "@domain/actions/reader";
 import type {
   ComicsChapterRecord,
   ComicsState,
 } from "@domain/reducers/comics";
+import { type MouseEvent, useCallback, useEffect } from "react";
+import { connect } from "react-redux";
+import { Grid } from "react-window";
+
 import {
   CHAPTER_LIST_HEIGHT,
   CHAPTER_OVERSCAN_COUNT,

@@ -1,18 +1,19 @@
-import { from, type Observable } from "rxjs";
-import { mergeMap } from "rxjs/operators";
-import { ofType } from "redux-observable";
 import {
-  REQUEST_REMOVE_CARD,
   type RemoveCardPayload,
+  REQUEST_REMOVE_CARD,
 } from "@domain/actions/popup";
 import { hydratePopupFeed } from "@domain/reducers/popupState";
-import type { SiteKey } from "@infra/services/library/schema";
 import {
   dismissSeriesUpdate,
   getPopupFeedSnapshot,
   removeSeriesCascade,
   setSeriesSubscription,
 } from "@infra/services/library/popup";
+import type { SiteKey } from "@infra/services/library/schema";
+import { ofType } from "redux-observable";
+import { from, type Observable } from "rxjs";
+import { mergeMap } from "rxjs/operators";
+
 import type { PopupEpic } from "../types";
 
 type RemoveCardAction = {

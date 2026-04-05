@@ -1,7 +1,8 @@
+import { UPDATE_CHAPTER_NOW_INDEX } from "@domain/reducers/comics";
+import { ofType } from "redux-observable";
 import { EMPTY } from "rxjs";
 import { mergeMap } from "rxjs/operators";
-import { ofType } from "redux-observable";
-import { UPDATE_CHAPTER_NOW_INDEX } from "@domain/reducers/comics";
+
 import type { AppEpic } from "./types";
 
 const readerLocationEpic: AppEpic = (action$, state$) =>

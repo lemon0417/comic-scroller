@@ -1,6 +1,6 @@
+import { cn } from "@utils/cn";
 import type { ReactNode } from "react";
 import { createContext, useContext } from "react";
-import { cn } from "@utils/cn";
 
 type TabsContextValue = {
   value: string;
@@ -96,4 +96,4 @@ const Tabs = Object.assign(TabsRoot, {
 }) as TabsComponent;
 
 export default Tabs;
-export { TabsList, Tab };
+export { Tab,TabsList };

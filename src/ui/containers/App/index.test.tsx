@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+
 import { App } from "./index";
 
 jest.mock("@infra/services/library/reader", () => ({

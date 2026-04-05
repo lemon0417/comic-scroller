@@ -1,7 +1,8 @@
+import { fetchMeta$ } from "@sites/sf/meta";
 import { of } from "rxjs";
 import { ajax } from "rxjs/ajax";
 import { mergeMap } from "rxjs/operators";
-import { fetchMeta$ } from "@sites/sf/meta";
+
 import {
   createDirectFetchImgSrcEpic,
   createFetchChapterEpic,

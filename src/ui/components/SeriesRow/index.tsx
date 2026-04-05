@@ -1,8 +1,8 @@
-import type { ButtonHTMLAttributes } from "react";
 import BinIcon from "@imgs/bin.svg?react";
 import ArrowIcon from "@imgs/circle-right.svg?react";
 import TagIcon from "@imgs/tag.svg?react";
 import { cn } from "@utils/cn";
+import type { ButtonHTMLAttributes } from "react";
 
 type RowActionIcon = "arrow" | "tag" | "trash";
 type SeriesRowVariant = "popup" | "manage";

@@ -1,5 +1,3 @@
-import { useEffect } from "react";
-import { connect } from "react-redux";
 import Content from "@components/Content";
 import EmptyState from "@components/EmptyState";
 import List from "@components/List";
@@ -13,6 +11,8 @@ import {
 } from "@domain/selectors/popupView";
 import type { PopupFeedEntry } from "@infra/services/library/models";
 import { openManagePage, openReaderPage } from "@utils/navigation";
+import { useEffect } from "react";
+import { connect } from "react-redux";
 
 function SectionTitle({ title }: { title: string }) {
   return (

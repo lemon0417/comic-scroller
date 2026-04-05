@@ -1,12 +1,13 @@
+import popupEpic from "@epics/popup";
+import type { EpicAction, PopupRootState } from "@epics/types";
 import {
   configureStore as configureToolkitStore,
   Tuple,
 } from "@reduxjs/toolkit";
 import { createEpicMiddleware } from "redux-observable";
+
 import rootReducer from "../reducers/popup";
 import { getDebugLogger } from "./debugLogger";
-import popupEpic from "@epics/popup";
-import type { EpicAction, PopupRootState } from "@epics/types";
 
 const epicMiddleware = createEpicMiddleware<
   EpicAction,

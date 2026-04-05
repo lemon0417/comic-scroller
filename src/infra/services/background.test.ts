@@ -1,4 +1,5 @@
 import { NEVER, of } from "rxjs";
+
 import {
   handleExtensionInstalled,
   handleNotificationClick,

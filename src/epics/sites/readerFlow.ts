@@ -1,20 +1,13 @@
-import findIndex from "lodash/findIndex";
-import { from, merge, of, type Observable } from "rxjs";
-import {
-  filter as rxFilter,
-  map as rxMap,
-  mergeMap,
-} from "rxjs/operators";
-import { ofType } from "redux-observable";
 import {
   FETCH_CHAPTER,
   FETCH_IMAGE_SRC,
   FETCH_IMG_LIST,
-  UPDATE_READ,
   fetchImgList,
   fetchImgSrc,
+  UPDATE_READ,
 } from "@domain/actions/reader";
 import {
+  type ComicsImageSource,
   concatImageList,
   loadImgSrc,
   updateCanPreloadPreviousChapter,
@@ -27,11 +20,10 @@ import {
   updateSiteInfo,
   updateSubscribe,
   updateTitle,
-  type ComicsImageSource,
 } from "@domain/reducers/comics";
 import {
-  applyReadProgress,
   applyReaderSeriesState,
+  applyReadProgress,
 } from "@infra/services/library/reader";
 import type { SiteKey } from "@infra/services/library/schema";
 import type {
@@ -39,6 +31,15 @@ import type {
   SiteMeta,
   SiteMetaFetcher,
 } from "@sites/types";
+import findIndex from "lodash/findIndex";
+import { ofType } from "redux-observable";
+import { from, merge, type Observable,of } from "rxjs";
+import {
+  filter as rxFilter,
+  map as rxMap,
+  mergeMap,
+} from "rxjs/operators";
+
 import type { AppEpic, EpicAction } from "../types";
 
 type ReaderChapterAction = {

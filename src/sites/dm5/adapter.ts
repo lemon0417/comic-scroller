@@ -1,6 +1,7 @@
 import * as reader from "@epics/sites/dm5";
-import { fetchMeta$ } from "./meta";
+
 import type { SiteAdapter } from "../types";
+import { fetchMeta$ } from "./meta";
 
 const dm5Adapter: SiteAdapter = {
   key: "dm5",

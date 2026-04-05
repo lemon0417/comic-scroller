@@ -1,13 +1,14 @@
-import { from } from "rxjs";
-import { mergeMap } from "rxjs/operators";
-import { ofType } from "redux-observable";
 import { TOGGLE_SUBSCRIBE } from "@domain/actions/reader";
 import { updateSubscribe } from "@domain/reducers/comics";
-import type { AppEpic } from "./types";
 import {
   isSeriesSubscribedByKey,
   setSeriesSubscriptionByKey,
 } from "@infra/services/library/reader";
+import { ofType } from "redux-observable";
+import { from } from "rxjs";
+import { mergeMap } from "rxjs/operators";
+
+import type { AppEpic } from "./types";
 
 const subscribeEpic: AppEpic = (action$, state$) =>
   action$.pipe(

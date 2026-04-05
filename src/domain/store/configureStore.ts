@@ -1,12 +1,13 @@
+import type { EpicAction } from "@epics/types";
 import {
   configureStore as configureToolkitStore,
   Tuple,
 } from "@reduxjs/toolkit";
 import { createEpicMiddleware } from "redux-observable";
-import rootReducer, { type RootState } from "../reducers";
+
 import rootEpic from "../../epics";
+import rootReducer, { type RootState } from "../reducers";
 import { getDebugLogger } from "./debugLogger";
-import type { EpicAction } from "@epics/types";
 
 type AppStore = ReturnType<typeof configureToolkitStore<RootState>>;
 

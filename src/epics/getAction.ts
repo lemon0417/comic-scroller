@@ -1,6 +1,6 @@
-import { EMPTY } from "rxjs";
 import { getSiteAdapter } from "@sites/registry";
 import { devLog } from "@utils/devLog";
+import { EMPTY } from "rxjs";
 
 const inferSite = (siteParam: string, chapterParam: string) => {
   if (siteParam) return siteParam;

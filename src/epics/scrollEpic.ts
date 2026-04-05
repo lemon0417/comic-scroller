@@ -1,17 +1,17 @@
-import { type Observable } from "rxjs";
-import { mergeMap } from "rxjs/operators";
-import { ofType } from "redux-observable";
-import findIndex from "lodash/findIndex";
-import type { RootState } from "@domain/reducers";
 import {
-  UPDATE_VISIBLE_IMAGE_RANGE,
-  fetchImgSrc,
   fetchImgList,
+  fetchImgSrc,
+  UPDATE_VISIBLE_IMAGE_RANGE,
   updateRead,
 } from "@domain/actions/reader";
+import type { RootState } from "@domain/reducers";
 import {
   updateChapterLatestIndex,
 } from "@domain/reducers/comics";
+import findIndex from "lodash/findIndex";
+import { ofType } from "redux-observable";
+import { type Observable } from "rxjs";
+import { mergeMap } from "rxjs/operators";
 
 type VisibleImageRangeAction = {
   begin: number;

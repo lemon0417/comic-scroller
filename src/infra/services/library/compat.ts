@@ -12,13 +12,13 @@ import {
   isLibraryDumpV1,
   migrateDump,
   migrateLibrary,
+  openLibraryDb,
   persistSnapshot,
   readRowsFromDb,
   requestToPromise,
   rowsToSnapshot,
   snapshotToRows,
   transactionDone,
-  openLibraryDb,
 } from "./shared";
 
 async function loadLibrary() {

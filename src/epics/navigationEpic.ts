@@ -1,12 +1,13 @@
-import { mergeMap } from "rxjs/operators";
-import { ofType } from "redux-observable";
 import {
-  NAVIGATE_CHAPTER,
   fetchImgList,
+  NAVIGATE_CHAPTER,
   stopScroll,
   updateRead,
 } from "@domain/actions/reader";
 import { resetImg, updateChapterLatestIndex } from "@domain/reducers/comics";
+import { ofType } from "redux-observable";
+import { mergeMap } from "rxjs/operators";
+
 import type { AppEpic } from "./types";
 
 const navigationEpic: AppEpic = (action$) =>

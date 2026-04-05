@@ -1,10 +1,10 @@
+import { setLibraryVersion } from "./compat";
 import {
   LIBRARY_DB_VERSION,
   LIBRARY_META_KEY,
   LIBRARY_SCHEMA_VERSION,
   META_STORE,
 } from "./schema";
-import { setLibraryVersion } from "./compat";
 
 jest.mock("./shared", () => {
   const actual = jest.requireActual("./shared");

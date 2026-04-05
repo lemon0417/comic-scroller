@@ -1,7 +1,8 @@
-import { of } from "rxjs";
-import resizeEpic from "./resizeEpic";
 import { startResize } from "@domain/actions/reader";
 import { updateInnerHeight, updateInnerWidth } from "@domain/reducers/comics";
+import { of } from "rxjs";
+
+import resizeEpic from "./resizeEpic";
 
 describe("resizeEpic", () => {
   it("emits updateInnerHeight on window resize after start", () => {

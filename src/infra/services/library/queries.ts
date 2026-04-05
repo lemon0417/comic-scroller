@@ -1,25 +1,25 @@
 import {
-  CHAPTERS_STORE,
-  HISTORY_STORE,
-  SERIES_STORE,
-  SITE_KEYS,
-  SUBSCRIPTIONS_STORE,
-  UPDATES_STORE,
-  buildSeriesKey,
-  type ChapterRow,
-  type HistoryRow,
-  type SeriesRecord,
-  type SeriesRow,
-  type SubscriptionRow,
-  type UpdateRow,
-} from "./schema";
-import {
   createEmptyPopupFeedSnapshot,
   type PopupFeedCategory,
   type PopupFeedEntry,
   type PopupFeedSnapshot,
   type ReaderSeriesState,
 } from "./models";
+import {
+  buildSeriesKey,
+  type ChapterRow,
+  CHAPTERS_STORE,
+  HISTORY_STORE,
+  type HistoryRow,
+  SERIES_STORE,
+  type SeriesRecord,
+  type SeriesRow,
+  SITE_KEYS,
+  type SubscriptionRow,
+  SUBSCRIPTIONS_STORE,
+  type UpdateRow,
+  UPDATES_STORE,
+} from "./schema";
 import {
   composeSeriesRecord,
   ensureLibraryReady,

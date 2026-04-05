@@ -1,17 +1,17 @@
 import {
-  type SyntheticEvent,
-  useCallback,
-  useRef,
-  useState,
-} from "react";
-import { connect } from "react-redux";
-import {
   type ComicsImageRecord,
   type ComicsImageType,
   type ComicsState,
   updateImgType,
 } from "@domain/reducers/comics";
 import { getImageRenderMetrics } from "@domain/utils/readerLayout";
+import {
+  type SyntheticEvent,
+  useCallback,
+  useRef,
+  useState,
+} from "react";
+import { connect } from "react-redux";
 
 type Props = {
   chapter?: string;

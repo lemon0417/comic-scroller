@@ -1,5 +1,5 @@
-import reduce from "lodash/reduce";
 import { buildSeriesKey } from "@infra/services/library/schema";
+import reduce from "lodash/reduce";
 
 export type ComicsChapterRecord = {
   chapter?: string;

@@ -23,6 +23,7 @@
 
 ### ESLint 原則
 - 使用 ESLint 9 flat config，基底由 `@eslint/js`、`@typescript-eslint`、`eslint-plugin-react`、`eslint-plugin-react-hooks`、`eslint-plugin-jsx-a11y`、`eslint-plugin-import` 的 recommended 規則組成。
+- import 排序使用 `eslint-plugin-simple-import-sort`，由 ESLint autofix 處理。
 - 不啟用 type-aware lint 全套規則，避免目前專案的 lint 成本與配置複雜度過高；型別正確性以 `yarn typecheck` 負責。
 - `src` 非測試檔的 `@typescript-eslint/no-explicit-any` 設為 `error`；測試檔維持較寬鬆 override。
 - 測試檔不再整包忽略，改用 test-specific override 管理 Jest globals 與少數測試必要寫法。

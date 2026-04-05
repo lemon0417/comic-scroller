@@ -1,5 +1,5 @@
-import { firstValueFrom } from "rxjs";
 import { fetchMeta$ } from "@sites/dm5/meta";
+import { firstValueFrom } from "rxjs";
 
 describe("dm5 fetchMeta$", () => {
   afterEach(() => {

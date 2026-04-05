@@ -1,6 +1,6 @@
-import type { Observable } from "rxjs";
 import type { AppEpic } from "@epics/types";
 import type { ChapterRecord } from "@infra/services/library/schema";
+import type { Observable } from "rxjs";
 
 export type FetchMetaOptions = {
   includeCover?: boolean;

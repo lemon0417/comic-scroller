@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react";
 import type { PopupFeedEntry } from "@infra/services/library/models";
+import { fireEvent, render, screen } from "@testing-library/react";
+
 import { PopupApp } from "./index";
 
 function createFeedEntry(

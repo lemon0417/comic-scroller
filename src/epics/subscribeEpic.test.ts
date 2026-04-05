@@ -1,8 +1,9 @@
-import { lastValueFrom, of } from "rxjs";
-import { toArray } from "rxjs/operators";
-import subscribeEpic from "./subscribeEpic";
 import { toggleSubscribe } from "@domain/actions/reader";
 import { updateSubscribe } from "@domain/reducers/comics";
+import { lastValueFrom, of } from "rxjs";
+import { toArray } from "rxjs/operators";
+
+import subscribeEpic from "./subscribeEpic";
 
 jest.mock("@infra/services/library/reader", () => {
   const actual = jest.requireActual("@infra/services/library/reader");

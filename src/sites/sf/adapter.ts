@@ -1,6 +1,7 @@
 import * as reader from "@epics/sites/sf";
-import { fetchMeta$ } from "./meta";
+
 import type { SiteAdapter } from "../types";
+import { fetchMeta$ } from "./meta";
 
 const sfAdapter: SiteAdapter = {
   key: "sf",

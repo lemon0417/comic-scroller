@@ -1,9 +1,9 @@
-import { configureStore, Tuple } from "@reduxjs/toolkit";
-import { createEpicMiddleware } from "redux-observable";
+import { requestPopupData } from "@domain/actions/popup";
 import popupReducer from "@domain/reducers/popup";
 import popupEpic from "@epics/popup";
 import type { EpicAction, PopupRootState } from "@epics/types";
-import { requestPopupData } from "@domain/actions/popup";
+import { configureStore, Tuple } from "@reduxjs/toolkit";
+import { createEpicMiddleware } from "redux-observable";
 
 jest.mock("@infra/services/library/popup", () => ({
   getPopupFeedSnapshot: jest.fn(),

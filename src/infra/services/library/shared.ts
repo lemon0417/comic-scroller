@@ -2,6 +2,7 @@ import { storageClear, storageGetAll, storageRemove, storageSet } from "../stora
 import type {
   ChapterRecord,
   ChapterRow,
+  HistoryRow,
   LibraryDumpV1,
   LibrarySignal,
   LibrarySnapshotV2,
@@ -10,10 +11,12 @@ import type {
   SeriesRow,
   SubscriptionRow,
   UpdateRow,
-  HistoryRow,
 } from "./schema";
 import {
+  buildSeriesKey,
   CHAPTERS_STORE,
+  createEmptyLibrarySnapshot,
+  getExtensionVersion,
   HISTORY_LIMIT,
   HISTORY_STORE,
   LEGACY_STORAGE_KEYS,
@@ -23,17 +26,14 @@ import {
   LIBRARY_SCHEMA_VERSION,
   LIBRARY_SIGNAL_KEY,
   META_STORE,
-  SERIES_STORE,
-  SITE_KEYS,
-  SUBSCRIPTIONS_STORE,
-  UPDATES_STORE,
-  buildSeriesKey,
-  createEmptyLibrarySnapshot,
-  getExtensionVersion,
   normalizeChapterRecord,
   normalizeSeriesRecord,
   parseSeriesKey,
+  SERIES_STORE,
+  SITE_KEYS,
+  SUBSCRIPTIONS_STORE,
   uniqueStrings,
+  UPDATES_STORE,
 } from "./schema";
 
 type LegacyStore = {

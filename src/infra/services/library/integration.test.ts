@@ -9,8 +9,8 @@ import {
 import {
   getPopupFeedSnapshot,
   getReaderSeriesState,
-  listSubscriptionKeys,
   getUpdateCount,
+  listSubscriptionKeys,
 } from "./queries";
 import { resetLibraryPersistenceForTests } from "./shared";
 
