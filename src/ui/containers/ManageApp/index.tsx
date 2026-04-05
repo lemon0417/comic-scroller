@@ -1,3 +1,4 @@
+import ConfirmDialog from "@components/ConfirmDialog";
 import Content from "@components/Content";
 import EmptyState from "@components/EmptyState";
 import LoadingRows from "@components/LoadingRows";
@@ -23,7 +24,7 @@ import type { PopupFeedEntry } from "@infra/services/library/models";
 import { isDevLogEnabled, setDevLogEnabled } from "@utils/devLog";
 import { openReaderPage } from "@utils/navigation";
 import type { ChangeEventHandler } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { connect } from "react-redux";
 import {
   List,
@@ -34,11 +35,19 @@ import {
 type ManageTab = "updates" | "following" | "history" | "data";
 
 type ManageRowsListProps = {
+  busy: boolean;
   selectedTab: Exclude<ManageTab, "data">;
   rows: PopupFeedEntry[];
-  onForgetSeries: (item: PopupFeedEntry) => void;
+  onRequestAbandonSeries: (item: PopupFeedEntry) => void;
+  onRequestHistoryRemoval: (item: PopupFeedEntry) => void;
   onRemoveCard: typeof requestRemoveCard;
 };
+
+type ManageDialogState =
+  | { kind: "closed" }
+  | { kind: "history"; item: PopupFeedEntry }
+  | { kind: "reset" }
+  | { kind: "subscribe"; item: PopupFeedEntry; clearSeriesData: boolean };
 
 const MANAGE_ROW_DEFAULT_HEIGHT = 112;
 const MANAGE_LIST_OVERSCAN_COUNT = 6;
@@ -76,8 +85,10 @@ function getInitialTab(): ManageTab {
 
 function ManageFeedRow({
   ariaAttributes,
+  busy,
   index,
-  onForgetSeries,
+  onRequestAbandonSeries,
+  onRequestHistoryRemoval,
   onRemoveCard,
   rows,
   selectedTab,
@@ -114,6 +125,7 @@ function ManageFeedRow({
             {
               icon: "trash",
               label: "略過",
+              disabled: busy,
               onClick: () =>
                 onRemoveCard({
                   category: "update",
@@ -156,13 +168,8 @@ function ManageFeedRow({
               icon: "tag",
               label: "棄坑",
               variant: "danger",
-              onClick: () =>
-                onRemoveCard({
-                  category: "subscribe",
-                  index: item.index,
-                  comicsID: item.comicsID,
-                  site: item.site,
-                }),
+              disabled: busy,
+              onClick: () => onRequestAbandonSeries(item),
             },
           ]}
         />
@@ -192,7 +199,8 @@ function ManageFeedRow({
             icon: "trash",
             label: "移除",
             variant: "danger",
-            onClick: () => onForgetSeries(item),
+            disabled: busy,
+            onClick: () => onRequestHistoryRemoval(item),
           },
         ]}
       />
@@ -221,7 +229,12 @@ function ManageAppComponent(props: ManageAppProps) {
 
   const [selectedTab, setSelectedTab] = useState<ManageTab>(getInitialTab);
   const [debugLogEnabled, setDebugLogEnabled] = useState(isDevLogEnabled);
+  const [dialogState, setDialogState] = useState<ManageDialogState>({
+    kind: "closed",
+  });
   const [localError, setLocalError] = useState("");
+  const clearSeriesDataCheckboxId = useId();
+  const clearSeriesDataDescriptionId = useId();
   const rowHeights = useDynamicRowHeight({
     defaultRowHeight: MANAGE_ROW_DEFAULT_HEIGHT,
     key: selectedTab,
@@ -283,16 +296,6 @@ function ManageAppComponent(props: ManageAppProps) {
     reader.readAsText(file);
   };
 
-  const handleReset = () => {
-    const shouldReset = window.confirm(
-      "確定重置所有資料？此操作會刪除更新、追蹤、紀錄與作品快取。",
-    );
-    if (!shouldReset) return;
-    setLocalError("");
-    clearPopupNoticeProp();
-    requestResetConfigProp();
-  };
-
   const handleDebugLogToggle = () => {
     const enabled = !debugLogEnabled;
     if (!setDevLogEnabled(enabled)) {
@@ -303,31 +306,178 @@ function ManageAppComponent(props: ManageAppProps) {
     setDebugLogEnabled(enabled);
   };
 
-  const handleForgetSeries = useCallback(
+  const closeDialog = useCallback(() => {
+    if (busy) {
+      return;
+    }
+    setDialogState({ kind: "closed" });
+  }, [busy]);
+
+  const openResetDialog = useCallback(() => {
+    setDialogState({ kind: "reset" });
+  }, []);
+
+  const openHistoryRemovalDialog = useCallback(
     (item: PopupFeedEntry) => {
-      const shouldForget = window.confirm(
-        `確定移除「${item.title}」？此操作會刪除紀錄、更新、追蹤與作品快取。`,
-      );
-      if (!shouldForget) return;
-      requestRemoveCardProp({
-        category: "history",
-        index: item.index,
-        comicsID: item.comicsID,
-        site: item.site,
+      setDialogState({
+        kind: "history",
+        item,
       });
     },
-    [requestRemoveCardProp],
+    [],
   );
+
+  const openAbandonSeriesDialog = useCallback((item: PopupFeedEntry) => {
+    setDialogState({
+      kind: "subscribe",
+      item,
+      clearSeriesData: false,
+    });
+  }, []);
+
+  const handleSubscribeClearSeriesDataChange: ChangeEventHandler<HTMLInputElement> =
+    useCallback((event) => {
+      const checked = event.currentTarget.checked;
+      setDialogState((currentState) =>
+        currentState.kind === "subscribe"
+          ? {
+              ...currentState,
+              clearSeriesData: checked,
+            }
+          : currentState,
+      );
+    }, []);
+
+  const handleDialogConfirm = useCallback(() => {
+    if (dialogState.kind === "closed") {
+      return;
+    }
+
+    setLocalError("");
+    clearPopupNoticeProp();
+
+    if (dialogState.kind === "reset") {
+      requestResetConfigProp();
+      setDialogState({ kind: "closed" });
+      return;
+    }
+
+    if (dialogState.kind === "history") {
+      requestRemoveCardProp({
+        category: "history",
+        index: dialogState.item.index,
+        comicsID: dialogState.item.comicsID,
+        site: dialogState.item.site,
+      });
+      setDialogState({ kind: "closed" });
+      return;
+    }
+
+    requestRemoveCardProp({
+      category: "subscribe",
+      index: dialogState.item.index,
+      comicsID: dialogState.item.comicsID,
+      site: dialogState.item.site,
+      ...(dialogState.clearSeriesData ? { clearSeriesData: true } : {}),
+    });
+    setDialogState({ kind: "closed" });
+  }, [
+    clearPopupNoticeProp,
+    dialogState,
+    requestRemoveCardProp,
+    requestResetConfigProp,
+  ]);
+
+  const renderConfirmDialog = () => {
+    if (dialogState.kind === "closed") {
+      return null;
+    }
+
+    if (dialogState.kind === "reset") {
+      return (
+        <ConfirmDialog
+          open
+          title="重置資料"
+          description="確定重置所有資料？此操作會刪除更新、追蹤、紀錄與作品快取。"
+          confirmLabel="重置資料"
+          busy={busy}
+          onClose={closeDialog}
+          onConfirm={handleDialogConfirm}
+        />
+      );
+    }
+
+    if (dialogState.kind === "history") {
+      return (
+        <ConfirmDialog
+          open
+          title="移除閱讀紀錄"
+          description={`確定移除「${dialogState.item.title}」的閱讀紀錄嗎？追蹤、更新與作品資料會保留。`}
+          confirmLabel="移除紀錄"
+          busy={busy}
+          onClose={closeDialog}
+          onConfirm={handleDialogConfirm}
+        />
+      );
+    }
+
+    return (
+      <ConfirmDialog
+        open
+        title="棄坑作品"
+        description={`確定取消追蹤「${dialogState.item.title}」嗎？未勾選時只會取消追蹤並清除更新提醒。`}
+        confirmLabel="確認棄坑"
+        busy={busy}
+        onClose={closeDialog}
+        onConfirm={handleDialogConfirm}
+      >
+        <div className="ds-checkbox-row">
+          <input
+            id={clearSeriesDataCheckboxId}
+            type="checkbox"
+            className="ds-checkbox"
+            checked={dialogState.clearSeriesData}
+            aria-describedby={clearSeriesDataDescriptionId}
+            disabled={busy}
+            onChange={handleSubscribeClearSeriesDataChange}
+          />
+          <span className="ds-checkbox-copy">
+            <label
+              htmlFor={clearSeriesDataCheckboxId}
+              className="ds-checkbox-label"
+            >
+              一併清除閱讀紀錄與作品資料
+            </label>
+            <span
+              id={clearSeriesDataDescriptionId}
+              className="ds-checkbox-desc"
+            >
+              勾選後會額外刪除這部作品的閱讀紀錄與快取。此操作無法復原。
+            </span>
+          </span>
+        </div>
+      </ConfirmDialog>
+    );
+  };
 
   const rowProps = useMemo<ManageRowsListProps>(
     () => ({
+      busy,
       selectedTab:
         selectedTab === "data" ? "following" : selectedTab,
       rows: currentRows,
-      onForgetSeries: handleForgetSeries,
+      onRequestAbandonSeries: openAbandonSeriesDialog,
+      onRequestHistoryRemoval: openHistoryRemovalDialog,
       onRemoveCard: requestRemoveCardProp,
     }),
-    [currentRows, handleForgetSeries, requestRemoveCardProp, selectedTab],
+    [
+      busy,
+      currentRows,
+      openAbandonSeriesDialog,
+      openHistoryRemovalDialog,
+      requestRemoveCardProp,
+      selectedTab,
+    ],
   );
 
   const renderRows = () => {
@@ -512,7 +662,7 @@ function ManageAppComponent(props: ManageAppProps) {
                       type="button"
                       className="ds-btn-danger"
                       disabled={busy}
-                      onClick={handleReset}
+                      onClick={openResetDialog}
                     >
                       重置資料
                     </button>
@@ -533,6 +683,7 @@ function ManageAppComponent(props: ManageAppProps) {
         className="hidden"
         onChange={handleFileChange}
       />
+      {renderConfirmDialog()}
     </div>
   );
 }

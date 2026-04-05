@@ -2,13 +2,14 @@ import {
   REQUEST_EXPORT_CONFIG,
   REQUEST_IMPORT_CONFIG,
   REQUEST_POPUP_DATA,
+  REQUEST_REMOVE_CARD,
   REQUEST_RESET_CONFIG,
 } from "@domain/actions/popup";
 import type { PopupFeedSnapshot } from "@infra/services/library/models";
 import { createEmptyPopupFeedSnapshot } from "@infra/services/library/models";
 
 type HydrationSource = "load" | "import" | "reset";
-type ActiveAction = "import" | "export" | "reset" | null;
+type ActiveAction = "import" | "export" | "remove" | "reset" | null;
 
 type Notice = {
   tone: "success" | "error" | "info";
@@ -30,10 +31,13 @@ type Action = {
   source?: HydrationSource;
   url?: string;
   filename?: string;
+  message?: string;
+  tone?: Notice["tone"];
 };
 
 const HYDRATE_POPUP_FEED = "HYDRATE_POPUP_FEED";
 const SET_EXPORT_CONFIG = "SET_EXPORT_CONFIG";
+const SET_POPUP_NOTICE = "SET_POPUP_NOTICE";
 const CLEAR_EXPORT_CONFIG = "CLEAR_EXPORT_CONFIG";
 const CLEAR_POPUP_NOTICE = "CLEAR_POPUP_NOTICE";
 
@@ -90,6 +94,12 @@ export default function popupState(
         activeAction: "export",
         notice: null,
       };
+    case REQUEST_REMOVE_CARD:
+      return {
+        ...state,
+        activeAction: "remove",
+        notice: null,
+      };
     case HYDRATE_POPUP_FEED:
       return {
         ...state,
@@ -108,6 +118,18 @@ export default function popupState(
         },
         exportUrl: action.url || "",
         exportFilename: action.filename || "",
+      };
+    case SET_POPUP_NOTICE:
+      return {
+        ...state,
+        hydrationStatus: "ready",
+        activeAction: null,
+        notice: action.message
+          ? {
+              tone: action.tone || "error",
+              message: action.message,
+            }
+          : null,
       };
     case CLEAR_EXPORT_CONFIG:
       return {
@@ -134,6 +156,13 @@ export function hydratePopupFeed(
 
 export function setExportConfig(url: string, filename: string) {
   return { type: SET_EXPORT_CONFIG, url, filename };
+}
+
+export function setPopupNotice(
+  message: string,
+  tone: Notice["tone"] = "error",
+) {
+  return { type: SET_POPUP_NOTICE, message, tone };
 }
 
 export function clearExportConfig() {

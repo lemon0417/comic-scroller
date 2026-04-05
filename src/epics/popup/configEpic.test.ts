@@ -7,6 +7,7 @@ import {
 import {
   hydratePopupFeed,
   setExportConfig,
+  setPopupNotice,
 } from "@domain/reducers/popupState";
 import type {
   PopupFeedEntry,
@@ -156,5 +157,27 @@ describe("popupConfigEpic", () => {
     expect(actions).toEqual([
       setExportConfig("blob:mock", "comic-scroller-library.json"),
     ]);
+  });
+
+  it("surfaces a notice when popup data loading fails", async () => {
+    getPopupFeedSnapshot.mockRejectedValue(new Error("boom"));
+
+    const actions = await lastValueFrom(
+      popupConfigEpic(of(requestPopupData())).pipe(toArray()),
+    );
+
+    expect(actions).toEqual([
+      setPopupNotice("目前無法載入書庫資料，請稍後再試。"),
+    ]);
+  });
+
+  it("surfaces a notice when export fails", async () => {
+    exportLibraryDump.mockRejectedValue(new Error("boom"));
+
+    const actions = await lastValueFrom(
+      popupConfigEpic(of(requestExportConfig())).pipe(toArray()),
+    );
+
+    expect(actions).toEqual([setPopupNotice("匯出失敗，請稍後再試。")]);
   });
 });

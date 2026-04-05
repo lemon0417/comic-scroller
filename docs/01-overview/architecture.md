@@ -45,8 +45,12 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - `chrome.storage.local.librarySignal` 用於跨 context 通知資料已變更
 - repository 目前分成兩層 API：
   - config / import-export：`resetLibrary`、`exportLibraryDump`、`importLibraryDump`、`setLibraryVersion`
-  - query / mutation：`getPopupFeedSnapshot`、`getSeriesSnapshot`、`listSubscriptionKeys`、`applyReaderSeriesState`、`applyReadProgress`、`setSeriesSubscription*`、`dismissSeriesUpdate`、`removeSeriesCascade`
+  - query / mutation：`getPopupFeedSnapshot`、`getSeriesSnapshot`、`listSubscriptionKeys`、`applyReaderSeriesState`、`applyReadProgress`、`setSeriesSubscription*`、`dismissSeriesUpdate`、`removeSeriesFromHistory`、`removeSeriesCascade`
 - `getPopupFeedSnapshot()` 直接由 IndexedDB rows 組出 popup feed model，不再先組整包 `LibrarySnapshotV2`
+- popup / manage 的刪除語意分三層：
+  - `history -> 移除`：只刪 `history` row，不刪作品、章節、追蹤或更新
+  - `subscribe -> 棄坑`：預設只取消追蹤並清除該作品的更新提醒
+  - `subscribe -> 棄坑 + 清除資料`：才使用 `removeSeriesCascade` 刪除作品資料、章節快取、追蹤、紀錄與更新
 - 核心欄位：
   - `seriesByKey`
   - `subscriptions`
@@ -71,6 +75,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - Store：`src/domain/store/`
 - Popup / Manage view state：
   - popup reducer 只保存 popup feed 與 UI 狀態
+  - destructive action 的確認流程由 `ManageApp` 內的 custom dialog 控制，不使用原生 `confirm()`
   - `getPopupFeedSnapshot()` 直接回傳 UI 所需的 feed model，不再把 `LibrarySnapshotV2` 放進 popup store
 - Reader view state：
   - `comics` state 保存 canonical `seriesKey`

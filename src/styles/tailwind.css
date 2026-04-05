@@ -257,6 +257,61 @@
     @apply inline-flex items-center justify-center border-0 bg-transparent p-0 text-[12px] font-medium text-comic-accent underline decoration-1 underline-offset-4 transition-colors duration-150 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-comic-accent focus-visible:ring-offset-2 focus-visible:ring-offset-comic-paper;
   }
 
+  .ds-dialog-backdrop {
+    @apply fixed inset-0 z-[1100] flex items-center justify-center bg-[rgba(15,23,42,0.18)] px-4 py-6;
+  }
+
+  .ds-dialog {
+    @apply relative flex w-full max-w-[min(92vw,520px)] flex-col overflow-hidden rounded-[24px];
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: #ffffff;
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 16px 40px rgba(15, 23, 42, 0.04);
+  }
+
+  .ds-dialog__body {
+    @apply flex flex-col gap-3 px-5 py-5;
+  }
+
+  .ds-dialog__title {
+    @apply text-[16px] font-semibold tracking-[-0.01em] text-comic-ink;
+  }
+
+  .ds-dialog__desc {
+    @apply text-[13px] leading-6 text-comic-ink/70;
+  }
+
+  .ds-dialog__content {
+    @apply pt-1;
+  }
+
+  .ds-dialog__footer {
+    @apply flex items-center justify-end gap-3 border-t border-comic-ink/10 px-5 py-4;
+  }
+
+  .ds-checkbox-row {
+    @apply flex items-start gap-3 rounded-xl border px-3 py-3;
+    border-color: rgba(15, 23, 42, 0.08);
+    background: rgba(248, 250, 252, 0.78);
+  }
+
+  .ds-checkbox {
+    @apply mt-0.5 h-4 w-4 shrink-0 rounded border-comic-ink/20 text-blue-600 focus:ring-2 focus:ring-comic-accent focus:ring-offset-2 focus:ring-offset-white;
+  }
+
+  .ds-checkbox-copy {
+    @apply flex min-w-0 flex-1 flex-col gap-1;
+  }
+
+  .ds-checkbox-label {
+    @apply text-[13px] font-medium text-comic-ink;
+  }
+
+  .ds-checkbox-desc {
+    @apply text-[12px] leading-5 text-comic-ink/60;
+  }
+
   .series-row {
     @apply flex items-start gap-3 rounded-xl px-4 py-3 transition-colors duration-150;
     border: 1px solid rgba(15, 23, 42, 0.08);

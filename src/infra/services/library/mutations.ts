@@ -301,6 +301,17 @@ export async function dismissSeriesUpdate(
   );
 }
 
+export async function removeSeriesFromHistory(site: SiteKey, comicsID: string) {
+  const seriesKey = buildSeriesKey(site, comicsID);
+  await rewriteOrderedSeriesStore(
+    HISTORY_STORE,
+    seriesKey,
+    (seriesKeys) => seriesKeys.filter((item) => item !== seriesKey),
+    "removeHistory",
+    "history",
+  );
+}
+
 export async function removeSeriesCascade(site: SiteKey, comicsID: string) {
   await ensureLibraryReady();
   const seriesKey = buildSeriesKey(site, comicsID);

@@ -1,5 +1,6 @@
 import {
   removeSeriesCascade,
+  removeSeriesFromHistory,
   toggleSeriesSubscriptionByKey,
 } from "./mutations";
 import {
@@ -157,6 +158,39 @@ describe("library mutations", () => {
       subscriptionsStore,
       ["dm5:m123", "sf:77"],
       expect.any(Function),
+    );
+  });
+
+  it("removes only history entries without touching series data", async () => {
+    const historyStore = {};
+    const stores = {
+      [HISTORY_STORE]: historyStore,
+    };
+    const transaction = {
+      objectStore: jest.fn(
+        (storeName: keyof typeof stores) => stores[storeName],
+      ),
+    };
+    const db = {
+      transaction: jest.fn(() => transaction),
+    };
+
+    shared.openLibraryDb.mockResolvedValue(db);
+    shared.loadOrderedSeriesKeysInTransaction.mockResolvedValue([
+      "dm5:m123",
+      "sf:77",
+    ]);
+
+    await removeSeriesFromHistory("dm5", "m123");
+
+    expect(shared.writeOrderedSeriesKeysInTransaction).toHaveBeenCalledWith(
+      historyStore,
+      ["sf:77"],
+    );
+    expect(shared.emitLibrarySignal).toHaveBeenCalledWith(
+      "removeHistory",
+      ["history"],
+      ["dm5:m123"],
     );
   });
 });

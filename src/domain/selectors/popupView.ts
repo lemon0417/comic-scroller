@@ -4,7 +4,7 @@ type PopupState = {
   popup: {
     feed: PopupFeedSnapshot;
     hydrationStatus: "idle" | "loading" | "ready";
-    activeAction: "import" | "export" | "reset" | null;
+    activeAction: "import" | "export" | "remove" | "reset" | null;
     notice: {
       tone: "success" | "error" | "info";
       message: string;

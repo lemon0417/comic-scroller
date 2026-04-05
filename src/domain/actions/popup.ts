@@ -3,6 +3,7 @@ export type RemoveCardPayload = {
   index: number | string;
   comicsID: string;
   chapterID?: string;
+  clearSeriesData?: boolean;
   site?: string;
 };
 

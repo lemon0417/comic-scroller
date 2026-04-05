@@ -11,6 +11,7 @@ export type {
 export {
   dismissSeriesUpdate,
   removeSeriesCascade,
+  removeSeriesFromHistory,
   setSeriesSubscription,
 } from "./mutations";
 export {

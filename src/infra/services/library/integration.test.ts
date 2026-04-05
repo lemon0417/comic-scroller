@@ -317,6 +317,68 @@ describe("library integration", () => {
     expect(readerState.series?.chapterList).toEqual(["m2", "m1"]);
   });
 
+  it("removes only history entries while preserving subscriptions and series data", async () => {
+    await compat.importLibraryDump({
+      format: "comic-scroller-db-dump",
+      formatVersion: 1,
+      exportedAt: 1,
+      dbSchemaVersion: 1,
+      data: {
+        series: [
+          {
+            seriesKey: "dm5:m123",
+            site: "dm5",
+            comicsID: "m123",
+            title: "Demo",
+            cover: "cover.jpg",
+            url: "https://www.dm5.com/m123/",
+            lastRead: "m1",
+            read: ["m1"],
+            updatedAt: 1,
+          },
+        ],
+        chapters: [
+          {
+            seriesKey: "dm5:m123",
+            chapterID: "m2",
+            title: "Ch 2",
+            href: "https://www.dm5.com/m123/2.html",
+            orderIndex: 0,
+          },
+          {
+            seriesKey: "dm5:m123",
+            chapterID: "m1",
+            title: "Ch 1",
+            href: "https://www.dm5.com/m123/1.html",
+            orderIndex: 1,
+          },
+        ],
+        subscriptions: [{ seriesKey: "dm5:m123", position: 0 }],
+        history: [{ seriesKey: "dm5:m123", position: 0 }],
+        updates: [
+          {
+            seriesKey: "dm5:m123",
+            chapterID: "m2",
+            createdAt: 2,
+            position: 0,
+          },
+        ],
+      },
+    });
+
+    await mutations.removeSeriesFromHistory("dm5", "m123");
+
+    const readerState = await queries.getReaderSeriesState("dm5:m123");
+    const feed = await queries.getPopupFeedSnapshot();
+
+    expect(readerState.series?.title).toBe("Demo");
+    expect(readerState.subscribed).toBe(true);
+    expect(feed.history).toEqual([]);
+    expect(feed.subscribe).toHaveLength(1);
+    expect(feed.update).toHaveLength(1);
+    expect(feed.continueReading?.category).toBe("subscribe");
+  });
+
   it("orders background polling subscriptions by the oldest checkedAt first", async () => {
     await compat.importLibraryDump({
       format: "comic-scroller-db-dump",

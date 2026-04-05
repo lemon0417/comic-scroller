@@ -13,8 +13,11 @@
 - `docs/02-dev/toolchain.md`: 目前工具鏈與版本基準
 - `docs/02-dev/release.md`: 版本更新與 Release 流程
 
-## 03 營運與維護
+## 03 功能行為
+- `docs/03-features/manage.md`: 書庫管理頁的資料語意與刪除規則
+
+## 04 營運與維護
 - `docs/03-ops/background-check.md`: 背景更新檢查（僅 dev）
 
-## 04 站點解析（商務邏輯）
+## 05 站點解析（商務邏輯）
 - `docs/04-sites/dm5.md`: DM5 解析流程（含 chapterfun.ashx）

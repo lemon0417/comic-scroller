@@ -1,4 +1,7 @@
-import { requestPopupData } from "@domain/actions/popup";
+import {
+  requestPopupData,
+  requestRemoveCard,
+} from "@domain/actions/popup";
 import popupReducer from "@domain/reducers/popup";
 import popupEpic from "@epics/popup";
 import type { EpicAction, PopupRootState } from "@epics/types";
@@ -9,11 +12,14 @@ jest.mock("@infra/services/library/popup", () => ({
   getPopupFeedSnapshot: jest.fn(),
   exportLibraryDump: jest.fn(),
   importLibraryDump: jest.fn(),
+  removeSeriesFromHistory: jest.fn(),
   resetLibrary: jest.fn(),
   subscribeToLibrarySignal: jest.fn(() => () => undefined),
 }));
 
-const { getPopupFeedSnapshot } = jest.requireMock("@infra/services/library/popup");
+const { getPopupFeedSnapshot, removeSeriesFromHistory } = jest.requireMock(
+  "@infra/services/library/popup",
+);
 
 describe("popup state integration", () => {
   it("hydrates popup state from storage", async () => {
@@ -140,6 +146,87 @@ describe("popup state integration", () => {
         hydrationStatus: "ready",
         activeAction: null,
         notice: null,
+        exportUrl: "",
+        exportFilename: "",
+      },
+    });
+  });
+
+  it("clears the loading state and shows a notice when popup hydration fails", async () => {
+    getPopupFeedSnapshot.mockRejectedValue(new Error("boom"));
+
+    const epicMiddleware = createEpicMiddleware<
+      EpicAction,
+      EpicAction,
+      PopupRootState
+    >();
+    const store = configureStore({
+      reducer: popupReducer,
+      middleware: () => new Tuple(epicMiddleware),
+    });
+    epicMiddleware.run(popupEpic);
+    store.dispatch(requestPopupData());
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(store.getState()).toEqual({
+      popup: {
+        feed: {
+          update: [],
+          subscribe: [],
+          history: [],
+          continueReading: null,
+        },
+        hydrationStatus: "ready",
+        activeAction: null,
+        notice: {
+          tone: "error",
+          message: "目前無法載入書庫資料，請稍後再試。",
+        },
+        exportUrl: "",
+        exportFilename: "",
+      },
+    });
+  });
+
+  it("clears the remove busy state and shows a notice when removal fails", async () => {
+    removeSeriesFromHistory.mockRejectedValue(new Error("boom"));
+
+    const epicMiddleware = createEpicMiddleware<
+      EpicAction,
+      EpicAction,
+      PopupRootState
+    >();
+    const store = configureStore({
+      reducer: popupReducer,
+      middleware: () => new Tuple(epicMiddleware),
+    });
+    epicMiddleware.run(popupEpic);
+    store.dispatch(
+      requestRemoveCard({
+        category: "history",
+        index: 0,
+        comicsID: "m123",
+        site: "dm5",
+      }),
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(store.getState()).toEqual({
+      popup: {
+        feed: {
+          update: [],
+          subscribe: [],
+          history: [],
+          continueReading: null,
+        },
+        hydrationStatus: "ready",
+        activeAction: null,
+        notice: {
+          tone: "error",
+          message: "移除閱讀紀錄失敗，請稍後再試。",
+        },
         exportUrl: "",
         exportFilename: "",
       },

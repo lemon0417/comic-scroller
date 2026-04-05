@@ -2,17 +2,21 @@ import {
   type RemoveCardPayload,
   REQUEST_REMOVE_CARD,
 } from "@domain/actions/popup";
-import { hydratePopupFeed } from "@domain/reducers/popupState";
+import {
+  hydratePopupFeed,
+  setPopupNotice,
+} from "@domain/reducers/popupState";
 import {
   dismissSeriesUpdate,
   getPopupFeedSnapshot,
   removeSeriesCascade,
+  removeSeriesFromHistory,
   setSeriesSubscription,
 } from "@infra/services/library/popup";
 import type { SiteKey } from "@infra/services/library/schema";
 import { ofType } from "redux-observable";
-import { from, type Observable } from "rxjs";
-import { mergeMap } from "rxjs/operators";
+import { from, type Observable,of } from "rxjs";
+import { catchError, mergeMap } from "rxjs/operators";
 
 import type { PopupEpic } from "../types";
 
@@ -23,6 +27,20 @@ type RemoveCardAction = {
   };
 };
 
+function getRemoveErrorMessage(
+  payload: RemoveCardAction["payload"],
+) {
+  if (payload?.category === "history") {
+    return "移除閱讀紀錄失敗，請稍後再試。";
+  }
+  if (payload?.category === "subscribe") {
+    return payload.clearSeriesData
+      ? "清除作品資料失敗，請稍後再試。"
+      : "取消追蹤失敗，請稍後再試。";
+  }
+  return "略過更新失敗，請稍後再試。";
+}
+
 const removeCardEpic: PopupEpic = (action$) =>
   (action$ as Observable<RemoveCardAction>).pipe(
     ofType(REQUEST_REMOVE_CARD),
@@ -31,6 +49,7 @@ const removeCardEpic: PopupEpic = (action$) =>
         category,
         comicsID,
         chapterID,
+        clearSeriesData,
         site,
       } = action.payload || {};
 
@@ -40,24 +59,27 @@ const removeCardEpic: PopupEpic = (action$) =>
 
       const operation =
         category === "history"
-          ? removeSeriesCascade(site, comicsID)
+          ? removeSeriesFromHistory(site, comicsID)
           : category === "subscribe"
-            ? setSeriesSubscription(site, comicsID, false).then(() =>
-                dismissSeriesUpdate(site, comicsID),
-              )
+            ? clearSeriesData
+              ? removeSeriesCascade(site, comicsID)
+              : setSeriesSubscription(site, comicsID, false).then(() =>
+                  dismissSeriesUpdate(site, comicsID),
+                )
             : dismissSeriesUpdate(site, comicsID, chapterID);
 
       return from(operation).pipe(
-        mergeMap((updateCount) =>
+        mergeMap(() =>
           from(getPopupFeedSnapshot()).pipe(
             mergeMap((feed) => {
               chrome.action.setBadgeText({
-                text: `${updateCount === 0 ? "" : updateCount}`,
+                text: `${feed.update.length === 0 ? "" : feed.update.length}`,
               });
               return [hydratePopupFeed(feed, "load")];
             }),
           ),
         ),
+        catchError(() => of(setPopupNotice(getRemoveErrorMessage(action.payload)))),
       );
     }),
   );

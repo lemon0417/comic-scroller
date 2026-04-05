@@ -1,5 +1,5 @@
 import type { PopupFeedEntry } from "@infra/services/library/models";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ComponentType } from "react";
 
 jest.mock("react-redux", () => ({
@@ -62,9 +62,8 @@ describe("ManageApp", () => {
     delete (global as any).ResizeObserver;
   });
 
-  it("confirms and forgets a history entry", () => {
+  it("opens a modal and removes only the history entry after confirmation", () => {
     const requestRemoveCard = jest.fn();
-    jest.spyOn(window, "confirm").mockReturnValue(true);
 
     render(
       <TestManageApp
@@ -102,6 +101,15 @@ describe("ManageApp", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "移除" }));
 
+    expect(
+      screen.getByRole("dialog", { name: "移除閱讀紀錄" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    expect(requestRemoveCard).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "移除" }));
+    fireEvent.click(screen.getByRole("button", { name: "移除紀錄" }));
+
     expect(requestRemoveCard).toHaveBeenCalledWith({
       category: "history",
       index: 0,
@@ -138,6 +146,122 @@ describe("ManageApp", () => {
     fireEvent.click(screen.getByRole("button", { name: "匯出設定" }));
 
     expect(requestExportConfig).toHaveBeenCalled();
+  });
+
+  it("opens an abandon modal and unsubscribes without cascade delete by default", () => {
+    const requestRemoveCard = jest.fn();
+
+    render(
+      <TestManageApp
+        hydrationStatus="ready"
+        activeAction={null}
+        notice={null}
+        exportUrl=""
+        exportFilename=""
+        update={[]}
+        subscribe={[
+          createFeedEntry({
+            category: "subscribe",
+            key: "subscribe_1",
+            title: "One Piece",
+            siteLabel: "DM5",
+            site: "dm5",
+            comicsID: "123",
+            cover: "cover.jpg",
+            lastReadTitle: "Ch 1123",
+            lastChapterTitle: "Ch 1124",
+            continueChapterID: "m1123",
+            continueHref: "https://www.dm5.com/m1123/",
+          }),
+        ]}
+        history={[]}
+        continueReading={null}
+        requestPopupData={jest.fn()}
+        requestExportConfig={jest.fn()}
+        requestImportConfig={jest.fn()}
+        requestResetConfig={jest.fn()}
+        requestRemoveCard={requestRemoveCard}
+        clearExportConfig={jest.fn()}
+        clearPopupNotice={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "追蹤 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "棄坑" }));
+    const dialog = screen.getByRole("dialog", { name: "棄坑作品" });
+
+    expect(dialog).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("checkbox", {
+        name: "一併清除閱讀紀錄與作品資料",
+      }),
+    ).not.toBeChecked();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "確認棄坑" }));
+
+    expect(requestRemoveCard).toHaveBeenCalledWith({
+      category: "subscribe",
+      index: 0,
+      comicsID: "123",
+      site: "dm5",
+    });
+  });
+
+  it("can request cascade delete from the abandon modal", () => {
+    const requestRemoveCard = jest.fn();
+
+    render(
+      <TestManageApp
+        hydrationStatus="ready"
+        activeAction={null}
+        notice={null}
+        exportUrl=""
+        exportFilename=""
+        update={[]}
+        subscribe={[
+          createFeedEntry({
+            category: "subscribe",
+            key: "subscribe_1",
+            title: "One Piece",
+            siteLabel: "DM5",
+            site: "dm5",
+            comicsID: "123",
+            cover: "cover.jpg",
+            lastReadTitle: "Ch 1123",
+            lastChapterTitle: "Ch 1124",
+            continueChapterID: "m1123",
+            continueHref: "https://www.dm5.com/m1123/",
+          }),
+        ]}
+        history={[]}
+        continueReading={null}
+        requestPopupData={jest.fn()}
+        requestExportConfig={jest.fn()}
+        requestImportConfig={jest.fn()}
+        requestResetConfig={jest.fn()}
+        requestRemoveCard={requestRemoveCard}
+        clearExportConfig={jest.fn()}
+        clearPopupNotice={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "追蹤 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "棄坑" }));
+    const dialog = screen.getByRole("dialog", { name: "棄坑作品" });
+    fireEvent.click(
+      within(dialog).getByRole("checkbox", {
+        name: "一併清除閱讀紀錄與作品資料",
+      }),
+    );
+    fireEvent.click(within(dialog).getByRole("button", { name: "確認棄坑" }));
+
+    expect(requestRemoveCard).toHaveBeenCalledWith({
+      category: "subscribe",
+      index: 0,
+      comicsID: "123",
+      clearSeriesData: true,
+      site: "dm5",
+    });
   });
 
   it("opens continue in the extension reader page", () => {
@@ -182,6 +306,39 @@ describe("ManageApp", () => {
     expect(chrome.tabs.create).toHaveBeenCalledWith({
       url: "chrome-extension://test/app.html?site=dm5&chapter=m1123",
     });
+  });
+
+  it("opens a reset modal before resetting data", () => {
+    const requestResetConfig = jest.fn();
+
+    render(
+      <TestManageApp
+        hydrationStatus="ready"
+        activeAction={null}
+        notice={null}
+        exportUrl=""
+        exportFilename=""
+        update={[]}
+        subscribe={[]}
+        history={[]}
+        continueReading={null}
+        requestPopupData={jest.fn()}
+        requestExportConfig={jest.fn()}
+        requestImportConfig={jest.fn()}
+        requestResetConfig={requestResetConfig}
+        requestRemoveCard={jest.fn()}
+        clearExportConfig={jest.fn()}
+        clearPopupNotice={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "選項" }));
+    fireEvent.click(screen.getByRole("button", { name: "重置資料" }));
+    const dialog = screen.getByRole("dialog", { name: "重置資料" });
+    expect(dialog).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "重置資料" }));
+
+    expect(requestResetConfig).toHaveBeenCalled();
   });
 
   it("virtualizes large following lists", () => {
