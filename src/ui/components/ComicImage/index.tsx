@@ -1,4 +1,9 @@
-import { Component, type SyntheticEvent } from "react";
+import {
+  type SyntheticEvent,
+  useCallback,
+  useRef,
+  useState,
+} from "react";
 import { connect } from "react-redux";
 import {
   type ComicsImageRecord,
@@ -35,103 +40,109 @@ type State = {
   showImage: boolean;
 };
 
-export class ComicImage extends Component<Props, State> {
-  w = 0;
-  h = 0;
-
-  state = {
+export function ComicImage(props: Props) {
+  const {
+    href,
+    index,
+    innerHeight,
+    innerWidth,
+    loading,
+    renderHeight,
+    renderWidth,
+    src,
+    type,
+    updateImgType,
+  } = props;
+  const imageMetricsRef = useRef({ width: 0, height: 0 });
+  const [state, setState] = useState<State>({
     showImage: false,
-  };
+  });
 
-  imgLoadHandler = (e: SyntheticEvent<HTMLImageElement>) => {
-    if (this.props.type === "image" && e.currentTarget) {
-      const target = e.currentTarget;
-      this.w = target.naturalWidth;
-      this.h = target.naturalHeight;
+  const imgLoadHandler = useCallback((event: SyntheticEvent<HTMLImageElement>) => {
+    if (type === "image" && event.currentTarget) {
+      const target = event.currentTarget;
+      imageMetricsRef.current = {
+        width: target.naturalWidth,
+        height: target.naturalHeight,
+      };
       const layout = getImageRenderMetrics({
         type: target.naturalWidth > target.naturalHeight ? "wide" : "natural",
-        height: this.h,
-        naturalWidth: this.w,
-        naturalHeight: this.h,
-        innerWidth: this.props.innerWidth,
-        innerHeight: this.props.innerHeight,
+        height: imageMetricsRef.current.height,
+        naturalWidth: imageMetricsRef.current.width,
+        naturalHeight: imageMetricsRef.current.height,
+        innerWidth,
+        innerHeight,
       });
-      if (this.props.updateImgType && typeof this.props.index === "number") {
-        this.props.updateImgType(
+      if (updateImgType && typeof index === "number") {
+        updateImgType(
           layout.height,
-          this.props.index,
+          index,
           layout.type,
-          this.w,
-          this.h,
+          imageMetricsRef.current.width,
+          imageMetricsRef.current.height,
         );
       }
     }
-    this.setState({ showImage: true });
-  };
+    setState({ showImage: true });
+  }, [index, innerHeight, innerWidth, type, updateImgType]);
 
-  render() {
-    const variant = this.props.type || "init";
-    const paywallHref = this.props.href || "";
-    const pageStyle =
-      this.props.type === "end"
-        ? undefined
-        : {
-            width: this.props.renderWidth,
-            height: this.props.renderHeight,
-          };
+  const variant = type || "init";
+  const paywallHref = href || "";
+  const pageStyle =
+    type === "end"
+      ? undefined
+      : {
+          width: renderWidth,
+          height: renderHeight,
+        };
 
-    return (
-      <div
-        className={
-          this.props.type === "end"
-            ? "reader-end-marker"
-            : "reader-page-surface"
-        }
-        data-variant={variant}
-        style={pageStyle}
-      >
-        {this.props.type === "paywall" ? (
-          <div className="reader-paywall-card">
-            <p className="reader-paywall-title">此章節需要付費解鎖</p>
-            <p className="reader-paywall-desc">
-              DM5 未提供免費圖片頁面，請回原站完成購買或閱讀。
-            </p>
-            {paywallHref ? (
-              <a
-                className="ds-btn-primary"
-                href={paywallHref}
-                target="_blank"
-                rel="noreferrer"
-              >
-                前往 DM5 章節頁
-              </a>
-            ) : undefined}
-          </div>
-        ) : undefined}
-        {!this.state.showImage &&
-        this.props.type !== "end" &&
-        this.props.type !== "paywall" ? (
-          <div className="reader-page-loading">
-            <span className="text-sm font-medium text-comic-ink/45">
-              Loading...
-            </span>
-          </div>
-        ) : undefined}
-        {!this.props.loading &&
-        this.props.type !== "end" &&
-        this.props.type !== "paywall" ? (
-          <img
-            style={this.state.showImage ? undefined : { display: "none" }}
-            className="block h-full w-full object-contain"
-            src={this.props.src}
-            onLoad={this.imgLoadHandler}
-            alt={String(this.props.index ?? "")}
-          />
-        ) : undefined}
-        {this.props.type === "end" ? "本 章 結 束" : undefined}
-      </div>
-    );
-  }
+  return (
+    <div
+      className={type === "end" ? "reader-end-marker" : "reader-page-surface"}
+      data-variant={variant}
+      style={pageStyle}
+    >
+      {type === "paywall" ? (
+        <div className="reader-paywall-card">
+          <p className="reader-paywall-title">此章節需要付費解鎖</p>
+          <p className="reader-paywall-desc">
+            DM5 未提供免費圖片頁面，請回原站完成購買或閱讀。
+          </p>
+          {paywallHref ? (
+            <a
+              className="ds-btn-primary"
+              href={paywallHref}
+              target="_blank"
+              rel="noreferrer"
+            >
+              前往 DM5 章節頁
+            </a>
+          ) : undefined}
+        </div>
+      ) : undefined}
+      {!state.showImage &&
+      type !== "end" &&
+      type !== "paywall" ? (
+        <div className="reader-page-loading">
+          <span className="text-sm font-medium text-comic-ink/45">
+            Loading...
+          </span>
+        </div>
+      ) : undefined}
+      {!loading &&
+      type !== "end" &&
+      type !== "paywall" ? (
+        <img
+          style={state.showImage ? undefined : { display: "none" }}
+          className="block h-full w-full object-contain"
+          src={src}
+          onLoad={imgLoadHandler}
+          alt={String(index ?? "")}
+        />
+      ) : undefined}
+      {type === "end" ? "本 章 結 束" : undefined}
+    </div>
+  );
 }
 
 function createFallbackImageRecord(): ComicsImageRecord {
