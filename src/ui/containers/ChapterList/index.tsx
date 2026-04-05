@@ -1,4 +1,10 @@
-import { Component, type MouseEvent } from "react";
+import {
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { connect } from "react-redux";
 import {
   Grid,
@@ -40,7 +46,7 @@ type ChapterListProps = ChapterListOwnProps &
   ChapterListStateProps &
   ChapterListDispatchProps;
 
-type ChapterListComponentState = {
+type ChapterGridLayoutState = {
   bodyWidth: number;
   gridViewportWidth: number;
 };
@@ -128,262 +134,338 @@ function VirtualChapterCell({
   );
 }
 
-export class ChapterList extends Component<
-  ChapterListProps,
-  ChapterListComponentState
-> {
-  gridApi: GridImperativeAPI | null = null;
-  bodyNode: HTMLDivElement | null = null;
-  bodyResizeObserver: ResizeObserver | null = null;
-  closeButton!: HTMLButtonElement | null;
-  gridViewportAnimationFrame = 0;
-  scrollAnimationFrame = 0;
-  state: ChapterListComponentState = {
+function getChapterClass(item: Pick<ChapterListItem, "current" | "read">) {
+  if (item.current) {
+    return "reader-chapter-item reader-chapter-item-active";
+  }
+  if (item.read) {
+    return "reader-chapter-item reader-chapter-item-read";
+  }
+  return "reader-chapter-item reader-chapter-item-default";
+}
+
+type UseChapterGridLayoutArgs = {
+  show: boolean;
+  currentChapterRowIndex: number;
+  fallbackGridWidth: number;
+  chapterList: string[];
+  columnCount: number;
+  readSet: Set<string>;
+};
+
+function useChapterGridLayout({
+  show,
+  currentChapterRowIndex,
+  fallbackGridWidth,
+  chapterList,
+  columnCount,
+  readSet,
+}: UseChapterGridLayoutArgs) {
+  const gridApiRef = useRef<GridImperativeAPI | null>(null);
+  const bodyNodeRef = useRef<HTMLDivElement | null>(null);
+  const bodyResizeObserverRef = useRef<ResizeObserver | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const gridViewportAnimationFrameRef = useRef(0);
+  const scrollAnimationFrameRef = useRef(0);
+  const [layoutState, setLayoutState] = useState<ChapterGridLayoutState>({
     bodyWidth: 0,
     gridViewportWidth: 0,
-  };
+  });
 
-  componentDidMount() {
-    document.addEventListener("keydown", this.keydownHandler);
-  }
-
-  componentDidUpdate(prevProps: ChapterListProps) {
-    if (!prevProps.show && this.props.show) {
-      this.closeButton?.focus();
-      this.scrollToCurrentChapter();
+  const syncGridViewportWidth = useCallback(() => {
+    if (gridViewportAnimationFrameRef.current) {
+      window.cancelAnimationFrame(gridViewportAnimationFrameRef.current);
     }
 
-    if (
-      this.props.show &&
-      (
-        prevProps.show !== this.props.show ||
-        prevProps.chapterList !== this.props.chapterList ||
-        prevProps.columnCount !== this.props.columnCount ||
-        prevProps.gridWidth !== this.props.gridWidth ||
-        prevProps.currentChapterRowIndex !== this.props.currentChapterRowIndex ||
-        prevProps.readSet !== this.props.readSet
-      )
-    ) {
-      this.scheduleGridViewportSync();
-    }
-  }
-
-  componentWillUnmount() {
-    if (this.gridViewportAnimationFrame) {
-      window.cancelAnimationFrame(this.gridViewportAnimationFrame);
-    }
-    if (this.scrollAnimationFrame) {
-      window.cancelAnimationFrame(this.scrollAnimationFrame);
-    }
-    this.bodyResizeObserver?.disconnect();
-    document.removeEventListener("keydown", this.keydownHandler);
-  }
-
-  onClickHandler = () => {
-    this.gridApi?.scrollToCell({
-      columnIndex: 0,
-      rowIndex: 0,
-      rowAlign: "start",
-    });
-    this.props.showChapterListHandler();
-  };
-
-  keydownHandler = (event: KeyboardEvent) => {
-    if (event.key === "Escape" && this.props.show) {
-      this.onClickHandler();
-    }
-  };
-
-  gridRefHandler = (gridApi: GridImperativeAPI | null) => {
-    this.gridApi = gridApi;
-    this.scheduleGridViewportSync();
-    if (this.props.show && gridApi) {
-      this.scrollToCurrentChapter();
-    }
-  };
-
-  gridResizeHandler = (size: { height: number; width: number }) => {
-    const viewportWidth = Math.max(0, Math.floor(size.width));
-
-    if (viewportWidth !== this.state.gridViewportWidth) {
-      this.setState({ gridViewportWidth: viewportWidth });
-    }
-    this.scheduleGridViewportSync();
-  };
-
-  scheduleGridViewportSync = () => {
-    if (this.gridViewportAnimationFrame) {
-      window.cancelAnimationFrame(this.gridViewportAnimationFrame);
-    }
-
-    this.gridViewportAnimationFrame = window.requestAnimationFrame(() => {
-      this.gridViewportAnimationFrame = 0;
+    gridViewportAnimationFrameRef.current = window.requestAnimationFrame(() => {
+      gridViewportAnimationFrameRef.current = 0;
       const viewportWidth = Math.max(
         0,
-        Math.floor(this.gridApi?.element?.clientWidth ?? 0),
+        Math.floor(gridApiRef.current?.element?.clientWidth ?? 0),
       );
 
-      if (
-        viewportWidth > 0 &&
-        viewportWidth !== this.state.gridViewportWidth
-      ) {
-        this.setState({ gridViewportWidth: viewportWidth });
+      if (viewportWidth > 0) {
+        setLayoutState((prevState) =>
+          prevState.gridViewportWidth === viewportWidth
+            ? prevState
+            : {
+                ...prevState,
+                gridViewportWidth: viewportWidth,
+              },
+        );
       }
     });
-  };
+  }, []);
 
-  closeButtonRefHandler = (node: HTMLButtonElement | null) => {
-    this.closeButton = node;
-  };
-
-  bodyRefHandler = (node: HTMLDivElement | null) => {
-    if (this.bodyResizeObserver) {
-      this.bodyResizeObserver.disconnect();
-      this.bodyResizeObserver = null;
+  const scrollToCurrentChapter = useCallback(() => {
+    if (scrollAnimationFrameRef.current) {
+      window.cancelAnimationFrame(scrollAnimationFrameRef.current);
     }
 
-    this.bodyNode = node;
-    if (!node) {
-      return;
-    }
-
-    this.measureBodyWidth();
-
-    if (typeof ResizeObserver !== "undefined") {
-      this.bodyResizeObserver = new ResizeObserver(() => {
-        this.measureBodyWidth();
+    scrollAnimationFrameRef.current = window.requestAnimationFrame(() => {
+      scrollAnimationFrameRef.current = 0;
+      gridApiRef.current?.scrollToCell({
+        columnIndex: 0,
+        rowIndex: currentChapterRowIndex,
+        rowAlign: "center",
       });
-      this.bodyResizeObserver.observe(node);
-    }
-  };
+    });
+  }, [currentChapterRowIndex]);
 
-  measureBodyWidth = () => {
-    if (!this.bodyNode) return;
+  const measureBodyWidth = useCallback(() => {
+    const bodyNode = bodyNodeRef.current;
+    if (!bodyNode) return;
 
-    const styles = window.getComputedStyle(this.bodyNode);
+    const styles = window.getComputedStyle(bodyNode);
     const paddingLeft = Number.parseFloat(styles.paddingLeft || "0");
     const paddingRight = Number.parseFloat(styles.paddingRight || "0");
     const nextBodyWidth = Math.max(
       0,
-      Math.floor(this.bodyNode.clientWidth - paddingLeft - paddingRight),
+      Math.floor(bodyNode.clientWidth - paddingLeft - paddingRight),
     );
 
-    if (nextBodyWidth !== this.state.bodyWidth) {
-      this.setState({ bodyWidth: nextBodyWidth });
-    }
-  };
+    setLayoutState((prevState) =>
+      prevState.bodyWidth === nextBodyWidth
+        ? prevState
+        : {
+            ...prevState,
+            bodyWidth: nextBodyWidth,
+          },
+    );
+  }, []);
 
-  chapterSelectHandler = (event: MouseEvent<HTMLButtonElement>) => {
-    const index = Number(event.currentTarget.dataset.chapterIndex);
-    if (!Number.isInteger(index) || index < 0) return;
-    this.props.navigateChapter(index);
-    this.onClickHandler();
-  };
+  const handleClose = useCallback((onClose: () => void) => {
+    gridApiRef.current?.scrollToCell({
+      columnIndex: 0,
+      rowIndex: 0,
+      rowAlign: "start",
+    });
+    onClose();
+  }, []);
 
-  getChapterClass(item: Pick<ChapterListItem, "current" | "read">) {
-    if (item.current) {
-      return "reader-chapter-item reader-chapter-item-active";
+  const gridRefHandler = useCallback((gridApi: GridImperativeAPI | null) => {
+    gridApiRef.current = gridApi;
+    syncGridViewportWidth();
+  }, [syncGridViewportWidth]);
+
+  const gridResizeHandler = useCallback((size: { height: number; width: number }) => {
+    const viewportWidth = Math.max(0, Math.floor(size.width));
+
+    setLayoutState((prevState) => {
+      if (prevState.gridViewportWidth === viewportWidth) {
+        return prevState;
+      }
+      return {
+        ...prevState,
+        gridViewportWidth: viewportWidth,
+      };
+    });
+    syncGridViewportWidth();
+  }, [syncGridViewportWidth]);
+
+  const bodyRefHandler = useCallback((node: HTMLDivElement | null) => {
+    if (bodyResizeObserverRef.current) {
+      bodyResizeObserverRef.current.disconnect();
+      bodyResizeObserverRef.current = null;
     }
-    if (item.read) {
-      return "reader-chapter-item reader-chapter-item-read";
+
+    bodyNodeRef.current = node;
+    if (!node) {
+      return;
     }
-    return "reader-chapter-item reader-chapter-item-default";
+
+    measureBodyWidth();
+
+    if (typeof ResizeObserver !== "undefined") {
+      bodyResizeObserverRef.current = new ResizeObserver(() => {
+        measureBodyWidth();
+      });
+      bodyResizeObserverRef.current.observe(node);
+    }
+  }, [measureBodyWidth]);
+
+  useEffect(() => {
+    if (!show) {
+      return;
+    }
+
+    closeButtonRef.current?.focus();
+    scrollToCurrentChapter();
+  }, [show, scrollToCurrentChapter]);
+
+  useEffect(() => {
+    if (!show) {
+      return;
+    }
+
+    syncGridViewportWidth();
+  }, [
+    chapterList,
+    columnCount,
+    fallbackGridWidth,
+    currentChapterRowIndex,
+    readSet,
+    show,
+    syncGridViewportWidth,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (gridViewportAnimationFrameRef.current) {
+        window.cancelAnimationFrame(gridViewportAnimationFrameRef.current);
+      }
+      if (scrollAnimationFrameRef.current) {
+        window.cancelAnimationFrame(scrollAnimationFrameRef.current);
+      }
+      bodyResizeObserverRef.current?.disconnect();
+    };
+  }, []);
+
+  const outerGridWidth =
+    layoutState.bodyWidth > 0 ? layoutState.bodyWidth : fallbackGridWidth;
+  const contentGridWidth =
+    layoutState.gridViewportWidth > 0
+      ? layoutState.gridViewportWidth
+      : outerGridWidth;
+
+  return {
+    bodyRefHandler,
+    closeButtonRef,
+    contentGridWidth,
+    gridRefHandler,
+    gridResizeHandler,
+    handleClose,
+    outerGridWidth,
+  };
+}
+
+export function ChapterList(props: ChapterListProps) {
+  const {
+    chapterList,
+    chapters,
+    columnCount,
+    currentChapterID,
+    currentChapterRowIndex,
+    gridWidth,
+    navigateChapter,
+    readSet,
+    show,
+    showChapterListHandler,
+  } = props;
+
+  const {
+    bodyRefHandler,
+    closeButtonRef,
+    contentGridWidth,
+    gridRefHandler,
+    gridResizeHandler,
+    handleClose,
+    outerGridWidth,
+  } = useChapterGridLayout({
+    show,
+    currentChapterRowIndex,
+    fallbackGridWidth: gridWidth,
+    chapterList,
+    columnCount,
+    readSet,
+  });
+
+  const onClose = useCallback(() => {
+    handleClose(showChapterListHandler);
+  }, [handleClose, showChapterListHandler]);
+
+  useEffect(() => {
+    const keydownHandler = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && show) {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", keydownHandler);
+    return () => {
+      document.removeEventListener("keydown", keydownHandler);
+    };
+  }, [onClose, show]);
+
+  const chapterSelectHandler = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      const index = Number(event.currentTarget.dataset.chapterIndex);
+      if (!Number.isInteger(index) || index < 0) return;
+      navigateChapter(index);
+      onClose();
+    },
+    [navigateChapter, onClose],
+  );
+
+  if (!show) {
+    return null;
   }
 
-  scrollToCurrentChapter = () => {
-    if (this.scrollAnimationFrame) {
-      window.cancelAnimationFrame(this.scrollAnimationFrame);
-    }
-    this.scrollAnimationFrame = window.requestAnimationFrame(() => {
-      this.scrollAnimationFrame = 0;
-      this.gridApi?.scrollToCell({
-        columnIndex: 0,
-        rowIndex: this.props.currentChapterRowIndex,
-        rowAlign: "center",
-      });
-    });
-  };
-
-  render() {
-    if (!this.props.show) {
-      return null;
-    }
-
-    const outerGridWidth =
-      this.state.bodyWidth > 0 ? this.state.bodyWidth : this.props.gridWidth;
-    const contentGridWidth =
-      this.state.gridViewportWidth > 0
-        ? this.state.gridViewportWidth
-        : outerGridWidth;
-
-    return (
+  return (
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-[rgba(15,23,42,0.18)] px-4 py-6"
+      onClick={onClose}
+      role="presentation"
+    >
       <div
-        className="fixed inset-0 z-[1000] flex items-center justify-center bg-[rgba(15,23,42,0.18)] px-4 py-6"
-        onClick={this.onClickHandler}
-        role="presentation"
+        className="reader-chapter-dialog"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="chapter-list-title"
       >
-        <div
-          className="reader-chapter-dialog"
-          onClick={(event) => event.stopPropagation()}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="chapter-list-title"
-        >
-          <div className="reader-chapter-dialog__header">
-            <h2
-              id="chapter-list-title"
-              className="text-[16px] font-semibold tracking-[-0.01em] text-comic-ink"
-            >
-              章節
-            </h2>
-            <button
-              ref={this.closeButtonRefHandler}
-              type="button"
-              className="ds-btn-secondary"
-              onClick={this.onClickHandler}
-            >
-              關閉
-            </button>
-          </div>
-          <div
-            ref={this.bodyRefHandler}
-            className="reader-chapter-dialog__body"
+        <div className="reader-chapter-dialog__header">
+          <h2
+            id="chapter-list-title"
+            className="text-[16px] font-semibold tracking-[-0.01em] text-comic-ink"
           >
-            <Grid
-              cellComponent={VirtualChapterCell}
-              cellProps={{
-                chapterList: this.props.chapterList,
-                chapters: this.props.chapters,
-                columnCount: this.props.columnCount,
-                currentChapterID: this.props.currentChapterID,
-                getChapterClass: this.getChapterClass,
-                gridWidth: contentGridWidth,
-                onChapterSelect: this.chapterSelectHandler,
-                readSet: this.props.readSet,
-              }}
-              className="popup-scrollbar"
-              columnCount={this.props.columnCount}
-              columnWidth={getChapterColumnWidth}
-              gridRef={this.gridRefHandler}
-              onResize={this.gridResizeHandler}
-              overscanCount={CHAPTER_OVERSCAN_COUNT}
-              rowCount={Math.ceil(
-                this.props.chapterList.length / this.props.columnCount,
-              )}
-              rowHeight={CHAPTER_ROW_HEIGHT}
-              style={{
-                height: CHAPTER_LIST_HEIGHT,
-                maxHeight: "calc(88vh - 73px)",
-                overflowX: "hidden",
-                overflowY: "auto",
-                width: outerGridWidth,
-              }}
-            />
-          </div>
+            章節
+          </h2>
+          <button
+            ref={closeButtonRef}
+            type="button"
+            className="ds-btn-secondary"
+            onClick={onClose}
+          >
+            關閉
+          </button>
+        </div>
+        <div
+          ref={bodyRefHandler}
+          className="reader-chapter-dialog__body"
+        >
+          <Grid
+            cellComponent={VirtualChapterCell}
+            cellProps={{
+              chapterList,
+              chapters,
+              columnCount,
+              currentChapterID,
+              getChapterClass,
+              gridWidth: contentGridWidth,
+              onChapterSelect: chapterSelectHandler,
+              readSet,
+            }}
+            className="popup-scrollbar"
+            columnCount={columnCount}
+            columnWidth={getChapterColumnWidth}
+            gridRef={gridRefHandler}
+            onResize={gridResizeHandler}
+            overscanCount={CHAPTER_OVERSCAN_COUNT}
+            rowCount={Math.ceil(chapterList.length / columnCount)}
+            rowHeight={CHAPTER_ROW_HEIGHT}
+            style={{
+              height: CHAPTER_LIST_HEIGHT,
+              maxHeight: "calc(88vh - 73px)",
+              overflowX: "hidden",
+              overflowY: "auto",
+              width: outerGridWidth,
+            }}
+          />
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 }
 
 function createChapterListStateSelector() {
