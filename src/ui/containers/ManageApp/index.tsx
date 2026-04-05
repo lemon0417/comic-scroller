@@ -29,6 +29,7 @@ import {
 } from "@domain/selectors/popupView";
 import type { PopupFeedEntry } from "@infra/services/library/models";
 import { isDevLogEnabled, setDevLogEnabled } from "@utils/devLog";
+import { openReaderPage } from "@utils/navigation";
 
 type ManageTab = "updates" | "following" | "history" | "data";
 
@@ -71,22 +72,6 @@ function getInitialTab(): ManageTab {
   return TAB_OPTIONS.includes(tab as ManageTab)
     ? (tab as ManageTab)
     : "following";
-}
-
-function openUrl(url: string) {
-  if (!url) return;
-  chrome.tabs.create({ url });
-}
-
-function openReaderPage(site: string, chapterID?: string, fallbackUrl = "") {
-  if (site && chapterID) {
-    const params = new URLSearchParams({ site, chapter: chapterID });
-    chrome.tabs.create({
-      url: `${chrome.runtime.getURL("app.html")}?${params.toString()}`,
-    });
-    return;
-  }
-  openUrl(fallbackUrl);
 }
 
 function ManageFeedRow({
@@ -409,23 +394,28 @@ function ManageAppComponent(props: ManageAppProps) {
           value={selectedTab}
           onValueChange={(value) => setSelectedTab(value as ManageTab)}
         >
-          <Tabs.List className="manage-tabbar">
-            <Tabs.Trigger className="manage-tab" value="updates">
+          <Tabs.List variant="manage" className="manage-tabbar">
+            <Tabs.Trigger variant="manage" className="manage-tab" value="updates">
               {renderTabLabel("更新", update.length)}
             </Tabs.Trigger>
-            <Tabs.Trigger className="manage-tab" value="following">
+            <Tabs.Trigger
+              variant="manage"
+              className="manage-tab"
+              value="following"
+            >
               {renderTabLabel("追蹤", subscribe.length)}
             </Tabs.Trigger>
-            <Tabs.Trigger className="manage-tab" value="history">
+            <Tabs.Trigger variant="manage" className="manage-tab" value="history">
               {renderTabLabel("紀錄", history.length)}
             </Tabs.Trigger>
-            <Tabs.Trigger className="manage-tab" value="data">
+            <Tabs.Trigger variant="manage" className="manage-tab" value="data">
               {renderTabLabel("選項")}
             </Tabs.Trigger>
           </Tabs.List>
         </Tabs>
 
         <Content
+          variant="manage"
           className={`manage-content ${
             selectedTab === "data" ? "overflow-y-auto" : "overflow-hidden"
           }`}

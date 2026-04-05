@@ -12,29 +12,7 @@ import {
   selectPopupView,
 } from "@domain/selectors/popupView";
 import type { PopupFeedEntry } from "@infra/services/library/models";
-
-function openUrl(url: string) {
-  if (!url) return;
-  chrome.tabs.create({ url });
-}
-
-function openReaderPage(site: string, chapterID?: string, fallbackUrl = "") {
-  if (site && chapterID) {
-    const params = new URLSearchParams({ site, chapter: chapterID });
-    chrome.tabs.create({
-      url: `${chrome.runtime.getURL("app.html")}?${params.toString()}`,
-    });
-    return;
-  }
-  openUrl(fallbackUrl);
-}
-
-function openManagePage(tab = "following") {
-  const params = new URLSearchParams({ tab });
-  chrome.tabs.create({
-    url: `${chrome.runtime.getURL("manage.html")}?${params.toString()}`,
-  });
-}
+import { openManagePage, openReaderPage } from "@utils/navigation";
 
 function SectionTitle({ title }: { title: string }) {
   return (
@@ -84,7 +62,7 @@ function PopupAppComponent(props: PopupAppProps) {
             管理
           </button>
         </div>
-        <Content className="popup-content">
+        <Content variant="popup" className="popup-content">
           {isLoading ? (
             <LoadingRows />
           ) : (

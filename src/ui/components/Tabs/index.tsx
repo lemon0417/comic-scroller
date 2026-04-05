@@ -26,19 +26,41 @@ function TabsRoot({ value, onValueChange, children }: TabsProps) {
 type TabsListProps = {
   children: ReactNode;
   className?: string;
+  variant?: "default" | "manage";
 };
 
-function TabsList({ children, className }: TabsListProps) {
-  return <div role="tablist" className={cn("ds-tabbar", className)}>{children}</div>;
+function TabsList({
+  children,
+  className,
+  variant = "default",
+}: TabsListProps) {
+  return (
+    <div
+      role="tablist"
+      className={cn(
+        "ds-tabbar",
+        variant !== "default" ? `ds-tabbar--${variant}` : undefined,
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
 }
 
 type TabProps = {
   value: string;
   children?: ReactNode;
   className?: string;
+  variant?: "default" | "manage";
 };
 
-function Tab({ value, children, className }: TabProps) {
+function Tab({
+  value,
+  children,
+  className,
+  variant = "default",
+}: TabProps) {
   const context = useContext(TabsContext);
   if (!context) {
     throw new Error("Tab must be used within <Tabs>.");
@@ -53,6 +75,7 @@ function Tab({ value, children, className }: TabProps) {
       className={cn(
         "ds-tab",
         isActive ? "ds-tab-active" : undefined,
+        variant !== "default" ? `ds-tab--${variant}` : undefined,
         className,
       )}
       onClick={() => context.onValueChange(value)}
