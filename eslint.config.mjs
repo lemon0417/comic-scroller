@@ -92,7 +92,7 @@ export default [
         },
       ],
       '@typescript-eslint/no-explicit-any': [
-        'warn',
+        'error',
         {
           ignoreRestArgs: true,
         },
