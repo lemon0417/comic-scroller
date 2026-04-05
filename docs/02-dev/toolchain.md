@@ -27,6 +27,10 @@
 - `@typescript-eslint/no-explicit-any` 目前先設為 `warn`，用來讓 legacy `any` 可見化，但不阻斷既有開發流程；測試檔有較寬鬆 override。
 - 測試檔不再整包忽略，改用 test-specific override 管理 Jest globals 與少數測試必要寫法。
 - `reportUnusedDisableDirectives` 設為 `warn`，避免長期累積失效的 `eslint-disable` 註解。
+- `no-restricted-imports` 會限制 repository 邊界：
+  - app code 不得再從 `@infra/services/library` 主 barrel 匯入
+  - 非 repository 實作不得直接匯入 `library/shared|queries|mutations|compat|signal`
+  - reader / popup / background 必須使用各自的 scene facade
 
 ## Extension
 - Manifest：MV3

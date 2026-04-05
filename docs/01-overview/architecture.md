@@ -31,6 +31,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - `library/signal.ts`
 - `library.ts` 只保留通用 config / import-export / signal 類 API
 - reader、popup、background 應優先從各自的場景 facade 取用 repository 函式，不要再全部從單一 barrel 匯入
+- ESLint 會用 `no-restricted-imports` 守住這條邊界，避免新程式碼回頭依賴主 barrel 或 internal module
 - schema constants、row types、normalize helper 屬於 internal detail；若測試或底層模組需要，直接從 `library/schema.ts` 取用
 - query / view model 型別（例如 popup feed、reader query result）集中在 `library/models.ts`
 - `LibrarySnapshotV2` 目前只保留給 `compat.ts` 內部流程、匯入匯出與 migration

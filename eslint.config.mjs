@@ -125,6 +125,147 @@ export default [
     },
   },
   {
+    files: ['src/**/*.{js,jsx,ts,tsx}'],
+    ignores: [
+      'src/infra/services/library/**/*',
+      '**/*.test.{js,jsx,ts,tsx}',
+      '**/__tests__/**/*.{js,jsx,ts,tsx}',
+      '**/__mocks__/**/*.{js,jsx,ts,tsx}',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@infra/services/library',
+              message:
+                'Use a scene-specific facade (`@infra/services/library/reader`, `/popup`, `/background`) instead of the root barrel.',
+            },
+            {
+              name: '@infra/services/library/shared',
+              message:
+                'Do not import repository internals from app code. Use a facade or the public schema/models modules instead.',
+            },
+            {
+              name: '@infra/services/library/queries',
+              message:
+                'Do not import repository internals from app code. Use a facade or the public schema/models modules instead.',
+            },
+            {
+              name: '@infra/services/library/mutations',
+              message:
+                'Do not import repository internals from app code. Use a facade or the public schema/models modules instead.',
+            },
+            {
+              name: '@infra/services/library/compat',
+              message:
+                'Do not import repository internals from app code. Use a facade or the public schema/models modules instead.',
+            },
+            {
+              name: '@infra/services/library/signal',
+              message:
+                'Do not import repository internals from app code. Use a facade or the public schema/models modules instead.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      'src/epics/popup/**/*.{js,jsx,ts,tsx}',
+      'src/ui/containers/PopupApp/**/*.{js,jsx,ts,tsx}',
+      'src/ui/containers/ManageApp/**/*.{js,jsx,ts,tsx}',
+    ],
+    ignores: [
+      '**/*.test.{js,jsx,ts,tsx}',
+      '**/__tests__/**/*.{js,jsx,ts,tsx}',
+      '**/__mocks__/**/*.{js,jsx,ts,tsx}',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@infra/services/library/reader',
+              message:
+                'Popup and manage code must use `@infra/services/library/popup` instead of the reader facade.',
+            },
+            {
+              name: '@infra/services/library/background',
+              message:
+                'Popup and manage code must use `@infra/services/library/popup` instead of the background facade.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      'src/ui/containers/App/**/*.{js,jsx,ts,tsx}',
+      'src/ui/containers/ChapterList/**/*.{js,jsx,ts,tsx}',
+      'src/ui/containers/ImageContainer/**/*.{js,jsx,ts,tsx}',
+      'src/ui/components/ComicImage/**/*.{js,jsx,ts,tsx}',
+      'src/epics/sites/**/*.{js,jsx,ts,tsx}',
+      'src/epics/subscribeEpic.ts',
+      'src/epics/scrollEpic.ts',
+    ],
+    ignores: [
+      '**/*.test.{js,jsx,ts,tsx}',
+      '**/__tests__/**/*.{js,jsx,ts,tsx}',
+      '**/__mocks__/**/*.{js,jsx,ts,tsx}',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@infra/services/library/popup',
+              message:
+                'Reader code must use `@infra/services/library/reader` instead of the popup facade.',
+            },
+            {
+              name: '@infra/services/library/background',
+              message:
+                'Reader code must use `@infra/services/library/reader` instead of the background facade.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/background.ts', 'src/infra/services/background.ts'],
+    ignores: [
+      '**/*.test.{js,jsx,ts,tsx}',
+      '**/__tests__/**/*.{js,jsx,ts,tsx}',
+      '**/__mocks__/**/*.{js,jsx,ts,tsx}',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@infra/services/library/reader',
+              message:
+                'Background code must use `@infra/services/library/background` instead of the reader facade.',
+            },
+            {
+              name: '@infra/services/library/popup',
+              message:
+                'Background code must use `@infra/services/library/background` instead of the popup facade.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: [
       '**/*.test.{js,jsx,ts,tsx}',
       '**/__tests__/**/*.{js,jsx,ts,tsx}',
