@@ -6,8 +6,9 @@ import {
   handlePingBackgroundMessage,
   resolveReaderRedirect,
   runBackgroundUpdateSummary,
-  UPDATE_NOTIFICATION_ID,
 } from "./background";
+
+const UPDATE_NOTIFICATION_ID = "Comics Scroller Update";
 
 describe("background service", () => {
   it("summarizes background updates and refreshes badge", async () => {

@@ -3,7 +3,7 @@ const READER_REDIRECT_BYPASS_PARAM = "cs_open_native";
 const PACKER_REGEX =
   /eval\(function\(p,a,c,k,e,(?:r|d)\)\{[\s\S]+?\}\(([\s\S]+)\)\)/;
 
-export type Dm5ChapterImageEntry = {
+type Dm5ChapterImageEntry = {
   chapter: string;
   cid: string;
   href?: string;
@@ -12,7 +12,7 @@ export type Dm5ChapterImageEntry = {
   type?: "image" | "paywall";
 };
 
-export type Dm5ChapterPageMeta = {
+type Dm5ChapterPageMeta = {
   chapterID: string;
   seriesSlug: string;
   imgList: Dm5ChapterImageEntry[];

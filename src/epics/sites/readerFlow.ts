@@ -55,7 +55,7 @@ type ReaderRangeAction = {
   end: number;
 };
 
-export type ReaderChapterPayload = {
+type ReaderChapterPayload = {
   chapterID: string;
   seriesID: string;
   comicUrl: string;

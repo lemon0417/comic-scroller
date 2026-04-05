@@ -43,7 +43,7 @@ type BackgroundServiceDeps = {
   setLibraryVersion: typeof setLibraryVersion;
 };
 
-export type BackgroundSummary = {
+type BackgroundSummary = {
   checked: number;
   updated: number;
   errors: number;
@@ -181,7 +181,7 @@ async function checkSubscribedSeries(
   }
 }
 
-export function setExtensionBadge(count: number) {
+function setExtensionBadge(count: number) {
   chrome.action.setBadgeText({ text: `${count > 0 ? count : ""}` });
 }
 
@@ -320,5 +320,3 @@ export function resolveReaderRedirect(url: string, getRuntimeUrl = (path: string
   }
   return "";
 }
-
-export { UPDATE_NOTIFICATION_ID };

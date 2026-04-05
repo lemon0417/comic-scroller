@@ -206,29 +206,6 @@ async function rewriteOrderedSeriesStore(
   await emitLibrarySignal(source, [scope], [seriesKey]);
 }
 
-export async function upsertSeriesWithChapters(
-  site: SiteKey,
-  comicsID: string,
-  record: Partial<SeriesRecord>,
-) {
-  return persistSeriesRecordState(site, comicsID, { record });
-}
-
-export async function markSeriesRead(site: SiteKey, comicsID: string, chapterID: string) {
-  return persistSeriesRecordState(site, comicsID, { readChapterID: chapterID });
-}
-
-export async function recordHistory(site: SiteKey, comicsID: string) {
-  const seriesKey = buildSeriesKey(site, comicsID);
-  await rewriteOrderedSeriesStore(
-    HISTORY_STORE,
-    seriesKey,
-    (seriesKeys) => uniqueStrings([seriesKey, ...seriesKeys], HISTORY_LIMIT),
-    "recordHistory",
-    "history",
-  );
-}
-
 export async function setSeriesSubscriptionByKey(seriesKey: string, subscribed: boolean) {
   await rewriteOrderedSeriesStore(
     SUBSCRIPTIONS_STORE,
@@ -287,28 +264,6 @@ export async function dismissSeriesUpdate(
         (item) => item.seriesKey !== seriesKey || (chapterID && item.chapterID !== chapterID),
       ),
     "dismissUpdate",
-  );
-}
-
-export async function prependSeriesUpdate(
-  site: SiteKey,
-  comicsID: string,
-  chapterID: string,
-) {
-  return rewriteUpdatesForSeries(
-    site,
-    comicsID,
-    (updates, seriesKey) => [
-      {
-        seriesKey,
-        chapterID,
-        createdAt: Date.now(),
-      },
-      ...updates.filter(
-        (item) => item.seriesKey !== seriesKey || item.chapterID !== chapterID,
-      ),
-    ],
-    "prependUpdate",
   );
 }
 

@@ -27,7 +27,7 @@ export const LEGACY_STORAGE_KEYS = [
 ];
 
 export type SiteKey = (typeof SITE_KEYS)[number];
-export type SeriesKey = string;
+type SeriesKey = string;
 
 export type ChapterRecord = {
   title: string;
@@ -165,7 +165,7 @@ export function normalizeChapterRecord(chapter: unknown): ChapterRecord {
   };
 }
 
-export function canonicalizeComicsID(site: string, comicsID: string) {
+function canonicalizeComicsID(site: string, comicsID: string) {
   const raw = String(comicsID || "");
   if (!raw) return "";
   if (site === "dm5") {

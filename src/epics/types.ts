@@ -7,19 +7,15 @@ export type EpicAction = {
   [key: string]: unknown;
 };
 
-export type StateStream<State> = {
+type StateStream<State> = {
   value: State;
 };
-
-export type RootStateStream = StateStream<RootState>;
 
 export type PopupRootState = {
   popup: PopupState;
 };
 
-export type PopupStateStream = StateStream<PopupRootState>;
-
-export type BaseEpic<State> = (
+type BaseEpic<State> = (
   action$: Observable<EpicAction>,
   state$: StateStream<State>,
 ) => Observable<EpicAction>;

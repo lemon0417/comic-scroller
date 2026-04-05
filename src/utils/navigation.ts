@@ -1,4 +1,4 @@
-export function openUrl(url: string) {
+function openUrl(url: string) {
   if (!url) return;
   chrome.tabs.create({ url });
 }

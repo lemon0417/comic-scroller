@@ -296,7 +296,7 @@ export function rowsToSnapshot(input: {
   return snapshot;
 }
 
-export async function writeRowsToDb(
+async function writeRowsToDb(
   rows: ReturnType<typeof snapshotToRows>,
   version = getExtensionVersion(),
 ) {
@@ -390,7 +390,7 @@ function hasLegacyLibraryData(raw: Record<string, unknown>) {
   return LEGACY_STORAGE_KEYS.some((key) => key in (raw || {}));
 }
 
-export async function cleanupLegacyStorage() {
+async function cleanupLegacyStorage() {
   await removeStorageItems(LEGACY_STORAGE_KEYS);
 }
 
@@ -658,7 +658,7 @@ export function createSeriesRow(
   };
 }
 
-export function createChapterRows(seriesKey: string, record: SeriesRecord): ChapterRow[] {
+function createChapterRows(seriesKey: string, record: SeriesRecord): ChapterRow[] {
   return record.chapterList
     .filter(Boolean)
     .map((chapterID, orderIndex) => {
