@@ -1,12 +1,10 @@
+import { cn } from "@utils/cn";
+
 type NoticeBannerProps = {
   message: string;
   tone?: "success" | "error" | "info";
   onDismiss?: () => void;
 };
-
-function mergeClasses(...classes: Array<string | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
 
 export default function NoticeBanner({
   message,
@@ -15,7 +13,7 @@ export default function NoticeBanner({
 }: NoticeBannerProps) {
   return (
     <div
-      className={mergeClasses(
+      className={cn(
         "ds-notice",
         tone === "success"
           ? "ds-notice-success"

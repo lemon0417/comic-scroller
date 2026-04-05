@@ -244,53 +244,6 @@
     @apply mt-2 max-w-xl text-sm leading-6 text-comic-ink/60;
   }
 
-  .ds-card {
-    @apply relative flex h-[168px] w-full overflow-hidden rounded-xl transition-none opacity-100;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    background: #ffffff;
-    box-shadow:
-      0 1px 2px rgba(15, 23, 42, 0.03),
-      0 10px 24px rgba(15, 23, 42, 0.04);
-  }
-
-  .ds-card-move {
-    @apply transition-[transform,opacity] duration-300 ease-in-out -translate-x-[calc(100%+8px)] scale-0 opacity-0;
-  }
-
-  .ds-card-shift {
-    @apply transition-transform duration-300 ease-in-out -translate-y-[calc(100%+8px)];
-  }
-
-  .ds-card-cover {
-    @apply h-full w-[112px] flex-none object-cover;
-    border-right: 1px solid rgba(15, 23, 42, 0.08);
-    background: #eef2f7;
-  }
-
-  .ds-card-body {
-    @apply flex flex-1 flex-col px-3 py-2 text-comic-ink;
-  }
-
-  .ds-card-header {
-    @apply flex w-full items-center justify-between;
-  }
-
-  .ds-card-title {
-    @apply mr-4 cursor-pointer text-[16px] font-semibold text-comic-ink;
-  }
-
-  .ds-card-meta {
-    @apply text-sm leading-6;
-  }
-
-  .ds-card-link {
-    @apply mr-2 cursor-pointer text-comic-accent;
-  }
-
-  .ds-card-action {
-    @apply absolute right-4 top-4 cursor-pointer;
-  }
-
   .ds-count-badge {
     @apply inline-flex min-w-[32px] items-center justify-center rounded-[10px] px-2.5 py-1 text-center text-[12px] font-medium text-comic-ink/60;
     border: 1px solid rgba(15, 23, 42, 0.08);
@@ -336,42 +289,42 @@
     @apply inline-flex items-center justify-center border-0 bg-transparent p-0 text-[12px] font-medium text-comic-accent underline decoration-1 underline-offset-4 transition-colors duration-150 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-comic-accent focus-visible:ring-offset-2 focus-visible:ring-offset-comic-paper;
   }
 
-  .ds-series-row {
+  .series-row {
     @apply flex items-start gap-3 rounded-xl px-4 py-3 transition-colors duration-150;
     border: 1px solid rgba(15, 23, 42, 0.08);
     background: #ffffff;
   }
 
-  .ds-series-row:hover {
+  .series-row:hover {
     background: #f8fafc;
   }
 
-  .ds-series-row-visual {
+  .series-row__visual {
     @apply flex w-[52px] flex-none flex-col items-center gap-1.5;
   }
 
-  .ds-series-row-cover {
+  .series-row__cover {
     @apply h-11 w-11 flex-none rounded-lg object-cover;
     background: #e2e8f0;
   }
 
-  .ds-series-row-fallback {
+  .series-row__cover--fallback {
     @apply flex items-center justify-center text-sm font-semibold text-comic-ink/40;
   }
 
-  .ds-series-row-body {
+  .series-row__body {
     @apply flex min-w-0 flex-1 items-start justify-between gap-4;
   }
 
-  .ds-series-row-copy {
+  .series-row__copy {
     @apply flex min-w-0 flex-1 flex-col gap-0.5;
   }
 
-  .ds-series-chip {
+  .series-row__chip {
     @apply max-w-full truncate text-center text-[11px] font-medium uppercase leading-4 tracking-[0.08em] text-comic-ink/40;
   }
 
-  .ds-series-row-title {
+  .series-row__title {
     @apply min-w-0 text-[15px] font-semibold leading-5 text-comic-ink;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -379,12 +332,12 @@
     overflow: hidden;
   }
 
-  .ds-series-row-title-link {
+  .series-row__title-link {
     @apply text-comic-ink transition-colors duration-150 hover:text-comic-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-comic-accent focus-visible:ring-offset-2 focus-visible:ring-offset-comic-paper;
     text-decoration: none;
   }
 
-  .ds-series-row-summary {
+  .series-row__summary {
     @apply min-w-0 text-[13px] leading-5 text-comic-ink/70;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -392,7 +345,7 @@
     overflow: hidden;
   }
 
-  .ds-series-row-detail {
+  .series-row__detail {
     @apply min-w-0 text-[13px] leading-5 text-comic-ink/50;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -400,7 +353,7 @@
     overflow: hidden;
   }
 
-  .ds-series-row-actions {
+  .series-row__actions {
     @apply flex min-w-fit shrink-0 flex-row flex-wrap items-center justify-end gap-2 self-center;
   }
 
@@ -443,58 +396,58 @@
     @apply flex flex-col gap-2.5;
   }
 
-  .popup-panel .ds-series-row {
+  .series-row--popup {
     @apply rounded-[16px] px-3.5 py-2.5;
     border-color: rgba(15, 23, 42, 0.06);
     background: rgba(255, 255, 255, 0.96);
   }
 
-  .popup-panel .ds-series-row:hover {
+  .series-row--popup:hover {
     background: #fbfcfe;
   }
 
-  .popup-panel .ds-series-row-visual {
+  .series-row--popup .series-row__visual {
     @apply w-[48px] gap-1;
   }
 
-  .popup-panel .ds-series-row-cover {
+  .series-row--popup .series-row__cover {
     @apply h-10 w-10 rounded-[12px];
   }
 
-  .popup-panel .ds-series-row-body {
+  .series-row--popup .series-row__body {
     @apply gap-3;
   }
 
-  .popup-panel .ds-series-row-copy {
+  .series-row--popup .series-row__copy {
     @apply gap-0;
   }
 
-  .popup-panel .ds-series-chip {
+  .series-row--popup .series-row__chip {
     @apply text-[10px] tracking-[0.06em];
     color: rgba(15, 23, 42, 0.36);
   }
 
-  .popup-panel .ds-series-row-title {
+  .series-row--popup .series-row__title {
     @apply text-[14px] leading-5;
   }
 
-  .popup-panel .ds-series-row-summary {
+  .series-row--popup .series-row__summary {
     @apply text-[12px] leading-5;
     color: rgba(15, 23, 42, 0.68);
   }
 
-  .popup-panel .ds-series-row-detail {
+  .series-row--popup .series-row__detail {
     @apply text-[12px] leading-5;
     color: rgba(15, 23, 42, 0.48);
   }
 
-  .popup-panel .ds-series-row-actions {
+  .series-row--popup .series-row__actions {
     @apply gap-1.5 self-center;
   }
 
-  .popup-panel .ds-series-row-actions .ds-btn-primary,
-  .popup-panel .ds-series-row-actions .ds-btn-secondary,
-  .popup-panel .ds-series-row-actions .ds-btn-danger {
+  .series-row--popup .series-row__actions .ds-btn-primary,
+  .series-row--popup .series-row__actions .ds-btn-secondary,
+  .series-row--popup .series-row__actions .ds-btn-danger {
     @apply px-3 py-1.5 text-[12px];
   }
 
@@ -611,6 +564,24 @@
 
   .reader-loading {
     @apply flex w-full flex-col items-center justify-center gap-3 py-20;
+  }
+
+  .reader-chapter-dialog {
+    @apply relative flex w-full max-w-[960px] flex-col overflow-hidden rounded-[24px];
+    max-height: 88vh;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: #ffffff;
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 16px 40px rgba(15, 23, 42, 0.04);
+  }
+
+  .reader-chapter-dialog__header {
+    @apply flex items-center justify-between gap-3 border-b border-comic-ink/10 px-5 py-4;
+  }
+
+  .reader-chapter-dialog__body {
+    @apply min-h-0 overflow-x-hidden px-5 py-5;
   }
 
   .reader-chapter-item {

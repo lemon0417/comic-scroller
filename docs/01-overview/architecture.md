@@ -80,6 +80,13 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - 真實 IndexedDB integration tests 使用 `fake-indexeddb`
   - 測試用 DB reset 與 module cache reset 集中在 `library/shared.ts` 的 test-only helper
 
+## UI 元件命名
+- `ds-*` 只保留共享 primitive，例如 button、tab、notice、empty state、panel、content
+- 頁面殼層使用 `popup-*`、`manage-*`、`reader-*`，只負責 layout 與 page shell
+- 共用業務元件使用 component-owned class，例如 `series-row`、`series-row__title`
+- 頁面差異優先透過元件顯式 `variant` 處理，例如 `series-row--popup`，不要用 ancestor selector 從 `popup-panel` / `manage-*` 去覆寫元件內部節點
+- 若舊元件體系已不再被 runtime 使用，應移除，不保留平行的 class vocabulary
+
 ## 重構原則
 - Reducer 必須純函式
 - Side effects 一律放 epics 或 services

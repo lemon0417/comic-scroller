@@ -93,6 +93,7 @@ function PopupAppComponent(props: PopupAppProps) {
                 <section className="popup-section">
                   <SectionTitle title="繼續閱讀" />
                   <SeriesRow
+                    variant="popup"
                     title={continueReading.title}
                     titleHref={continueReading.url}
                     siteLabel={continueReading.siteLabel}
@@ -123,6 +124,7 @@ function PopupAppComponent(props: PopupAppProps) {
                     {update.map((item: PopupFeedEntry) => (
                       <SeriesRow
                         key={item.key}
+                        variant="popup"
                         title={item.title}
                         titleHref={item.url}
                         siteLabel={item.siteLabel}

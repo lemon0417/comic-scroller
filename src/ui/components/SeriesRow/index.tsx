@@ -2,8 +2,10 @@ import type { ButtonHTMLAttributes } from "react";
 import BinIcon from "@imgs/bin.svg?react";
 import ArrowIcon from "@imgs/circle-right.svg?react";
 import TagIcon from "@imgs/tag.svg?react";
+import { cn } from "@utils/cn";
 
 type RowActionIcon = "arrow" | "tag" | "trash";
+type SeriesRowVariant = "popup" | "manage";
 
 type RowAction = {
   icon?: RowActionIcon;
@@ -14,6 +16,8 @@ type RowAction = {
 };
 
 type SeriesRowProps = {
+  variant?: SeriesRowVariant;
+  className?: string;
   title: string;
   titleHref?: string;
   siteLabel: string;
@@ -22,10 +26,6 @@ type SeriesRowProps = {
   detail?: string;
   actions?: RowAction[];
 };
-
-function mergeClasses(...classes: Array<string | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
 
 function ActionIcon({ icon }: { icon: RowActionIcon }) {
   const className = "h-3.5 w-3.5 shrink-0 fill-current";
@@ -55,13 +55,15 @@ function ActionButton({
   return (
     <button
       type="button"
-      className={mergeClasses(variantClass, className)}
+      className={cn(variantClass, className)}
       {...rest}
     />
   );
 }
 
 export default function SeriesRow({
+  variant = "manage",
+  className,
   title,
   titleHref,
   siteLabel,
@@ -71,32 +73,32 @@ export default function SeriesRow({
   actions = [],
 }: SeriesRowProps) {
   return (
-    <article className="ds-series-row">
-      <div className="ds-series-row-visual">
-        <span className="ds-series-chip">{siteLabel}</span>
+    <article className={cn("series-row", `series-row--${variant}`, className)}>
+      <div className="series-row__visual">
+        <span className="series-row__chip">{siteLabel}</span>
         {cover ? (
           <img
             src={cover}
             alt=""
             width={48}
             height={48}
-            className="ds-series-row-cover"
+            className="series-row__cover"
           />
         ) : (
           <div
-            className="ds-series-row-cover ds-series-row-fallback"
+            className="series-row__cover series-row__cover--fallback"
             aria-hidden="true"
           >
             {title.slice(0, 1).toUpperCase()}
           </div>
         )}
       </div>
-      <div className="ds-series-row-body">
-        <div className="ds-series-row-copy">
-          <h2 className="ds-series-row-title">
+      <div className="series-row__body">
+        <div className="series-row__copy">
+          <h2 className="series-row__title">
             {titleHref ? (
               <a
-                className="ds-series-row-title-link"
+                className="series-row__title-link"
                 href={titleHref}
                 target="_blank"
                 rel="noreferrer"
@@ -104,14 +106,14 @@ export default function SeriesRow({
                 {title}
               </a>
             ) : (
-              title
-            )}
+                title
+              )}
           </h2>
-          <div className="ds-series-row-summary">{summary}</div>
-          {detail ? <div className="ds-series-row-detail">{detail}</div> : null}
+          <div className="series-row__summary">{summary}</div>
+          {detail ? <div className="series-row__detail">{detail}</div> : null}
         </div>
         {actions.length > 0 ? (
-          <div className="ds-series-row-actions">
+          <div className="series-row__actions">
             {actions.map((action) => (
               <ActionButton
                 key={action.label}

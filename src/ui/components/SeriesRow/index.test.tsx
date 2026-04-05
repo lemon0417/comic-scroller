@@ -56,4 +56,17 @@ describe("SeriesRow", () => {
     expect(button).toBeInTheDocument();
     expect(button.querySelector("svg")).not.toBeInTheDocument();
   });
+
+  it("applies an explicit popup variant class", () => {
+    const { container } = render(
+      <SeriesRow
+        variant="popup"
+        title="作品標題"
+        siteLabel="DM5"
+        summary="最新章節：第 1 話"
+      />,
+    );
+
+    expect(container.querySelector(".series-row")).toHaveClass("series-row--popup");
+  });
 });

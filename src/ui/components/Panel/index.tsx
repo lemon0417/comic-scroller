@@ -1,8 +1,5 @@
 import type { HTMLAttributes, ReactNode } from "react";
-
-function mergeClasses(...classes: Array<string | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
+import { cn } from "@utils/cn";
 
 type PanelProps = HTMLAttributes<HTMLDivElement> & {
   children?: ReactNode;
@@ -10,7 +7,7 @@ type PanelProps = HTMLAttributes<HTMLDivElement> & {
 
 export default function Panel({ className, children, ...rest }: PanelProps) {
   return (
-    <div className={mergeClasses("ds-panel", className)} {...rest}>
+    <div className={cn("ds-panel", className)} {...rest}>
       {children}
     </div>
   );

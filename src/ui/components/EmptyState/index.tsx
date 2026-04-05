@@ -1,8 +1,5 @@
 import type { HTMLAttributes, ReactNode } from "react";
-
-function mergeClasses(...classes: Array<string | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
+import { cn } from "@utils/cn";
 
 type EmptyStateProps = HTMLAttributes<HTMLDivElement> & {
   title?: string;
@@ -17,7 +14,7 @@ export default function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className={mergeClasses("ds-empty", className)}
+      className={cn("ds-empty", className)}
       role="status"
       {...rest}
     >

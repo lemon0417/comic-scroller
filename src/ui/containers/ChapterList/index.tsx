@@ -40,6 +40,11 @@ type ChapterListProps = ChapterListOwnProps &
   ChapterListStateProps &
   ChapterListDispatchProps;
 
+type ChapterListComponentState = {
+  bodyWidth: number;
+  gridViewportWidth: number;
+};
+
 type VirtualChapterCellProps = {
   chapterList: string[];
   chapters: Record<string, ComicsChapterRecord>;
@@ -55,7 +60,6 @@ const CHAPTER_ROW_HEIGHT = 52;
 const CHAPTER_LIST_HEIGHT = 520;
 const CHAPTER_OVERSCAN_COUNT = 4;
 const CHAPTER_CELL_GUTTER = 8;
-const CHAPTER_GRID_HORIZONTAL_PADDING = 20;
 const CHAPTER_PANEL_MAX_WIDTH = 960;
 const EMPTY_CHAPTER_LIST: string[] = [];
 const EMPTY_CHAPTERS: Record<string, ComicsChapterRecord> = {};
@@ -124,10 +128,20 @@ function VirtualChapterCell({
   );
 }
 
-export class ChapterList extends Component<ChapterListProps> {
+export class ChapterList extends Component<
+  ChapterListProps,
+  ChapterListComponentState
+> {
   gridApi: GridImperativeAPI | null = null;
+  bodyNode: HTMLDivElement | null = null;
+  bodyResizeObserver: ResizeObserver | null = null;
   closeButton!: HTMLButtonElement | null;
+  gridViewportAnimationFrame = 0;
   scrollAnimationFrame = 0;
+  state: ChapterListComponentState = {
+    bodyWidth: 0,
+    gridViewportWidth: 0,
+  };
 
   componentDidMount() {
     document.addEventListener("keydown", this.keydownHandler);
@@ -138,12 +152,30 @@ export class ChapterList extends Component<ChapterListProps> {
       this.closeButton?.focus();
       this.scrollToCurrentChapter();
     }
+
+    if (
+      this.props.show &&
+      (
+        prevProps.show !== this.props.show ||
+        prevProps.chapterList !== this.props.chapterList ||
+        prevProps.columnCount !== this.props.columnCount ||
+        prevProps.gridWidth !== this.props.gridWidth ||
+        prevProps.currentChapterRowIndex !== this.props.currentChapterRowIndex ||
+        prevProps.readSet !== this.props.readSet
+      )
+    ) {
+      this.scheduleGridViewportSync();
+    }
   }
 
   componentWillUnmount() {
+    if (this.gridViewportAnimationFrame) {
+      window.cancelAnimationFrame(this.gridViewportAnimationFrame);
+    }
     if (this.scrollAnimationFrame) {
       window.cancelAnimationFrame(this.scrollAnimationFrame);
     }
+    this.bodyResizeObserver?.disconnect();
     document.removeEventListener("keydown", this.keydownHandler);
   }
 
@@ -164,13 +196,81 @@ export class ChapterList extends Component<ChapterListProps> {
 
   gridRefHandler = (gridApi: GridImperativeAPI | null) => {
     this.gridApi = gridApi;
+    this.scheduleGridViewportSync();
     if (this.props.show && gridApi) {
       this.scrollToCurrentChapter();
     }
   };
 
+  gridResizeHandler = (size: { height: number; width: number }) => {
+    const viewportWidth = Math.max(0, Math.floor(size.width));
+
+    if (viewportWidth !== this.state.gridViewportWidth) {
+      this.setState({ gridViewportWidth: viewportWidth });
+    }
+    this.scheduleGridViewportSync();
+  };
+
+  scheduleGridViewportSync = () => {
+    if (this.gridViewportAnimationFrame) {
+      window.cancelAnimationFrame(this.gridViewportAnimationFrame);
+    }
+
+    this.gridViewportAnimationFrame = window.requestAnimationFrame(() => {
+      this.gridViewportAnimationFrame = 0;
+      const viewportWidth = Math.max(
+        0,
+        Math.floor(this.gridApi?.element?.clientWidth ?? 0),
+      );
+
+      if (
+        viewportWidth > 0 &&
+        viewportWidth !== this.state.gridViewportWidth
+      ) {
+        this.setState({ gridViewportWidth: viewportWidth });
+      }
+    });
+  };
+
   closeButtonRefHandler = (node: HTMLButtonElement | null) => {
     this.closeButton = node;
+  };
+
+  bodyRefHandler = (node: HTMLDivElement | null) => {
+    if (this.bodyResizeObserver) {
+      this.bodyResizeObserver.disconnect();
+      this.bodyResizeObserver = null;
+    }
+
+    this.bodyNode = node;
+    if (!node) {
+      return;
+    }
+
+    this.measureBodyWidth();
+
+    if (typeof ResizeObserver !== "undefined") {
+      this.bodyResizeObserver = new ResizeObserver(() => {
+        this.measureBodyWidth();
+      });
+      this.bodyResizeObserver.observe(node);
+    }
+  };
+
+  measureBodyWidth = () => {
+    if (!this.bodyNode) return;
+
+    const styles = window.getComputedStyle(this.bodyNode);
+    const paddingLeft = Number.parseFloat(styles.paddingLeft || "0");
+    const paddingRight = Number.parseFloat(styles.paddingRight || "0");
+    const nextBodyWidth = Math.max(
+      0,
+      Math.floor(this.bodyNode.clientWidth - paddingLeft - paddingRight),
+    );
+
+    if (nextBodyWidth !== this.state.bodyWidth) {
+      this.setState({ bodyWidth: nextBodyWidth });
+    }
   };
 
   chapterSelectHandler = (event: MouseEvent<HTMLButtonElement>) => {
@@ -209,20 +309,27 @@ export class ChapterList extends Component<ChapterListProps> {
       return null;
     }
 
+    const outerGridWidth =
+      this.state.bodyWidth > 0 ? this.state.bodyWidth : this.props.gridWidth;
+    const contentGridWidth =
+      this.state.gridViewportWidth > 0
+        ? this.state.gridViewportWidth
+        : outerGridWidth;
+
     return (
-        <div
+      <div
         className="fixed inset-0 z-[1000] flex items-center justify-center bg-[rgba(15,23,42,0.18)] px-4 py-6"
         onClick={this.onClickHandler}
         role="presentation"
       >
         <div
-          className="ds-panel relative max-h-[88vh] w-full max-w-[960px] rounded-[24px]"
+          className="reader-chapter-dialog"
           onClick={(event) => event.stopPropagation()}
           role="dialog"
           aria-modal="true"
           aria-labelledby="chapter-list-title"
         >
-          <div className="flex items-center justify-between gap-3 border-b border-comic-ink/10 px-5 py-4">
+          <div className="reader-chapter-dialog__header">
             <h2
               id="chapter-list-title"
               className="text-[16px] font-semibold tracking-[-0.01em] text-comic-ink"
@@ -238,33 +345,41 @@ export class ChapterList extends Component<ChapterListProps> {
               關閉
             </button>
           </div>
-          <Grid
-            cellComponent={VirtualChapterCell}
-            cellProps={{
-              chapterList: this.props.chapterList,
-              chapters: this.props.chapters,
-              columnCount: this.props.columnCount,
-              currentChapterID: this.props.currentChapterID,
-              getChapterClass: this.getChapterClass,
-              gridWidth: this.props.gridWidth - CHAPTER_GRID_HORIZONTAL_PADDING * 2,
-              onChapterSelect: this.chapterSelectHandler,
-              readSet: this.props.readSet,
-            }}
-            className="popup-scrollbar scrollbar-stable px-5 py-5"
-            columnCount={this.props.columnCount}
-            columnWidth={getChapterColumnWidth}
-            gridRef={this.gridRefHandler}
-            overscanCount={CHAPTER_OVERSCAN_COUNT}
-            rowCount={Math.ceil(
-              this.props.chapterList.length / this.props.columnCount,
-            )}
-            rowHeight={CHAPTER_ROW_HEIGHT}
-            style={{
-              height: CHAPTER_LIST_HEIGHT,
-              maxHeight: "calc(88vh - 73px)",
-              width: this.props.gridWidth,
-            }}
-          />
+          <div
+            ref={this.bodyRefHandler}
+            className="reader-chapter-dialog__body"
+          >
+            <Grid
+              cellComponent={VirtualChapterCell}
+              cellProps={{
+                chapterList: this.props.chapterList,
+                chapters: this.props.chapters,
+                columnCount: this.props.columnCount,
+                currentChapterID: this.props.currentChapterID,
+                getChapterClass: this.getChapterClass,
+                gridWidth: contentGridWidth,
+                onChapterSelect: this.chapterSelectHandler,
+                readSet: this.props.readSet,
+              }}
+              className="popup-scrollbar"
+              columnCount={this.props.columnCount}
+              columnWidth={getChapterColumnWidth}
+              gridRef={this.gridRefHandler}
+              onResize={this.gridResizeHandler}
+              overscanCount={CHAPTER_OVERSCAN_COUNT}
+              rowCount={Math.ceil(
+                this.props.chapterList.length / this.props.columnCount,
+              )}
+              rowHeight={CHAPTER_ROW_HEIGHT}
+              style={{
+                height: CHAPTER_LIST_HEIGHT,
+                maxHeight: "calc(88vh - 73px)",
+                overflowX: "hidden",
+                overflowY: "auto",
+                width: outerGridWidth,
+              }}
+            />
+          </div>
         </div>
       </div>
     );

@@ -213,7 +213,7 @@ describe("ManageApp", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "追蹤 200" }));
 
-    const renderedRows = document.querySelectorAll(".ds-series-row");
+    const renderedRows = document.querySelectorAll(".series-row");
     expect(renderedRows.length).toBeGreaterThan(0);
     expect(renderedRows.length).toBeLessThan(subscribe.length);
   });

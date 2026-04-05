@@ -36,3 +36,9 @@
 - Chrome Extension API 使用官方 `chrome-types`，不要長期維護自製整包 `chrome` global 宣告。
 - Vite / SVGR / CSS / HMR 優先使用工具鏈內建型別：`vite/client`、`vite-plugin-svgr/client`。
 - `src/types/` 只保留真的無法由依賴套件提供、且範圍足夠小的 local declarations。
+
+## UI 命名規則
+- 共用 primitive class 使用 `ds-*`。
+- 頁面殼層使用 `popup-*`、`manage-*`、`reader-*`。
+- 元件自身結構使用 component-owned class，例如 `series-row__summary`。
+- 需要頁面差異時，優先使用顯式 variant class，例如 `series-row--popup`，不要用祖先 selector 偷改共用元件內部結構。

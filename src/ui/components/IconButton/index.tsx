@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import ripple from "../Ripple";
+import { cn } from "@utils/cn";
 
 type Props = {
   children?: React.ReactNode;
@@ -12,10 +13,6 @@ type Props = {
   className?: string;
   disabled?: boolean;
 };
-
-function mergeClasses(...classes: Array<string | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
 
 class IconButton extends Component<Props> {
   node: HTMLButtonElement | null = null;
@@ -46,7 +43,7 @@ class IconButton extends Component<Props> {
     return (
       <button
         type="button"
-        className={mergeClasses("ds-icon-button", this.props.className)}
+        className={cn("ds-icon-button", this.props.className)}
         ref={this.refHandler}
         aria-label={this.props.ariaLabel}
         disabled={this.props.disabled}

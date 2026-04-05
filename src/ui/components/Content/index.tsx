@@ -1,8 +1,5 @@
 import type { HTMLAttributes, ReactNode } from "react";
-
-function mergeClasses(...classes: Array<string | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
+import { cn } from "@utils/cn";
 
 type ContentProps = HTMLAttributes<HTMLDivElement> & {
   children?: ReactNode;
@@ -10,7 +7,7 @@ type ContentProps = HTMLAttributes<HTMLDivElement> & {
 
 export default function Content({ className, children, ...rest }: ContentProps) {
   return (
-    <div className={mergeClasses("ds-content", className)} {...rest}>
+    <div className={cn("ds-content", className)} {...rest}>
       {children}
     </div>
   );

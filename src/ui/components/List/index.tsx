@@ -1,8 +1,5 @@
 import type { HTMLAttributes, ReactNode } from "react";
-
-function mergeClasses(...classes: Array<string | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
+import { cn } from "@utils/cn";
 
 type ListProps = HTMLAttributes<HTMLDivElement> & {
   children?: ReactNode;
@@ -10,7 +7,7 @@ type ListProps = HTMLAttributes<HTMLDivElement> & {
 
 export default function List({ className, children, ...rest }: ListProps) {
   return (
-    <div className={mergeClasses("ds-list", className)} {...rest}>
+    <div className={cn("ds-list", className)} {...rest}>
       {children}
     </div>
   );

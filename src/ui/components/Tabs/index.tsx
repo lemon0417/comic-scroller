@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { createContext, useContext } from "react";
+import { cn } from "@utils/cn";
 
 type TabsContextValue = {
   value: string;
@@ -13,10 +14,6 @@ type TabsProps = {
   onValueChange: (value: string) => void;
   children: ReactNode;
 };
-
-function mergeClasses(...classes: Array<string | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
 
 function TabsRoot({ value, onValueChange, children }: TabsProps) {
   return (
@@ -32,11 +29,7 @@ type TabsListProps = {
 };
 
 function TabsList({ children, className }: TabsListProps) {
-  return (
-    <div role="tablist" className={mergeClasses("ds-tabbar", className)}>
-      {children}
-    </div>
-  );
+  return <div role="tablist" className={cn("ds-tabbar", className)}>{children}</div>;
 }
 
 type TabProps = {
@@ -57,7 +50,7 @@ function Tab({ value, children, className }: TabProps) {
       role="tab"
       aria-selected={isActive}
       tabIndex={isActive ? 0 : -1}
-      className={mergeClasses(
+      className={cn(
         "ds-tab",
         isActive ? "ds-tab-active" : undefined,
         className,

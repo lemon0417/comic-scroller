@@ -1,5 +1,6 @@
 import type { MouseEventHandler, ReactNode } from "react";
 import { createContext, useContext } from "react";
+import { cn } from "@utils/cn";
 
 type DropdownMenuContextValue = {
   open: boolean;
@@ -15,10 +16,6 @@ type DropdownMenuProps = {
   onOpenChange: (open: boolean) => void;
   children: ReactNode;
 };
-
-function mergeClasses(...classes: Array<string | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
 
 function DropdownMenuRoot({ open, onOpenChange, children }: DropdownMenuProps) {
   return (
@@ -72,7 +69,7 @@ function DropdownMenuContent({
   return (
     <div
       role="menu"
-      className={mergeClasses(
+      className={cn(
         "ds-menu-panel",
         context.open ? "scale-y-100 opacity-100" : "scale-y-0 opacity-0",
         className,

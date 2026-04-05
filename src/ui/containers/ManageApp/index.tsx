@@ -107,6 +107,7 @@ function ManageFeedRow({
     return (
       <div {...ariaAttributes} style={style} className="px-1 py-1.5">
         <SeriesRow
+          variant="manage"
           title={item.title}
           titleHref={item.url}
           siteLabel={item.siteLabel}
@@ -147,6 +148,7 @@ function ManageFeedRow({
     return (
       <div {...ariaAttributes} style={style} className="px-1 py-1.5">
         <SeriesRow
+          variant="manage"
           title={item.title}
           titleHref={item.url}
           siteLabel={item.siteLabel}
@@ -186,6 +188,7 @@ function ManageFeedRow({
   return (
     <div {...ariaAttributes} style={style} className="px-1 py-1.5">
       <SeriesRow
+        variant="manage"
         title={item.title}
         titleHref={item.url}
         siteLabel={item.siteLabel}
