@@ -11,7 +11,7 @@
 - `yarn typecheck`
 
 ## 事件追蹤（Debug Logger）
-- 開啟 `manage.html` → `Data` → `Diagnostics` → `Debug logging`
+- 開啟 `manage.html` → `選項` → `開發者功能` → `除錯記錄`
 - 也可手動設定：
   - `localStorage.setItem("CS_DEBUG", "1")`
   - `localStorage.removeItem("CS_DEBUG")`
