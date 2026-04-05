@@ -1,6 +1,11 @@
 import { render, screen } from "@testing-library/react";
+import type { ComponentType } from "react";
 
-import { App } from "./index";
+jest.mock("react-redux", () => ({
+  connect: () => (Component: unknown) => Component,
+}));
+
+import App from "./index";
 
 jest.mock("@infra/services/library/reader", () => ({
   getReaderSeriesState: jest.fn(async () => ({
@@ -30,6 +35,8 @@ jest.mock("@containers/ChapterList", () => ({
   default: () => <div data-testid="chapter-list" />,
 }));
 
+const TestApp = App as unknown as ComponentType<any>;
+
 describe("App", () => {
   beforeEach(() => {
     (global as any).chrome = {
@@ -50,7 +57,7 @@ describe("App", () => {
     const startResize = jest.fn();
 
     render(
-      <App
+      <TestApp
         startResize={startResize}
         fetchChapter={jest.fn()}
         updateSubscribe={jest.fn()}

@@ -1,9 +1,26 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import type { ComponentProps } from "react";
+import type { ComponentType } from "react";
 
-import { ChapterList } from "./index";
+jest.mock("react-redux", () => ({
+  connect: () => (Component: unknown) => Component,
+}));
 
-type ChapterListProps = ComponentProps<typeof ChapterList>;
+import ChapterList from "./index";
+
+type ChapterListProps = {
+  show: boolean;
+  chapterList: string[];
+  chapters: Record<string, { title: string }>;
+  columnCount: number;
+  currentChapterID: string;
+  currentChapterRowIndex: number;
+  gridWidth: number;
+  readSet: Set<string>;
+  navigateChapter: jest.Mock;
+  showChapterListHandler: jest.Mock;
+};
+
+const TestChapterList = ChapterList as unknown as ComponentType<ChapterListProps>;
 
 const baseProps: ChapterListProps = {
   show: true,
@@ -30,7 +47,7 @@ function renderChapterList(overrideProps: Partial<ChapterListProps> = {}) {
     ...overrideProps,
   };
 
-  const result = render(<ChapterList {...props} />);
+  const result = render(<TestChapterList {...props} />);
   return {
     ...result,
     props,

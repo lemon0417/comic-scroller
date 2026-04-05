@@ -1,6 +1,11 @@
 import { render, screen } from "@testing-library/react";
+import type { ComponentType } from "react";
 
-import { ImageContainer } from "./index";
+jest.mock("react-redux", () => ({
+  connect: () => (Component: unknown) => Component,
+}));
+
+import ImageContainer from "./index";
 
 jest.mock("@components/ComicImage", () => ({
   __esModule: true,
@@ -9,10 +14,19 @@ jest.mock("@components/ComicImage", () => ({
   ),
 }));
 
+type ImageContainerProps = {
+  imageListKey: string;
+  imageResult: number[];
+  innerHeight: number;
+  updateVisibleImageRange: jest.Mock;
+};
+
+const TestImageContainer = ImageContainer as unknown as ComponentType<ImageContainerProps>;
+
 describe("ImageContainer", () => {
   it("renders a loading state when no images are available", () => {
     render(
-      <ImageContainer
+      <TestImageContainer
         imageListKey="reader-list"
         imageResult={[]}
         innerHeight={900}
@@ -28,7 +42,7 @@ describe("ImageContainer", () => {
     const imageResult = Array.from({ length: 200 }, (_, index) => index);
 
     render(
-      <ImageContainer
+      <TestImageContainer
         imageListKey="m1"
         imageResult={imageResult}
         innerHeight={900}

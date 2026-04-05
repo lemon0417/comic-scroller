@@ -1,4 +1,4 @@
-import { storageClear, storageGetAll, storageRemove, storageSet } from "../storage";
+import { storageGetAll, storageRemove, storageSet } from "../storage";
 import type {
   ChapterRecord,
   ChapterRow,
@@ -83,12 +83,6 @@ function removeStorageItems(keys: string[]): Promise<void> {
       return;
     }
     storageRemove(keys, () => resolve());
-  });
-}
-
-function clearStorageItems(): Promise<void> {
-  return new Promise((resolve) => {
-    storageClear(() => resolve());
   });
 }
 
@@ -457,31 +451,6 @@ export async function ensureLibraryReady() {
     });
   }
   return libraryReadyPromise;
-}
-
-export async function resetLibraryPersistenceForTests() {
-  libraryReadyPromise = null;
-  if (dbPromise) {
-    try {
-      const db = await dbPromise;
-      db.close();
-    } catch {
-      // Ignore stale connection errors while resetting the test harness.
-    }
-  }
-  dbPromise = null;
-
-  if (typeof indexedDB !== "undefined") {
-    await new Promise<void>((resolve, reject) => {
-      const request = indexedDB.deleteDatabase(LIBRARY_DB_NAME);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-      request.onblocked = () =>
-        reject(new Error("Library IndexedDB delete was blocked during tests."));
-    });
-  }
-
-  await clearStorageItems();
 }
 
 function migrateV2(raw: LegacyStore): LibrarySnapshotV2 {

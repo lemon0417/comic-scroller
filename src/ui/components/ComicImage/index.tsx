@@ -40,7 +40,7 @@ type State = {
   showImage: boolean;
 };
 
-export function ComicImage(props: Props) {
+function ComicImage(props: Props) {
   const {
     href,
     index,

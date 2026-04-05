@@ -44,7 +44,7 @@ const EMPTY_CHAPTER_LIST: string[] = [];
 const EMPTY_CHAPTERS: Record<string, ComicsChapterRecord> = {};
 const EMPTY_READ_SET = new Set<string>();
 
-export function ChapterList(props: ChapterListProps) {
+function ChapterList(props: ChapterListProps) {
   const {
     chapterList,
     chapters,

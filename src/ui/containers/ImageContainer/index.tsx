@@ -126,8 +126,6 @@ function mapStateToProps({ comics }: { comics: ComicsState }) {
   };
 }
 
-export { ImageContainer };
-
 export default connect(mapStateToProps, {
   updateVisibleImageRange,
 })(ImageContainer);

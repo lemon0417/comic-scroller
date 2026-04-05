@@ -1,7 +1,12 @@
 import type { PopupFeedEntry } from "@infra/services/library/models";
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { ComponentType } from "react";
 
-import { PopupApp } from "./index";
+jest.mock("react-redux", () => ({
+  connect: () => (Component: unknown) => Component,
+}));
+
+import PopupApp from "./index";
 
 function createFeedEntry(
   overrides: Partial<PopupFeedEntry> = {},
@@ -32,6 +37,8 @@ function createFeedEntry(
   };
 }
 
+const TestPopupApp = PopupApp as unknown as ComponentType<any>;
+
 describe("PopupApp", () => {
   beforeEach(() => {
     (global as any).chrome = {
@@ -46,7 +53,7 @@ describe("PopupApp", () => {
 
   it("renders updates-first content and opens the manage page", () => {
     render(
-      <PopupApp
+      <TestPopupApp
         hydrationStatus="ready"
         update={[
           createFeedEntry({
@@ -97,7 +104,7 @@ describe("PopupApp", () => {
 
   it("opens continue in the extension reader page", () => {
     render(
-      <PopupApp
+      <TestPopupApp
         hydrationStatus="ready"
         update={[]}
         continueReading={createFeedEntry({

@@ -272,4 +272,3 @@ const connectedApp = connect(mapStateToProps, {
 })(App);
 
 export default connectedApp;
-export { App };

@@ -15,10 +15,6 @@ export function storageSet(items: Record<string, unknown>, cb?: ErrorCallback) {
   return chrome.storage.local.set(items, cb);
 }
 
-export function storageClear(cb?: ErrorCallback) {
-  return chrome.storage.local.clear(cb);
-}
-
 export function storageRemove(keys: string | string[], cb?: ErrorCallback) {
   return chrome.storage.local.remove(keys, cb);
 }

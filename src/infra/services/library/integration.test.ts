@@ -1,20 +1,11 @@
 import "fake-indexeddb/auto";
 
-import { exportLibraryDump, importLibraryDump } from "./compat";
-import {
-  applyBackgroundSeriesRefresh,
-  dismissSeriesUpdate,
-  markSubscriptionCheckedByKey,
-} from "./mutations";
-import {
-  getPopupFeedSnapshot,
-  getReaderSeriesState,
-  getUpdateCount,
-  listSubscriptionKeys,
-} from "./queries";
-import { resetLibraryPersistenceForTests } from "./shared";
-
 type ChromeStorageListener = (changes: Record<string, any>, areaName: string) => void;
+
+let compat: typeof import("./compat");
+let mutations: typeof import("./mutations");
+let queries: typeof import("./queries");
+let shared: typeof import("./shared");
 
 if (typeof globalThis.structuredClone !== "function") {
   (globalThis as any).structuredClone = <T>(value: T): T =>
@@ -125,21 +116,56 @@ function createChromeMock() {
   };
 }
 
+async function resetLibraryPersistence(closeOpenDb = false) {
+  if (closeOpenDb && shared) {
+    try {
+      const db = await shared.openLibraryDb();
+      db.close();
+    } catch {
+      // Ignore teardown races when a test never touched IndexedDB.
+    }
+  }
+
+  if (typeof indexedDB !== "undefined") {
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.deleteDatabase("comic-scroller-library");
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+      request.onblocked = () =>
+        reject(new Error("Library IndexedDB delete was blocked during tests."));
+    });
+  }
+
+  await new Promise<void>((resolve) => {
+    const storage = (global as any).chrome?.storage?.local;
+    if (!storage?.clear) {
+      resolve();
+      return;
+    }
+    storage.clear(() => resolve());
+  });
+}
+
 describe("library integration", () => {
   let chromeEnv: ReturnType<typeof createChromeMock>;
 
   beforeEach(async () => {
     chromeEnv = createChromeMock();
     (global as any).chrome = chromeEnv.chromeMock;
-    await resetLibraryPersistenceForTests();
+    jest.resetModules();
+    await resetLibraryPersistence();
+    compat = await import("./compat");
+    mutations = await import("./mutations");
+    queries = await import("./queries");
+    shared = await import("./shared");
   });
 
   afterEach(async () => {
-    await resetLibraryPersistenceForTests();
+    await resetLibraryPersistence(true);
   });
 
   it("round-trips import, query, mutation, and export against a real IndexedDB", async () => {
-    await importLibraryDump({
+    await compat.importLibraryDump({
       format: "comic-scroller-db-dump",
       formatVersion: 1,
       exportedAt: 1,
@@ -187,8 +213,8 @@ describe("library integration", () => {
       },
     });
 
-    const readerState = await getReaderSeriesState("dm5:m123");
-    const feed = await getPopupFeedSnapshot();
+    const readerState = await queries.getReaderSeriesState("dm5:m123");
+    const feed = await queries.getPopupFeedSnapshot();
 
     expect(readerState).toEqual({
       series: {
@@ -217,11 +243,11 @@ describe("library integration", () => {
     expect(feed.update[0].updateChapterID).toBe("m2");
     expect(feed.continueReading?.continueChapterID).toBe("m1");
 
-    await dismissSeriesUpdate("dm5", "m123", "m2");
+    await mutations.dismissSeriesUpdate("dm5", "m123", "m2");
 
-    expect(await getUpdateCount()).toBe(0);
+    expect(await queries.getUpdateCount()).toBe(0);
 
-    const exported = await exportLibraryDump();
+    const exported = await compat.exportLibraryDump();
     expect(exported.data.series).toHaveLength(1);
     expect(exported.data.updates).toEqual([]);
     expect(exported.data.subscriptions).toEqual([
@@ -230,7 +256,7 @@ describe("library integration", () => {
   });
 
   it("keeps existing cover when refresh payload omits a replacement cover", async () => {
-    await importLibraryDump({
+    await compat.importLibraryDump({
       format: "comic-scroller-db-dump",
       formatVersion: 1,
       exportedAt: 1,
@@ -264,7 +290,7 @@ describe("library integration", () => {
       },
     });
 
-    await applyBackgroundSeriesRefresh(
+    await mutations.applyBackgroundSeriesRefresh(
       "dm5",
       "m123",
       {
@@ -286,13 +312,13 @@ describe("library integration", () => {
       ["m2"],
     );
 
-    const readerState = await getReaderSeriesState("dm5:m123");
+    const readerState = await queries.getReaderSeriesState("dm5:m123");
     expect(readerState.series?.cover).toBe("persisted-cover.jpg");
     expect(readerState.series?.chapterList).toEqual(["m2", "m1"]);
   });
 
   it("orders background polling subscriptions by the oldest checkedAt first", async () => {
-    await importLibraryDump({
+    await compat.importLibraryDump({
       format: "comic-scroller-db-dump",
       formatVersion: 1,
       exportedAt: 1,
@@ -332,10 +358,10 @@ describe("library integration", () => {
       },
     });
 
-    await markSubscriptionCheckedByKey("dm5:m-newest", 200);
-    await markSubscriptionCheckedByKey("dm5:m-oldest", 100);
+    await mutations.markSubscriptionCheckedByKey("dm5:m-newest", 200);
+    await mutations.markSubscriptionCheckedByKey("dm5:m-oldest", 100);
 
-    await expect(listSubscriptionKeys()).resolves.toEqual([
+    await expect(queries.listSubscriptionKeys()).resolves.toEqual([
       "dm5:m-oldest",
       "dm5:m-newest",
     ]);
@@ -369,8 +395,8 @@ describe("library integration", () => {
       },
     });
 
-    const feed = await getPopupFeedSnapshot();
-    const readerState = await getReaderSeriesState("dm5:m123");
+    const feed = await queries.getPopupFeedSnapshot();
+    const readerState = await queries.getReaderSeriesState("dm5:m123");
 
     expect(feed.subscribe).toHaveLength(1);
     expect(feed.history).toHaveLength(1);

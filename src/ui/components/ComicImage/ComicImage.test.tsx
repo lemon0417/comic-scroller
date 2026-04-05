@@ -1,8 +1,13 @@
 import type { ComicsImageType } from "@domain/reducers/comics";
 import { getImageRenderMetrics } from "@domain/utils/readerLayout";
 import { fireEvent, render } from "@testing-library/react";
+import type { ComponentType } from "react";
 
-import { ComicImage } from ".";
+jest.mock("react-redux", () => ({
+  connect: () => (Component: unknown) => Component,
+}));
+
+import ComicImage from ".";
 
 type ComicImageTestProps = {
   chapter?: string;
@@ -29,9 +34,11 @@ const defaultProps: ComicImageTestProps = {
   updateImgType: jest.fn(),
 };
 
+const TestComicImage = ComicImage as unknown as ComponentType<ComicImageTestProps>;
+
 function renderComicImage(overrideProps: Partial<ComicImageTestProps> = {}) {
   const props = { ...defaultProps, ...overrideProps };
-  return render(<ComicImage {...props} />);
+  return render(<TestComicImage {...props} />);
 }
 
 describe("ComicImage type variant check", () => {

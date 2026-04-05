@@ -147,8 +147,6 @@ function PopupAppComponent(props: PopupAppProps) {
   );
 }
 
-export { PopupAppComponent as PopupApp };
-
 export default connect(selectPopupView, {
   requestPopupData,
 })(PopupAppComponent);

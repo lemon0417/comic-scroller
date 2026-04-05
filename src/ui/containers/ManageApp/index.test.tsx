@@ -1,7 +1,12 @@
 import type { PopupFeedEntry } from "@infra/services/library/models";
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { ComponentType } from "react";
 
-import { ManageApp } from "./index";
+jest.mock("react-redux", () => ({
+  connect: () => (Component: unknown) => Component,
+}));
+
+import ManageApp from "./index";
 
 function createFeedEntry(
   overrides: Partial<PopupFeedEntry> = {},
@@ -32,6 +37,8 @@ function createFeedEntry(
   };
 }
 
+const TestManageApp = ManageApp as unknown as ComponentType<any>;
+
 describe("ManageApp", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/manage.html?tab=history");
@@ -60,7 +67,7 @@ describe("ManageApp", () => {
     jest.spyOn(window, "confirm").mockReturnValue(true);
 
     render(
-      <ManageApp
+      <TestManageApp
         hydrationStatus="ready"
         activeAction={null}
         notice={null}
@@ -107,7 +114,7 @@ describe("ManageApp", () => {
     const requestExportConfig = jest.fn();
 
     render(
-      <ManageApp
+      <TestManageApp
         hydrationStatus="ready"
         activeAction={null}
         notice={null}
@@ -135,7 +142,7 @@ describe("ManageApp", () => {
 
   it("opens continue in the extension reader page", () => {
     render(
-      <ManageApp
+      <TestManageApp
         hydrationStatus="ready"
         activeAction={null}
         notice={null}
@@ -192,7 +199,7 @@ describe("ManageApp", () => {
     );
 
     render(
-      <ManageApp
+      <TestManageApp
         hydrationStatus="ready"
         activeAction={null}
         notice={null}
@@ -221,7 +228,7 @@ describe("ManageApp", () => {
 
   it("renders dismiss update as a secondary action button", () => {
     render(
-      <ManageApp
+      <TestManageApp
         hydrationStatus="ready"
         activeAction={null}
         notice={null}

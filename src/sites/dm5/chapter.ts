@@ -258,7 +258,7 @@ function hasValidChapterPageMeta(meta: Dm5ChapterPageMeta) {
   );
 }
 
-export const unpackPacker = (source: string) => {
+const unpackPacker = (source: string) => {
   const match = PACKER_REGEX.exec(source);
   if (!match) return source;
   const args = splitArgs(match[1]);

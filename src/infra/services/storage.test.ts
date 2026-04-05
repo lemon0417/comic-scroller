@@ -1,5 +1,4 @@
 import {
-  storageClear,
   storageGetAll,
   storageRemove,
   storageSet,
@@ -36,12 +35,6 @@ describe("storage service", () => {
       { a: 1 },
       cb,
     );
-  });
-
-  it("calls chrome.storage.local.clear", () => {
-    const cb = jest.fn();
-    storageClear(cb);
-    expect((global as any).chrome.storage.local.clear).toHaveBeenCalledWith(cb);
   });
 
   it("calls chrome.storage.local.remove", () => {

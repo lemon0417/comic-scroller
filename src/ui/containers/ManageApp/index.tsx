@@ -537,8 +537,6 @@ function ManageAppComponent(props: ManageAppProps) {
   );
 }
 
-export { ManageAppComponent as ManageApp };
-
 export default connect(selectPopupView, {
   clearExportConfig,
   clearPopupNotice,
