@@ -1,6 +1,12 @@
 import type { ButtonHTMLAttributes } from "react";
+import BinIcon from "@imgs/bin.svg?react";
+import ArrowIcon from "@imgs/circle-right.svg?react";
+import TagIcon from "@imgs/tag.svg?react";
+
+type RowActionIcon = "arrow" | "tag" | "trash";
 
 type RowAction = {
+  icon?: RowActionIcon;
   label: string;
   onClick?: () => void;
   variant?: "primary" | "secondary" | "danger";
@@ -9,6 +15,7 @@ type RowAction = {
 
 type SeriesRowProps = {
   title: string;
+  titleHref?: string;
   siteLabel: string;
   cover?: string;
   summary: string;
@@ -18,6 +25,17 @@ type SeriesRowProps = {
 
 function mergeClasses(...classes: Array<string | undefined>) {
   return classes.filter(Boolean).join(" ");
+}
+
+function ActionIcon({ icon }: { icon: RowActionIcon }) {
+  const className = "h-3.5 w-3.5 shrink-0 fill-current";
+  if (icon === "arrow") {
+    return <ArrowIcon aria-hidden="true" className={className} />;
+  }
+  if (icon === "tag") {
+    return <TagIcon aria-hidden="true" className={className} />;
+  }
+  return <BinIcon aria-hidden="true" className={className} />;
 }
 
 function ActionButton({
@@ -45,6 +63,7 @@ function ActionButton({
 
 export default function SeriesRow({
   title,
+  titleHref,
   siteLabel,
   cover,
   summary,
@@ -74,7 +93,20 @@ export default function SeriesRow({
       </div>
       <div className="ds-series-row-body">
         <div className="ds-series-row-copy">
-          <h2 className="ds-series-row-title">{title}</h2>
+          <h2 className="ds-series-row-title">
+            {titleHref ? (
+              <a
+                className="ds-series-row-title-link"
+                href={titleHref}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {title}
+              </a>
+            ) : (
+              title
+            )}
+          </h2>
           <div className="ds-series-row-summary">{summary}</div>
           {detail ? <div className="ds-series-row-detail">{detail}</div> : null}
         </div>
@@ -87,7 +119,10 @@ export default function SeriesRow({
                 disabled={action.disabled}
                 onClick={action.onClick}
               >
-                {action.label}
+                {action.icon ? <ActionIcon icon={action.icon} /> : null}
+                <span className={action.icon ? "ml-1.5" : undefined}>
+                  {action.label}
+                </span>
               </ActionButton>
             ))}
           </div>

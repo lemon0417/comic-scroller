@@ -154,7 +154,7 @@ class App extends Component<AppProps, AppState> {
         <header className="fixed left-0 top-0 z-[900] flex h-12 w-full items-center justify-between border-b border-comic-ink/10 bg-white/88 px-3 text-comic-ink backdrop-blur-md will-change-[scroll-position] sm:px-4">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <IconButton
-              ariaLabel="Open chapter list"
+              ariaLabel="開啟章節列表"
               onClickHandler={this.showChapterListHandler}
             >
               <MenuIcon className="fill-current text-comic-ink/60" />
@@ -179,27 +179,27 @@ class App extends Component<AppProps, AppState> {
               <span className="min-w-0 shrink truncate text-[13px] text-comic-ink/60">
                 {this.props.chapterList.length > 0
                   ? this.props.chapterTitle
-                  : "Loading..."}
+                  : "載入中..."}
               </span>
             </div>
           </div>
           <div className="ml-3 flex shrink-0 items-center gap-1.5">
             <IconButton
-              ariaLabel="Go to previous chapter"
+              ariaLabel="上一章"
               disabled={!prevable}
               onClickHandler={prevable ? this.prevChapterHandler : undefined}
             >
               <PrevIcon className={getNavigationIconClass(prevable)} />
             </IconButton>
             <IconButton
-              ariaLabel="Go to next chapter"
+              ariaLabel="下一章"
               disabled={!nextable}
               onClickHandler={nextable ? this.nextChapterHandler : undefined}
             >
               <NextIcon className={getNavigationIconClass(nextable)} />
             </IconButton>
             <IconButton
-              ariaLabel={subscribe ? "Unfollow series" : "Follow series"}
+              ariaLabel={subscribe ? "取消追蹤" : "追蹤作品"}
               disabled={chapterTitle === ""}
               onClickHandler={
                 chapterTitle !== "" ? this.subscribeHandler : undefined

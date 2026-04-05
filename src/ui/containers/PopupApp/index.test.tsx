@@ -75,16 +75,19 @@ describe("PopupApp", () => {
       />,
     );
 
-    expect(screen.getByText("Continue reading")).toBeInTheDocument();
-    expect(screen.getByText("New updates")).toBeInTheDocument();
+    expect(screen.getByText("繼續閱讀")).toBeInTheDocument();
+    expect(screen.getByText("最新更新")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Read update" }),
+      screen.getByRole("button", { name: "閱讀" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Open Library" }),
+      screen.getByRole("link", { name: "Chainsaw Man" }),
+    ).toHaveAttribute("href", "https://dm5.com/series");
+    expect(
+      screen.queryByRole("button", { name: "開啟作品" }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Manage" }));
+    fireEvent.click(screen.getByRole("button", { name: "管理" }));
 
     expect(chrome.tabs.create).toHaveBeenCalledWith({
       url: "chrome-extension://test/manage.html?tab=following",
@@ -112,7 +115,7 @@ describe("PopupApp", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("button", { name: "繼續" }));
 
     expect(chrome.tabs.create).toHaveBeenCalledWith({
       url: "chrome-extension://test/app.html?site=dm5&chapter=m1123",

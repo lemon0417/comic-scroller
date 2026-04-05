@@ -85,7 +85,7 @@ function ImageContainer({
 
   if (imageResult.length === 0) {
     return (
-      <main className="reader-canvas reader-loading" aria-label="Comic pages">
+      <main className="reader-canvas reader-loading" aria-label="漫畫頁面">
         <Loading />
       </main>
     );

@@ -53,13 +53,13 @@ function resolveSuccessNotice(source?: HydrationSource) {
   if (source === "import") {
     return {
       tone: "success" as const,
-      message: "Config imported successfully.",
+      message: "匯入完成。",
     };
   }
   if (source === "reset") {
     return {
       tone: "success" as const,
-      message: "All extension data has been reset.",
+      message: "資料已重置。",
     };
   }
   return null;
@@ -107,7 +107,7 @@ export default function popupState(
         activeAction: null,
         notice: {
           tone: "success",
-          message: "Config export is ready. Download should start automatically.",
+          message: "匯出完成，將自動下載。",
         },
         exportUrl: action.url || "",
         exportFilename: action.filename || "",

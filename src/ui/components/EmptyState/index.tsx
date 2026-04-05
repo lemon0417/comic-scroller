@@ -10,7 +10,7 @@ type EmptyStateProps = HTMLAttributes<HTMLDivElement> & {
 };
 
 export default function EmptyState({
-  title = "No items",
+  title = "暫無資料",
   description,
   className,
   ...rest

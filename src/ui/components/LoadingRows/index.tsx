@@ -4,7 +4,7 @@ type LoadingRowsProps = {
 
 export default function LoadingRows({ count = 3 }: LoadingRowsProps) {
   return (
-    <div className="flex flex-col gap-3" aria-label="Loading content">
+    <div className="flex flex-col gap-3" aria-label="載入中">
       {Array.from({ length: count }).map((_, index) => (
         <div
           key={index}

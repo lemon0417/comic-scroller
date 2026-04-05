@@ -235,7 +235,7 @@ export class ChapterList extends Component<ChapterListProps> {
               className="ds-btn-secondary"
               onClick={this.onClickHandler}
             >
-              Close
+              關閉
             </button>
           </div>
           <Grid

@@ -92,7 +92,7 @@ describe("ManageApp", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Forget series" }));
+    fireEvent.click(screen.getByRole("button", { name: "移除" }));
 
     expect(requestRemoveCard).toHaveBeenCalledWith({
       category: "history",
@@ -102,7 +102,7 @@ describe("ManageApp", () => {
     });
   });
 
-  it("runs export from the data tab", () => {
+  it("runs export from the options tab", () => {
     const requestExportConfig = jest.fn();
 
     render(
@@ -126,8 +126,8 @@ describe("ManageApp", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: "Data" }));
-    fireEvent.click(screen.getByRole("button", { name: "Export config" }));
+    fireEvent.click(screen.getByRole("tab", { name: "選項" }));
+    fireEvent.click(screen.getByRole("button", { name: "匯出設定" }));
 
     expect(requestExportConfig).toHaveBeenCalled();
   });
@@ -168,8 +168,8 @@ describe("ManageApp", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: "Following 1" }));
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.click(screen.getByRole("tab", { name: "追蹤 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "繼續" }));
 
     expect(chrome.tabs.create).toHaveBeenCalledWith({
       url: "chrome-extension://test/app.html?site=dm5&chapter=m1123",
@@ -211,7 +211,7 @@ describe("ManageApp", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: "Following 200" }));
+    fireEvent.click(screen.getByRole("tab", { name: "追蹤 200" }));
 
     const renderedRows = document.querySelectorAll(".ds-series-row");
     expect(renderedRows.length).toBeGreaterThan(0);
@@ -248,10 +248,10 @@ describe("ManageApp", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: "Updates 1" }));
+    fireEvent.click(screen.getByRole("tab", { name: "更新 1" }));
 
     expect(
-      screen.getByRole("button", { name: "Dismiss update" }),
+      screen.getByRole("button", { name: "略過" }),
     ).toHaveClass("ds-btn-secondary");
   });
 });

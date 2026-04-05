@@ -108,13 +108,15 @@ function ManageFeedRow({
       <div {...ariaAttributes} style={style} className="px-1 py-1.5">
         <SeriesRow
           title={item.title}
+          titleHref={item.url}
           siteLabel={item.siteLabel}
           cover={item.cover}
-          summary={`New chapter • ${item.updateChapterTitle || item.lastChapterTitle}`}
-          detail={`Last read • ${item.lastReadTitle}`}
+          summary={`新章節：${item.updateChapterTitle || item.lastChapterTitle}`}
+          detail={`上次閱讀：${item.lastReadTitle}`}
           actions={[
             {
-              label: "Read update",
+              icon: "arrow",
+              label: "閱讀",
               variant: "primary",
               onClick: () =>
                 openReaderPage(
@@ -124,7 +126,8 @@ function ManageFeedRow({
                 ),
             },
             {
-              label: "Dismiss update",
+              icon: "trash",
+              label: "略過",
               onClick: () =>
                 onRemoveCard({
                   category: "update",
@@ -145,13 +148,15 @@ function ManageFeedRow({
       <div {...ariaAttributes} style={style} className="px-1 py-1.5">
         <SeriesRow
           title={item.title}
+          titleHref={item.url}
           siteLabel={item.siteLabel}
           cover={item.cover}
-          summary={`Last read • ${item.lastReadTitle}`}
-          detail={`Latest • ${item.lastChapterTitle}`}
+          summary={`上次閱讀：${item.lastReadTitle}`}
+          detail={`最新章節：${item.lastChapterTitle}`}
           actions={[
             {
-              label: "Continue",
+              icon: "arrow",
+              label: "繼續",
               variant: "primary",
               onClick: () =>
                 openReaderPage(
@@ -161,7 +166,8 @@ function ManageFeedRow({
                 ),
             },
             {
-              label: "Unfollow",
+              icon: "tag",
+              label: "棄坑",
               variant: "danger",
               onClick: () =>
                 onRemoveCard({
@@ -181,19 +187,22 @@ function ManageFeedRow({
     <div {...ariaAttributes} style={style} className="px-1 py-1.5">
       <SeriesRow
         title={item.title}
+        titleHref={item.url}
         siteLabel={item.siteLabel}
         cover={item.cover}
-        summary={`Last read • ${item.lastReadTitle}`}
-        detail={`Latest • ${item.lastChapterTitle}`}
+        summary={`上次閱讀：${item.lastReadTitle}`}
+        detail={`最新章節：${item.lastChapterTitle}`}
         actions={[
           {
-            label: "Continue",
+            icon: "arrow",
+            label: "繼續",
             variant: "primary",
             onClick: () =>
               openReaderPage(item.site, item.continueChapterID, item.continueHref),
           },
           {
-            label: "Forget series",
+            icon: "trash",
+            label: "移除",
             variant: "danger",
             onClick: () => onForgetSeries(item),
           },
@@ -277,7 +286,7 @@ function ManageAppComponent(props: ManageAppProps) {
         clearPopupNoticeProp();
         requestImportConfigProp(parsed);
       } catch {
-        setLocalError("Invalid config file. Please upload valid JSON.");
+        setLocalError("設定檔格式錯誤，請上傳有效 JSON。");
       } finally {
         event.currentTarget.value = "";
       }
@@ -288,7 +297,7 @@ function ManageAppComponent(props: ManageAppProps) {
 
   const handleReset = () => {
     const shouldReset = window.confirm(
-      "Reset all extension data? This removes updates, subscriptions, history, and saved series records.",
+      "確定重置所有資料？此操作會刪除更新、追蹤、紀錄與作品快取。",
     );
     if (!shouldReset) return;
     setLocalError("");
@@ -299,7 +308,7 @@ function ManageAppComponent(props: ManageAppProps) {
   const handleDebugLogToggle = () => {
     const enabled = !debugLogEnabled;
     if (!setDevLogEnabled(enabled)) {
-      setLocalError("Debug logging is unavailable in this context.");
+      setLocalError("目前無法切換除錯記錄。");
       return;
     }
     setLocalError("");
@@ -309,7 +318,7 @@ function ManageAppComponent(props: ManageAppProps) {
   const handleForgetSeries = useCallback(
     (item: PopupFeedEntry) => {
       const shouldForget = window.confirm(
-        `Forget “${item.title}”? This removes its history, updates, subscription, and cached series data.`,
+        `確定移除「${item.title}」？此操作會刪除紀錄、更新、追蹤與作品快取。`,
       );
       if (!shouldForget) return;
       requestRemoveCardProp({
@@ -341,8 +350,8 @@ function ManageAppComponent(props: ManageAppProps) {
     if (selectedTab === "updates" && currentRows.length === 0) {
       return (
         <EmptyState
-          title="No pending updates"
-          description="You are caught up across your followed series."
+          title="目前沒有更新"
+          description="已追蹤作品目前沒有新章節。"
         />
       );
     }
@@ -350,8 +359,8 @@ function ManageAppComponent(props: ManageAppProps) {
     if (selectedTab === "following" && currentRows.length === 0) {
       return (
         <EmptyState
-          title="No followed series"
-          description="Follow a series from the reader to keep it in your library."
+          title="尚未追蹤作品"
+          description="在閱讀頁追蹤作品後會顯示於此。"
         />
       );
     }
@@ -359,8 +368,8 @@ function ManageAppComponent(props: ManageAppProps) {
     if (selectedTab === "history" && currentRows.length === 0) {
       return (
         <EmptyState
-          title="No reading history"
-          description="Start reading a chapter and it will appear here."
+          title="尚無閱讀紀錄"
+          description="開始閱讀後會顯示於此。"
         />
       );
     }
@@ -386,10 +395,9 @@ function ManageAppComponent(props: ManageAppProps) {
       <div className="manage-window">
         <div className="manage-topbar">
           <div className="min-w-0 flex-1">
-            <div className="manage-title">Library</div>
+            <div className="manage-title">書庫</div>
             <p className="manage-subtitle">
-              Followed series, reading history, updates, and extension data in
-              one place.
+              追蹤、閱讀紀錄與資料管理。
             </p>
           </div>
         </div>
@@ -400,16 +408,16 @@ function ManageAppComponent(props: ManageAppProps) {
         >
           <Tabs.List className="manage-tabbar">
             <Tabs.Trigger className="manage-tab" value="updates">
-              {renderTabLabel("Updates", update.length)}
+              {renderTabLabel("更新", update.length)}
             </Tabs.Trigger>
             <Tabs.Trigger className="manage-tab" value="following">
-              {renderTabLabel("Following", subscribe.length)}
+              {renderTabLabel("追蹤", subscribe.length)}
             </Tabs.Trigger>
             <Tabs.Trigger className="manage-tab" value="history">
-              {renderTabLabel("History", history.length)}
+              {renderTabLabel("紀錄", history.length)}
             </Tabs.Trigger>
             <Tabs.Trigger className="manage-tab" value="data">
-              {renderTabLabel("Data")}
+              {renderTabLabel("選項")}
             </Tabs.Trigger>
           </Tabs.List>
         </Tabs>
@@ -441,25 +449,20 @@ function ManageAppComponent(props: ManageAppProps) {
             {selectedTab === "data" ? (
               <div className="manage-settings-stack">
                 <section className="manage-settings-section">
-                  <h2 className="manage-section-title">Diagnostics</h2>
-                  <p className="manage-section-desc">
-                    Toggle dev logs for reader, popup, and manage pages without
-                    opening DevTools manually.
-                  </p>
+                  <h2 className="manage-section-title">開發者功能</h2>
                   <div className="manage-setting-row">
                     <span className="flex min-w-0 flex-col gap-1">
                       <span
                         id="manage-debug-log-label"
                         className="text-[14px] font-medium text-comic-ink"
                       >
-                        Debug logging
+                        除錯記錄
                       </span>
                       <span
                         id="manage-debug-log-desc"
                         className="text-[12px] leading-5 text-comic-ink/60"
                       >
-                        Writes Redux actions and parser traces to the console in
-                        development builds.
+                        輸出 Redux action 與解析 trace 到 console。
                       </span>
                     </span>
                     <button
@@ -487,10 +490,9 @@ function ManageAppComponent(props: ManageAppProps) {
                   </div>
                 </section>
                 <section className="manage-settings-section">
-                  <h2 className="manage-section-title">Data</h2>
+                  <h2 className="manage-section-title">資料</h2>
                   <p className="manage-section-desc">
-                    Import or export your config, or reset everything back to
-                    the extension defaults.
+                    匯入、匯出或重置資料。
                   </p>
                   <div className="mt-4 flex flex-wrap gap-3">
                     <button
@@ -499,7 +501,7 @@ function ManageAppComponent(props: ManageAppProps) {
                       disabled={busy}
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      Import config
+                      匯入設定
                     </button>
                     <button
                       type="button"
@@ -511,7 +513,7 @@ function ManageAppComponent(props: ManageAppProps) {
                         requestExportConfigProp();
                       }}
                     >
-                      Export config
+                      匯出設定
                     </button>
                     <button
                       type="button"
@@ -519,7 +521,7 @@ function ManageAppComponent(props: ManageAppProps) {
                       disabled={busy}
                       onClick={handleReset}
                     >
-                      Reset all data
+                      重置資料
                     </button>
                   </div>
                 </section>
@@ -530,7 +532,7 @@ function ManageAppComponent(props: ManageAppProps) {
         </Content>
       </div>
       <a ref={downloadRef} className="hidden">
-        Download Config
+        匯出設定
       </a>
       <input
         ref={fileInputRef}

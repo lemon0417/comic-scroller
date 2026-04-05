@@ -29,7 +29,7 @@ export default function NoticeBanner({
       <span>{message}</span>
       {onDismiss ? (
         <button type="button" className="ds-link-button" onClick={onDismiss}>
-          Dismiss
+          關閉
         </button>
       ) : null}
     </div>

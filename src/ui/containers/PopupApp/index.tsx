@@ -36,15 +36,11 @@ function openManagePage(tab = "following") {
   });
 }
 
-function SectionTitle({ title, count }: { title: string; count?: number }) {
+function SectionTitle({ title }: { title: string }) {
   return (
-    <div className="mb-2 flex items-center justify-between gap-3">
-      <h2 className="text-[11px] font-medium tracking-[0.02em] text-comic-ink/50">
-        {title}
-      </h2>
-      {typeof count === "number" ? (
-        <span className="ds-count-badge">{count}</span>
-      ) : null}
+    <div className="popup-section-header">
+      <h2 className="popup-section-title">{title}</h2>
+      <div className="popup-section-rule" aria-hidden="true" />
     </div>
   );
 }
@@ -72,11 +68,11 @@ function PopupAppComponent(props: PopupAppProps) {
 
   return (
     <div className="relative flex h-full w-full flex-col bg-comic-paper2 p-2">
-      <Panel className="rounded-[18px]">
-        <div className="flex items-center justify-between gap-3 border-b border-comic-ink/10 px-4 py-4">
+      <Panel className="popup-panel rounded-[18px]">
+        <div className="popup-header">
           <div className="flex min-w-0 items-center gap-2.5">
             <h1 className="text-[17px] font-semibold tracking-[-0.02em] text-comic-ink">
-              Updates
+              更新
             </h1>
             <span className="ds-count-badge">{update.length}</span>
           </div>
@@ -85,26 +81,28 @@ function PopupAppComponent(props: PopupAppProps) {
             className="ds-btn-secondary"
             onClick={() => openManagePage("following")}
           >
-            Manage
+            管理
           </button>
         </div>
-        <Content className="px-4 pb-4 pt-4">
+        <Content className="popup-content">
           {isLoading ? (
             <LoadingRows />
           ) : (
-            <List className="gap-4">
+            <List className="popup-list">
               {continueReading ? (
-                <section>
-                  <SectionTitle title="Continue reading" />
+                <section className="popup-section">
+                  <SectionTitle title="繼續閱讀" />
                   <SeriesRow
                     title={continueReading.title}
+                    titleHref={continueReading.url}
                     siteLabel={continueReading.siteLabel}
                     cover={continueReading.cover}
-                    summary={`Last read • ${continueReading.lastReadTitle}`}
-                    detail={`Latest • ${continueReading.lastChapterTitle}`}
+                    summary={`上次閱讀：${continueReading.lastReadTitle}`}
+                    detail={`最新章節：${continueReading.lastChapterTitle}`}
                     actions={[
                       {
-                        label: "Continue",
+                        icon: "arrow",
+                        label: "繼續",
                         variant: "primary",
                         onClick: () =>
                           openReaderPage(
@@ -119,20 +117,22 @@ function PopupAppComponent(props: PopupAppProps) {
               ) : null}
 
               {update.length > 0 ? (
-                <section>
-                  <SectionTitle title="New updates" count={update.length} />
-                  <div className="flex flex-col gap-3">
+                <section className="popup-section">
+                  <SectionTitle title="最新更新" />
+                  <div className="popup-feed-list">
                     {update.map((item: PopupFeedEntry) => (
                       <SeriesRow
                         key={item.key}
                         title={item.title}
+                        titleHref={item.url}
                         siteLabel={item.siteLabel}
                         cover={item.cover}
-                        summary={`New chapter • ${item.updateChapterTitle || item.lastChapterTitle}`}
-                        detail={`Last read • ${item.lastReadTitle}`}
+                        summary={`新章節：${item.updateChapterTitle || item.lastChapterTitle}`}
+                        detail={`上次閱讀：${item.lastReadTitle}`}
                         actions={[
                           {
-                            label: "Read update",
+                            icon: "arrow",
+                            label: "閱讀",
                             variant: "primary",
                             onClick: () =>
                               openReaderPage(
@@ -143,10 +143,6 @@ function PopupAppComponent(props: PopupAppProps) {
                                   item.url,
                               ),
                           },
-                          {
-                            label: "Open series",
-                            onClick: () => openUrl(item.url),
-                          },
                         ]}
                       />
                     ))}
@@ -154,17 +150,13 @@ function PopupAppComponent(props: PopupAppProps) {
                 </section>
               ) : continueReading ? (
                 <EmptyState
-                  title="You're caught up"
-                  description={
-                    "No new chapters right now. Continue where you left off, or review your library from Manage."
-                  }
+                  title="目前沒有新章節"
+                  description="可繼續上次閱讀，或前往管理頁查看收藏。"
                 />
               ) : (
                 <EmptyState
-                  title="You're all set"
-                  description={
-                    "No updates yet. Use Manage to follow a series and keep your library in sync."
-                  }
+                  title="尚無更新"
+                  description="可先到閱讀頁追蹤作品。"
                 />
               )}
             </List>

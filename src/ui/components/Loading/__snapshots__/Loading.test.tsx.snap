@@ -19,7 +19,7 @@ exports[`Loading snapshot 1`] = `
     <p
       class="text-sm font-medium text-comic-ink/45"
     >
-      Loading pages...
+      載入中...
     </p>
   </div>
 </DocumentFragment>

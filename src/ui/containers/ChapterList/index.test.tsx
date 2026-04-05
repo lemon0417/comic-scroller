@@ -48,7 +48,7 @@ describe("ChapterList", () => {
 
     expect(screen.getByRole("dialog", { name: "章節" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Close" }),
+      screen.getByRole("button", { name: "關閉" }),
     ).toBeInTheDocument();
   });
 

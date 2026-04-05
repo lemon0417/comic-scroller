@@ -71,16 +71,16 @@ describe("App", () => {
 
     expect(startResize).toHaveBeenCalled();
     expect(
-      screen.getByRole("button", { name: "Open chapter list" }),
+      screen.getByRole("button", { name: "開啟章節列表" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Go to previous chapter" }),
+      screen.getByRole("button", { name: "上一章" }),
     ).toBeEnabled();
     expect(
-      screen.getByRole("button", { name: "Go to next chapter" }),
+      screen.getByRole("button", { name: "下一章" }),
     ).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "Unfollow series" }),
+      screen.getByRole("button", { name: "取消追蹤" }),
     ).toBeEnabled();
     expect(screen.getByRole("link", { name: "One Piece" })).toHaveAttribute(
       "href",

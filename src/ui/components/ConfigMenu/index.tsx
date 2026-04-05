@@ -77,7 +77,7 @@ export default function ConfigMenu({
       try {
         result = JSON.parse(String(raw || "{}"));
       } catch {
-        onImportError?.("Invalid config file.");
+        onImportError?.("設定檔格式錯誤。");
         return;
       } finally {
         e.currentTarget.value = "";
@@ -94,21 +94,21 @@ export default function ConfigMenu({
       </DropdownMenu.Trigger>
       <DropdownMenu.Content>
         <DropdownMenu.Item onClick={handleDownload}>
-          Download Config
+          匯出設定
         </DropdownMenu.Item>
         <DropdownMenu.Item onClick={handleUpload}>
-          Upload Config
+          匯入設定
         </DropdownMenu.Item>
         <DropdownMenu.Item onClick={handleReset}>
-          Reset Config
+          重置資料
         </DropdownMenu.Item>
         {showBackgroundCheck ? (
           <DropdownMenu.Item onClick={handleBackgroundCheck}>
-            Background Check
+            手動檢查更新
           </DropdownMenu.Item>
         ) : null}
         <a className="hidden" ref={downloadRef}>
-          Download Config
+          匯出設定
         </a>
         <input
           ref={fileInputRef}

@@ -15,7 +15,7 @@ class Loading extends Component {
             r="18"
           />
         </svg>
-        <p className="text-sm font-medium text-comic-ink/45">Loading pages...</p>
+        <p className="text-sm font-medium text-comic-ink/45">載入中...</p>
       </div>
     );
   }

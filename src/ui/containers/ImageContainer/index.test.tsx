@@ -19,7 +19,7 @@ describe("ImageContainer", () => {
       />,
     );
 
-    expect(screen.getByText("Loading pages...")).toBeInTheDocument();
+    expect(screen.getByText("載入中...")).toBeInTheDocument();
   });
 
   it("virtualizes image rows and reports the visible range", () => {
