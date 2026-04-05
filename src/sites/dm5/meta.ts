@@ -189,7 +189,7 @@ export function fetchMeta$(
         if (Parser) {
           const doc = new Parser().parseFromString(html, "text/html");
           const meta = parseLegacyFromDocument(doc);
-          devLog("dm5:fetchMeta:legacyDomDone", {
+          devLog("dm5:fetchMeta:htmlDocumentDone", {
             url,
             title: meta.title,
             chapterListLength: meta.chapterList.length,
@@ -198,7 +198,7 @@ export function fetchMeta$(
           return meta;
         }
         const meta = parseLegacyFromHtml(html);
-        devLog("dm5:fetchMeta:legacyHtmlDone", {
+        devLog("dm5:fetchMeta:htmlStringDone", {
           url,
           title: meta.title,
           chapterListLength: meta.chapterList.length,
