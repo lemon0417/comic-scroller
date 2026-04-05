@@ -6,7 +6,7 @@ import { hydratePopupFeed } from "@domain/reducers/popupState";
 import {
   getPopupFeedSnapshot,
   subscribeToLibrarySignal,
-} from "@infra/services/library";
+} from "@infra/services/library/popup";
 import type { PopupEpic } from "../types";
 
 function observeLibraryChanges() {

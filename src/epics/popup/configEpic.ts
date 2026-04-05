@@ -16,7 +16,7 @@ import {
   getPopupFeedSnapshot,
   importLibraryDump,
   resetLibrary,
-} from "@infra/services/library";
+} from "@infra/services/library/popup";
 import type { PopupFeedEntry } from "@infra/services/library/models";
 import type { PopupEpic } from "../types";
 

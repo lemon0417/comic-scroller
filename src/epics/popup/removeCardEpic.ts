@@ -12,7 +12,7 @@ import {
   getPopupFeedSnapshot,
   removeSeriesCascade,
   setSeriesSubscription,
-} from "@infra/services/library";
+} from "@infra/services/library/popup";
 import type { PopupEpic } from "../types";
 
 type RemoveCardAction = {

@@ -5,8 +5,8 @@ import { requestRemoveCard } from "@domain/actions/popup";
 import { hydratePopupFeed } from "@domain/reducers/popupState";
 import type { PopupFeedSnapshot } from "@infra/services/library/models";
 
-jest.mock("@infra/services/library", () => {
-  const actual = jest.requireActual("@infra/services/library");
+jest.mock("@infra/services/library/popup", () => {
+  const actual = jest.requireActual("@infra/services/library/popup");
   return {
     ...actual,
     dismissSeriesUpdate: jest.fn(),
@@ -19,7 +19,7 @@ jest.mock("@infra/services/library", () => {
 const {
   dismissSeriesUpdate,
   getPopupFeedSnapshot,
-} = jest.requireMock("@infra/services/library");
+} = jest.requireMock("@infra/services/library/popup");
 
 describe("removeCardEpic", () => {
   beforeEach(() => {

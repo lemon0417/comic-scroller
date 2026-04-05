@@ -5,7 +5,7 @@ import { ofType } from "redux-observable";
 import { FETCH_IMAGE_SRC } from "@domain/actions/reader";
 import { fetchMeta$ } from "@sites/dm5/meta";
 import { loadImgSrc } from "@domain/reducers/comics";
-import { getSeriesSnapshot } from "@infra/services/library";
+import { getSeriesSnapshot } from "@infra/services/library/reader";
 import {
   parseDm5ChapterPage,
   resolveDm5ImageUrl,

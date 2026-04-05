@@ -17,7 +17,11 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 
 ## 持久化模型
 - 共享持久化模型位於 `src/infra/services/library.ts`
-- `library.ts` 是公開 facade；內部實作拆為：
+- `library.ts` 是最小公開 facade；場景型呼叫面拆為：
+  - `library/reader.ts`
+  - `library/popup.ts`
+  - `library/background.ts`
+- 內部實作拆為：
   - `library/schema.ts`
   - `library/models.ts`
   - `library/shared.ts`
@@ -25,7 +29,8 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - `library/mutations.ts`
   - `library/compat.ts`
   - `library/signal.ts`
-- facade 只暴露業務 API 與少量 shared helper（例如 `buildSeriesKey` / `parseSeriesKey`）
+- `library.ts` 只保留通用 config / import-export / signal 類 API
+- reader、popup、background 應優先從各自的場景 facade 取用 repository 函式，不要再全部從單一 barrel 匯入
 - schema constants、row types、normalize helper 屬於 internal detail；若測試或底層模組需要，直接從 `library/schema.ts` 取用
 - query / view model 型別（例如 popup feed、reader query result）集中在 `library/models.ts`
 - `LibrarySnapshotV2` 目前只保留給 `compat.ts` 內部流程、匯入匯出與 migration
@@ -61,7 +66,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - Epics：`src/epics/`、`src/epics/sites/`、`src/epics/popup/`
 - Sites：`src/sites/`（`registry.ts`、`*/adapter.ts`、`*/meta.ts`、站點純 parser/resolver）
 - Site reader orchestration：`src/epics/sites/readerFlow.ts` 提供共用 `fetchChapter / fetchImgList / updateRead` 模板，各站點 epic 只保留章節圖片抓取與站點特例 hook
-- Services：`src/infra/services/`（`storage.ts`、`library.ts`、`background.ts`）
+- Services：`src/infra/services/`（`storage.ts`、`library.ts`、`library/*.ts`、`background.ts`）
 - Store：`src/domain/store/`
 - Popup / Manage view state：
   - popup reducer 只保存 popup feed 與 UI 狀態
@@ -94,7 +99,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - 站點純 parser / resolver 優先放在 `src/sites/*`，`src/epics/sites/*` 只負責 ajax/action/repository orchestration
 - 若 orchestration 在多個站點重複，優先抽到 `src/epics/sites/readerFlow.ts`，不要在每個站點 epic 複製 `FETCH_CHAPTER / FETCH_IMG_LIST / UPDATE_READ` 樣板
 - 不得在 component、reducer、background 中直接讀寫 IndexedDB 或拼接舊 schema
-- 所有持久化更新優先走 `library.ts`
+- 所有持久化更新優先走 library repository facade；依場景選 `library/reader`、`library/popup`、`library/background`
 - 新增業務流程時，優先使用 query / mutation API，不要新增 `loadLibrary → mutate snapshot → saveLibrary`
-- `compat.ts` 是過渡層，不應成為新功能的預設入口，也不應透過 `library.ts` 再向外擴張
+- `compat.ts` 是過渡層，不應成為新功能的預設入口，也不應透過主 facade 再向外擴張
 - Reader store 與 Popup store 只保存頁面需要的 state，不作為跨頁面持久化真實來源

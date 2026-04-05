@@ -15,7 +15,11 @@
 - background 在 MV3 限制下的更新檢查流程
 
 ## 重構後的測試原則
-- 新測試優先 mock `@infra/services/library`，不要再綁死舊版 storage schema callback 細節
+- 新測試優先 mock 對應的場景 facade：
+  - reader：`@infra/services/library/reader`
+  - popup：`@infra/services/library/popup`
+  - background：`@infra/services/library/background`
+- 不要再預設 mock `@infra/services/library` 整包 barrel
 - 若測的是底層 storage wrapper 或 signal，同步 mock `chrome.storage.local`
 - 若測的是 repository 實作，優先直接測 `queries.ts`、`mutations.ts`、`signal.ts`、`compat.ts` 的公開函式，不要只停在 barrel mock
 - repository 模組測試可以 mock `shared.ts` 的 IndexedDB primitive，重點驗證 query / mutation 語意與 signal payload

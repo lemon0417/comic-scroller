@@ -7,7 +7,7 @@ import type { AppEpic } from "./types";
 import {
   isSeriesSubscribedByKey,
   setSeriesSubscriptionByKey,
-} from "@infra/services/library";
+} from "@infra/services/library/reader";
 
 const subscribeEpic: AppEpic = (action$, state$) =>
   action$.pipe(

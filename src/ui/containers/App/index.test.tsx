@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { App } from "./index";
 
-jest.mock("@infra/services/library", () => ({
+jest.mock("@infra/services/library/reader", () => ({
   getReaderSeriesState: jest.fn(async () => ({
     series: {
       site: "dm5",

@@ -11,7 +11,7 @@ import { type ComicsState, updateSubscribe } from "@domain/reducers/comics";
 import {
   getReaderSeriesState,
   subscribeToLibrarySignal,
-} from "@infra/services/library";
+} from "@infra/services/library/reader";
 import { devLog } from "@utils/devLog";
 import {
   fetchChapter,

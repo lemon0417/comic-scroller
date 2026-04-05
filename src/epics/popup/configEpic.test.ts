@@ -15,13 +15,7 @@ import type {
   PopupFeedSnapshot,
 } from "@infra/services/library/models";
 
-jest.mock("@infra/services/library", () => ({
-  createEmptyPopupFeedSnapshot: jest.fn(() => ({
-    update: [],
-    subscribe: [],
-    history: [],
-    continueReading: null,
-  })),
+jest.mock("@infra/services/library/popup", () => ({
   exportLibraryDump: jest.fn(),
   getPopupFeedSnapshot: jest.fn(),
   importLibraryDump: jest.fn(),
@@ -29,7 +23,7 @@ jest.mock("@infra/services/library", () => ({
 }));
 
 const { exportLibraryDump, getPopupFeedSnapshot, importLibraryDump, resetLibrary } = jest.requireMock(
-  "@infra/services/library",
+  "@infra/services/library/popup",
 );
 
 const emptyFeed: PopupFeedSnapshot = {

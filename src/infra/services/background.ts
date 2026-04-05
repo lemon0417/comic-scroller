@@ -10,7 +10,7 @@ import {
   parseSeriesKey,
   resetLibrary,
   setLibraryVersion,
-} from "@infra/services/library";
+} from "@infra/services/library/background";
 
 const dm5Regex = /https\:\/\/(tel||www)\.dm5\.com\/(m\d+)\//;
 const sfRegex = /http\:\/\/comic\.sfacg\.com\/(HTML\/[^\/]+\/.+)$/;

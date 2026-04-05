@@ -4,8 +4,8 @@ import subscribeEpic from "./subscribeEpic";
 import { toggleSubscribe } from "@domain/actions/reader";
 import { updateSubscribe } from "@domain/reducers/comics";
 
-jest.mock("@infra/services/library", () => {
-  const actual = jest.requireActual("@infra/services/library");
+jest.mock("@infra/services/library/reader", () => {
+  const actual = jest.requireActual("@infra/services/library/reader");
   return {
     ...actual,
     isSeriesSubscribedByKey: jest.fn(),
@@ -16,7 +16,7 @@ jest.mock("@infra/services/library", () => {
 const {
   isSeriesSubscribedByKey,
   setSeriesSubscriptionByKey,
-} = jest.requireMock("@infra/services/library");
+} = jest.requireMock("@infra/services/library/reader");
 
 describe("subscribeEpic", () => {
   beforeEach(() => {

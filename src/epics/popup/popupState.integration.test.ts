@@ -5,13 +5,7 @@ import popupEpic from "@epics/popup";
 import type { EpicAction, PopupRootState } from "@epics/types";
 import { requestPopupData } from "@domain/actions/popup";
 
-jest.mock("@infra/services/library", () => ({
-  createEmptyPopupFeedSnapshot: jest.fn(() => ({
-    update: [],
-    subscribe: [],
-    history: [],
-    continueReading: null,
-  })),
+jest.mock("@infra/services/library/popup", () => ({
   getPopupFeedSnapshot: jest.fn(),
   exportLibraryDump: jest.fn(),
   importLibraryDump: jest.fn(),
@@ -19,7 +13,7 @@ jest.mock("@infra/services/library", () => ({
   subscribeToLibrarySignal: jest.fn(() => () => undefined),
 }));
 
-const { getPopupFeedSnapshot } = jest.requireMock("@infra/services/library");
+const { getPopupFeedSnapshot } = jest.requireMock("@infra/services/library/popup");
 
 describe("popup state integration", () => {
   it("hydrates popup state from storage", async () => {

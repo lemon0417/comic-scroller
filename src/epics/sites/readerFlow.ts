@@ -32,7 +32,7 @@ import {
 import {
   applyReadProgress,
   applyReaderSeriesState,
-} from "@infra/services/library";
+} from "@infra/services/library/reader";
 import type { SiteKey } from "@infra/services/library/schema";
 import type {
   FetchMetaOptions,
