@@ -1,12 +1,12 @@
-import React, { Component } from "react";
+import { type MouseEvent, type ReactNode, useCallback, useRef } from "react";
 import ripple from "../Ripple";
 import { cn } from "@utils/cn";
 
-type Props = {
-  children?: React.ReactNode;
+type IconButtonProps = {
+  children?: ReactNode;
   onClickHandler?: () => void;
   onMouseDownHandler?: (
-    e: React.MouseEvent<HTMLButtonElement>,
+    e: MouseEvent<HTMLButtonElement>,
     node: HTMLButtonElement | null,
   ) => void;
   ariaLabel?: string;
@@ -14,46 +14,47 @@ type Props = {
   disabled?: boolean;
 };
 
-class IconButton extends Component<Props> {
-  node: HTMLButtonElement | null = null;
+function IconButton({
+  children,
+  onClickHandler,
+  onMouseDownHandler,
+  ariaLabel,
+  className,
+  disabled = false,
+}: IconButtonProps) {
+  const nodeRef = useRef<HTMLButtonElement | null>(null);
 
-  onMouseDownHandler = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (this.props.disabled) {
+  const handleMouseDown = useCallback((event: MouseEvent<HTMLButtonElement>) => {
+    if (disabled) {
       return;
     }
-    if (this.props.onMouseDownHandler) {
-      this.props.onMouseDownHandler(e, this.node);
+    if (onMouseDownHandler) {
+      onMouseDownHandler(event, nodeRef.current);
     }
-  };
+  }, [disabled, onMouseDownHandler]);
 
-  onClickHandler = () => {
-    if (this.props.disabled) {
+  const handleClick = useCallback(() => {
+    if (disabled) {
       return;
     }
-    if (this.props.onClickHandler) {
-      this.props.onClickHandler();
+    if (onClickHandler) {
+      onClickHandler();
     }
-  };
+  }, [disabled, onClickHandler]);
 
-  refHandler = (node: HTMLButtonElement | null) => {
-    this.node = node;
-  };
-
-  render() {
-    return (
-      <button
-        type="button"
-        className={cn("ds-icon-button", this.props.className)}
-        ref={this.refHandler}
-        aria-label={this.props.ariaLabel}
-        disabled={this.props.disabled}
-        onClick={this.onClickHandler}
-        onMouseDown={this.onMouseDownHandler}
-      >
-        {this.props.children}
-      </button>
-    );
-  }
+  return (
+    <button
+      type="button"
+      className={cn("ds-icon-button", className)}
+      ref={nodeRef}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      onClick={handleClick}
+      onMouseDown={handleMouseDown}
+    >
+      {children}
+    </button>
+  );
 }
 
 export default ripple(IconButton);
