@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import IconButton from "./index";
 
 describe("IconButton", () => {
@@ -37,5 +37,46 @@ describe("IconButton", () => {
 
     expect(onMouseDownHandler).not.toHaveBeenCalled();
     expect(onClickHandler).not.toHaveBeenCalled();
+  });
+
+  it("renders and cleans up ripple nodes on mouse down", () => {
+    jest.useFakeTimers();
+
+    const { container } = render(
+      <IconButton ariaLabel="開啟選單">
+        <span>icon</span>
+      </IconButton>,
+    );
+
+    const button = screen.getByRole("button", { name: "開啟選單" });
+    button.getBoundingClientRect = jest.fn(() => ({
+      left: 0,
+      top: 0,
+      width: 40,
+      height: 40,
+      right: 40,
+      bottom: 40,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    })) as typeof button.getBoundingClientRect;
+
+    fireEvent.mouseDown(button, { pageX: 10, pageY: 10 });
+
+    expect(
+      container.querySelector(".pointer-events-none.absolute"),
+    ).toBeInTheDocument();
+
+    fireEvent.mouseUp(document);
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    expect(
+      container.querySelector(".pointer-events-none.absolute"),
+    ).not.toBeInTheDocument();
+
+    jest.useRealTimers();
   });
 });

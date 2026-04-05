@@ -1,6 +1,6 @@
-import { PureComponent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-type Props = {
+type RippleCircleProps = {
   removeRippleHandler: (id: string) => void;
   radius: number;
   id: string;
@@ -8,87 +8,84 @@ type Props = {
   top: number;
 };
 
-type State = {
-  active: boolean;
-  opacity: boolean;
-};
-
 function getRippleClass(active: boolean, opacity: boolean): string {
   const base =
     "pointer-events-none absolute left-0 top-0 z-[1000] rounded-full bg-comic-ink/20 opacity-30 origin-center transition-[transform,opacity] duration-[350ms] ease-in-out";
-  if (active && opacity) return `${base} opacity-0`;
-  if (active) return base;
+  if (active && opacity) {
+    return `${base} opacity-0`;
+  }
   return base;
 }
 
-class RippleCircle extends PureComponent<Props, State> {
-  readyOpacity = false;
-  cleanupTimer: number | null = null;
-  removeTimer: number | null = null;
+function RippleCircle({
+  removeRippleHandler,
+  radius,
+  id,
+  left,
+  top,
+}: RippleCircleProps) {
+  const [active, setActive] = useState(false);
+  const [opacity, setOpacity] = useState(false);
+  const readyOpacityRef = useRef(false);
 
-  state = {
-    active: false,
-    opacity: false,
-  };
-
-  componentDidMount() {
-    document.addEventListener("mouseup", this.mouseUpHandler);
-    setTimeout(() => this.setState({ active: true }), 0);
-    this.cleanupTimer = window.setTimeout(() => {
-      if (!this.state.opacity) {
-        this.setState({ opacity: true });
+  useEffect(() => {
+    const handleMouseUp = () => {
+      document.removeEventListener("mouseup", handleMouseUp);
+      if (readyOpacityRef.current) {
+        setOpacity(true);
+      } else {
+        readyOpacityRef.current = true;
       }
-    }, 420);
-    this.removeTimer = window.setTimeout(() => {
-      this.props.removeRippleHandler(this.props.id);
-    }, 900);
-  }
-
-  componentWillUnmount() {
-    if (this.cleanupTimer) {
-      window.clearTimeout(this.cleanupTimer);
-    }
-    if (this.removeTimer) {
-      window.clearTimeout(this.removeTimer);
-    }
-  }
-
-  mouseUpHandler = () => {
-    document.removeEventListener("mouseup", this.mouseUpHandler);
-    if (this.readyOpacity) {
-      this.setState({ opacity: true });
-    } else {
-      this.readyOpacity = true;
-    }
-  };
-
-  transitionEndHandler = () => {
-    if (this.state.active && this.state.opacity) {
-      this.props.removeRippleHandler(this.props.id);
-    } else if (this.readyOpacity) {
-      this.setState({ opacity: true });
-    } else {
-      this.readyOpacity = true;
-    }
-  };
-
-  render() {
-    const { left, top, radius } = this.props;
-    const { active, opacity } = this.state;
-    const scale = active ? 1 : 0;
-    const style = {
-      transform: `translate(${left}px,${top}px) scale(${scale}, ${scale})`,
-      width: radius * 2,
-      height: radius * 2,
     };
-    return (
-      <span
-        style={style}
-        className={getRippleClass(active, opacity)}
-        onTransitionEnd={this.transitionEndHandler}
-      />
-    );
-  }
+
+    document.addEventListener("mouseup", handleMouseUp);
+
+    const activateTimer = window.setTimeout(() => {
+      setActive(true);
+    }, 0);
+    const cleanupTimer = window.setTimeout(() => {
+      setOpacity((currentOpacity) => currentOpacity || true);
+    }, 420);
+    const removeTimer = window.setTimeout(() => {
+      removeRippleHandler(id);
+    }, 900);
+
+    return () => {
+      document.removeEventListener("mouseup", handleMouseUp);
+      window.clearTimeout(activateTimer);
+      window.clearTimeout(cleanupTimer);
+      window.clearTimeout(removeTimer);
+    };
+  }, [id, removeRippleHandler]);
+
+  const handleTransitionEnd = useCallback(() => {
+    if (active && opacity) {
+      removeRippleHandler(id);
+      return;
+    }
+
+    if (readyOpacityRef.current) {
+      setOpacity(true);
+      return;
+    }
+
+    readyOpacityRef.current = true;
+  }, [active, id, opacity, removeRippleHandler]);
+
+  const scale = active ? 1 : 0;
+  const style = {
+    transform: `translate(${left}px,${top}px) scale(${scale}, ${scale})`,
+    width: radius * 2,
+    height: radius * 2,
+  };
+
+  return (
+    <span
+      style={style}
+      className={getRippleClass(active, opacity)}
+      onTransitionEnd={handleTransitionEnd}
+    />
+  );
 }
 
 export default RippleCircle;

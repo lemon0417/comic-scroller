@@ -1,5 +1,11 @@
-import React, { PureComponent } from "react";
-import { map, filter } from "lodash";
+import {
+  type ComponentType,
+  type MouseEvent,
+  type ReactNode,
+  useCallback,
+  useRef,
+  useState,
+} from "react";
 import RippleCircle from "./RippleCircle";
 
 type RippleItem = {
@@ -9,85 +15,82 @@ type RippleItem = {
   id: string;
 };
 
-type Props = {
-  children?: React.ReactNode;
+type RippleProps = {
+  children?: ReactNode;
   onMouseDownHandler?: (
-    event: React.MouseEvent<HTMLElement>,
+    event: MouseEvent<HTMLElement>,
     node: HTMLElement | null,
   ) => void;
-  [key: string]: unknown;
 };
 
-type State = {
-  ripples: Array<RippleItem>;
-};
+const ripple = <T extends object>(WrapComponent: ComponentType<T>) => {
+  function RippleComponent(props: RippleProps & T) {
+    const { children, ...others } = props;
+    const [ripples, setRipples] = useState<Array<RippleItem>>([]);
+    const counterRef = useRef(0);
 
-const ripple = <T extends object>(WrapComponent: React.ComponentType<T>) => {
-  class RippleComponent extends PureComponent<Props & T, State> {
-    state: State = {
-      ripples: [],
-    };
+    const handleMouseDown = useCallback((event: MouseEvent<HTMLElement>) => {
+      if (event.defaultPrevented) {
+        return;
+      }
 
-    counter = 0;
-
-    onMouseDownHandler = (e: React.MouseEvent<HTMLElement>) => {
-      if (e.defaultPrevented) return;
-      const x = e.pageX - window.scrollX || window.pageXOffset;
-      const y = e.pageY - window.scrollY || window.pageYOffset;
+      const x = event.pageX - window.scrollX || window.pageXOffset;
+      const y = event.pageY - window.scrollY || window.pageYOffset;
       const { left, top, height, width } =
-        e.currentTarget.getBoundingClientRect();
+        event.currentTarget.getBoundingClientRect();
       const dx = x - left;
       const dy = y - top;
       const topLeft = dx * dx + dy * dy;
       const topRight = (width - dx) * (width - dx) + dy * dy;
-      const bLeft = dx * dx + (height - dy) * (height - dy);
-      const bRight =
+      const bottomLeft = dx * dx + (height - dy) * (height - dy);
+      const bottomRight =
         (width - dx) * (width - dx) + (height - dy) * (height - dy);
-      const radius = Math.sqrt(Math.max(topLeft, topRight, bLeft, bRight));
-      this.counter = this.counter + 1;
-      this.setState({
-        ripples: [
-          ...this.state.ripples,
-          {
-            left: dx - radius,
-            top: dy - radius,
-            radius,
-            id: `ripple${this.counter}`,
-          },
-        ],
-      });
-    };
-
-    removeRippleHandler = (id: string) => {
-      this.setState({
-        ripples: filter(this.state.ripples, (item) => item.id !== id),
-      });
-    };
-
-    render() {
-      const { ...others } = this.props;
-      return (
-        <WrapComponent
-          {...(others as T)}
-          onMouseDownHandler={this.onMouseDownHandler}
-        >
-          {map(this.state.ripples, (item) => (
-            <RippleCircle
-              key={item.id}
-              id={item.id}
-              radius={item.radius}
-              top={item.top}
-              left={item.left}
-              removeRippleHandler={this.removeRippleHandler}
-            />
-          ))}
-          {this.props.children}
-        </WrapComponent>
+      const radius = Math.sqrt(
+        Math.max(topLeft, topRight, bottomLeft, bottomRight),
       );
-    }
+
+      counterRef.current += 1;
+      setRipples((currentRipples) => [
+        ...currentRipples,
+        {
+          left: dx - radius,
+          top: dy - radius,
+          radius,
+          id: `ripple${counterRef.current}`,
+        },
+      ]);
+    }, []);
+
+    const removeRippleHandler = useCallback((id: string) => {
+      setRipples((currentRipples) =>
+        currentRipples.filter((item) => item.id !== id),
+      );
+    }, []);
+
+    return (
+      <WrapComponent
+        {...(others as T)}
+        onMouseDownHandler={handleMouseDown}
+      >
+        {ripples.map((item) => (
+          <RippleCircle
+            key={item.id}
+            id={item.id}
+            radius={item.radius}
+            top={item.top}
+            left={item.left}
+            removeRippleHandler={removeRippleHandler}
+          />
+        ))}
+        {children}
+      </WrapComponent>
+    );
   }
+
+  RippleComponent.displayName = `Ripple(${WrapComponent.displayName ?? WrapComponent.name ?? "Component"})`;
 
   return RippleComponent;
 };
 
 export default ripple;
+export type { RippleProps };
