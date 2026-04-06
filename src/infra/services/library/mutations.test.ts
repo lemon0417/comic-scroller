@@ -489,4 +489,117 @@ describe("library mutations", () => {
     );
     expect(result.updatesCount).toBe(3);
   });
+
+  it("rebalances sparse update positions after repeated prepends cross the threshold", async () => {
+    const seriesStore = {
+      get: jest.fn(() => ({
+        seriesKey: "dm5:m123",
+        site: "dm5",
+        comicsID: "m123",
+        title: "Demo",
+        cover: "cover.jpg",
+        url: "https://www.dm5.com/m123/",
+        lastRead: "",
+        read: [],
+        lastReadTitle: "",
+        lastReadHref: "",
+        latestChapterID: "m1",
+        latestChapterTitle: "Ch 1",
+        latestChapterHref: "https://www.dm5.com/m123/1.html",
+      })),
+      put: jest.fn(() => undefined),
+    };
+    const chaptersStore = {
+      index: jest.fn(() => ({
+        getAll: jest.fn(() => [
+          {
+            seriesKey: "dm5:m123",
+            chapterID: "m1",
+            title: "Ch 1",
+            href: "https://www.dm5.com/m123/1.html",
+            orderIndex: 0,
+          },
+        ]),
+      })),
+    };
+    const updatesStore = {
+      delete: jest.fn(() => undefined),
+      clear: jest.fn(() => undefined),
+      put: jest.fn(() => undefined),
+      count: jest.fn(() => 3),
+    };
+    const stores = {
+      [SERIES_STORE]: seriesStore,
+      [CHAPTERS_STORE]: chaptersStore,
+      [UPDATES_STORE]: updatesStore,
+    };
+    const transaction = {
+      objectStore: jest.fn(
+        (storeName: keyof typeof stores) => stores[storeName],
+      ),
+    };
+    const db = {
+      transaction: jest.fn(() => transaction),
+    };
+
+    shared.openLibraryDb.mockResolvedValue(db);
+    shared.loadUpdatesInTransaction
+      .mockResolvedValueOnce([
+        { seriesKey: "sf:77", chapterID: "c9", createdAt: 8, position: -1023 },
+        { seriesKey: "dm5:m123", chapterID: "m1", createdAt: 7, position: -1022 },
+      ])
+      .mockResolvedValueOnce([
+        { seriesKey: "dm5:m123", chapterID: "m2", createdAt: 10, position: -1024 },
+        { seriesKey: "sf:77", chapterID: "c9", createdAt: 8, position: -1023 },
+        { seriesKey: "dm5:m123", chapterID: "m1", createdAt: 7, position: -1022 },
+      ]);
+
+    await applyBackgroundSeriesRefresh(
+      "dm5",
+      "m123",
+      {
+        title: "Demo",
+        cover: "",
+        url: "https://www.dm5.com/m123/",
+        chapterList: ["m2", "m1"],
+        chapters: {
+          m1: {
+            title: "Ch 1",
+            href: "https://www.dm5.com/m123/1.html",
+          },
+          m2: {
+            title: "Ch 2",
+            href: "https://www.dm5.com/m123/2.html",
+          },
+        },
+      },
+      ["m2"],
+    );
+
+    expect(updatesStore.clear).toHaveBeenCalledTimes(1);
+    expect(updatesStore.put).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        seriesKey: "dm5:m123",
+        chapterID: "m2",
+        position: 0,
+      }),
+    );
+    expect(updatesStore.put).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        seriesKey: "sf:77",
+        chapterID: "c9",
+        position: 1,
+      }),
+    );
+    expect(updatesStore.put).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({
+        seriesKey: "dm5:m123",
+        chapterID: "m1",
+        position: 2,
+      }),
+    );
+  });
 });

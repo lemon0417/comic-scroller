@@ -190,6 +190,8 @@ function createSeriesUpdateKeyRange(seriesKey: string) {
   return IDBKeyRange.bound([seriesKey, ""], [seriesKey, "\uffff"]);
 }
 
+const UPDATES_REBALANCE_POSITION_THRESHOLD = -1024;
+
 async function deleteSeriesUpdatesInTransaction(
   updatesStore: IDBObjectStore,
   seriesKey: string,
@@ -293,6 +295,26 @@ async function prependSeriesUpdatesInTransaction(
         chapterID,
         createdAt,
         position: firstPosition + index,
+      }),
+    );
+  }
+
+  if (firstPosition <= UPDATES_REBALANCE_POSITION_THRESHOLD) {
+    await rebalanceUpdatesInTransaction(updatesStore);
+  }
+}
+
+async function rebalanceUpdatesInTransaction(updatesStore: IDBObjectStore) {
+  const orderedUpdates = await loadUpdatesInTransaction(updatesStore);
+  await requestToPromise(updatesStore.clear());
+  for (let position = 0; position < orderedUpdates.length; position += 1) {
+    const row = orderedUpdates[position];
+    await requestToPromise(
+      updatesStore.put({
+        seriesKey: row.seriesKey,
+        chapterID: row.chapterID,
+        createdAt: row.createdAt,
+        position,
       }),
     );
   }
