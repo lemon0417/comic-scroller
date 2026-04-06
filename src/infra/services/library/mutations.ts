@@ -23,6 +23,7 @@ import {
   emitLibrarySignal,
   ensureLibraryReady,
   loadOrderedSeriesKeysInTransaction,
+  loadOrderedSubscriptionRowsInTransaction,
   loadReadChapterIDsInTransaction,
   loadUpdatesInTransaction,
   openLibraryDb,
@@ -406,17 +407,22 @@ async function rewriteOrderedSeriesStore(
   const updatesStore = options.pruneIfOrphaned
     ? transaction.objectStore(UPDATES_STORE)
     : null;
-  const currentKeys = await loadOrderedSeriesKeysInTransaction(store);
-  const nextKeys = updater(currentKeys);
-  const subscriptionRowsByKey =
+  const subscriptionRows =
     storeName === SUBSCRIPTIONS_STORE
-      ? (await requestToPromise<SubscriptionRow[]>(store.getAll())).reduce<
-          Record<string, SubscriptionRow>
-        >((acc, row) => {
-          acc[row.seriesKey] = row;
-          return acc;
-        }, {})
-      : {};
+      ? await loadOrderedSubscriptionRowsInTransaction(store)
+      : [];
+  const currentKeys =
+    storeName === SUBSCRIPTIONS_STORE
+      ? subscriptionRows.map((row) => row.seriesKey)
+      : await loadOrderedSeriesKeysInTransaction(store);
+  const nextKeys = updater(currentKeys);
+  const subscriptionRowsByKey = subscriptionRows.reduce<Record<string, SubscriptionRow>>(
+    (acc, row) => {
+      acc[row.seriesKey] = row;
+      return acc;
+    },
+    {},
+  );
   if (storeName === SUBSCRIPTIONS_STORE) {
     await writeOrderedSeriesKeysInTransaction(
       store,
@@ -480,11 +486,11 @@ export async function toggleSeriesSubscriptionByKey(seriesKey: string) {
   const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
   const historyStore = transaction.objectStore(HISTORY_STORE);
   const updatesStore = transaction.objectStore(UPDATES_STORE);
-  const subscriptionRows = await requestToPromise<SubscriptionRow[]>(
-    subscriptionsStore.getAll(),
+  const subscriptionRows = await loadOrderedSubscriptionRowsInTransaction(
+    subscriptionsStore,
   );
   const nextSubscribed = !subscriptionRows.some((row) => row.seriesKey === seriesKey);
-  const currentKeys = await loadOrderedSeriesKeysInTransaction(subscriptionsStore);
+  const currentKeys = subscriptionRows.map((row) => row.seriesKey);
   const rowsBySeriesKey = subscriptionRows.reduce<Record<string, SubscriptionRow>>(
     (acc, row) => {
       acc[row.seriesKey] = row;

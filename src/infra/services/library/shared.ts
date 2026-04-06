@@ -907,6 +907,12 @@ export async function loadOrderedSeriesKeysInTransaction(store: IDBObjectStore) 
   return rows.map((row) => row.seriesKey);
 }
 
+export async function loadOrderedSubscriptionRowsInTransaction(
+  store: IDBObjectStore,
+) {
+  return loadRowsByPositionInTransaction<SubscriptionRow>(store);
+}
+
 export async function writeOrderedSeriesKeysInTransaction(
   store: IDBObjectStore,
   seriesKeys: string[],

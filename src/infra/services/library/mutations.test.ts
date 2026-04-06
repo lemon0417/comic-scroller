@@ -23,6 +23,7 @@ jest.mock("./shared", () => {
     ensureLibraryReady: jest.fn(() => Promise.resolve()),
     loadReadChapterIDsInTransaction: jest.fn(() => Promise.resolve([])),
     loadOrderedSeriesKeysInTransaction: jest.fn(),
+    loadOrderedSubscriptionRowsInTransaction: jest.fn(),
     loadUpdatesInTransaction: jest.fn(),
     openLibraryDb: jest.fn(),
     requestToPromise: jest.fn((value) => Promise.resolve(value)),
@@ -38,6 +39,7 @@ const shared = jest.requireMock("./shared") as {
   emitLibrarySignal: jest.Mock;
   loadReadChapterIDsInTransaction: jest.Mock;
   loadOrderedSeriesKeysInTransaction: jest.Mock;
+  loadOrderedSubscriptionRowsInTransaction: jest.Mock;
   loadUpdatesInTransaction: jest.Mock;
   openLibraryDb: jest.Mock;
   replaceSeriesChaptersInTransaction: jest.Mock;
@@ -178,6 +180,10 @@ describe("library mutations", () => {
     };
 
     shared.openLibraryDb.mockResolvedValue(db);
+    shared.loadOrderedSubscriptionRowsInTransaction.mockResolvedValue([
+      { seriesKey: "dm5:m123", position: 0, checkedAt: 200 },
+      { seriesKey: "sf:77", position: 1, checkedAt: 100 },
+    ]);
     shared.loadOrderedSeriesKeysInTransaction.mockResolvedValue([
       "dm5:m123",
       "sf:77",
@@ -198,8 +204,10 @@ describe("library mutations", () => {
     jest.clearAllMocks();
 
     shared.openLibraryDb.mockResolvedValue(db);
+    shared.loadOrderedSubscriptionRowsInTransaction.mockResolvedValue([
+      { seriesKey: "sf:77", position: 0, checkedAt: 100 },
+    ]);
     shared.loadOrderedSeriesKeysInTransaction.mockResolvedValue(["sf:77"]);
-    subscriptionsStore.getAll.mockReturnValue([{ seriesKey: "sf:77", position: 0, checkedAt: 100 }]);
 
     await expect(toggleSeriesSubscriptionByKey("dm5:m123")).resolves.toBe(true);
     expect(shared.writeOrderedSeriesKeysInTransaction).toHaveBeenCalledWith(
@@ -207,6 +215,7 @@ describe("library mutations", () => {
       ["dm5:m123", "sf:77"],
       expect.any(Function),
     );
+    expect(subscriptionsStore.getAll).not.toHaveBeenCalled();
   });
 
   it("removes only history entries without touching series data", async () => {
