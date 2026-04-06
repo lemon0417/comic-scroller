@@ -109,6 +109,17 @@ function ensureIndexedDb() {
   }
 }
 
+function ensureStoreIndex(
+  store: IDBObjectStore | undefined,
+  indexName: string,
+  keyPath: string | string[],
+) {
+  if (!store || store.indexNames.contains(indexName)) {
+    return;
+  }
+  store.createIndex(indexName, keyPath, { unique: false });
+}
+
 export function openLibraryDb() {
   if (!dbPromise) {
     ensureIndexedDb();
@@ -135,35 +146,36 @@ export function openLibraryDb() {
           reads.createIndex("seriesKey", "seriesKey", { unique: false });
         }
         if (!db.objectStoreNames.contains(SUBSCRIPTIONS_STORE)) {
-          db.createObjectStore(SUBSCRIPTIONS_STORE, {
+          const subscriptions = db.createObjectStore(SUBSCRIPTIONS_STORE, {
             keyPath: "seriesKey",
+          });
+          subscriptions.createIndex("position", "position", { unique: false });
+          subscriptions.createIndex("checkedAtPosition", ["checkedAt", "position"], {
+            unique: false,
           });
         } else {
           const subscriptions =
             request.transaction?.objectStore(SUBSCRIPTIONS_STORE);
-          if (subscriptions?.indexNames.contains("position")) {
-            subscriptions.deleteIndex("position");
-          }
+          ensureStoreIndex(subscriptions, "position", "position");
+          ensureStoreIndex(subscriptions, "checkedAtPosition", ["checkedAt", "position"]);
         }
         if (!db.objectStoreNames.contains(HISTORY_STORE)) {
-          db.createObjectStore(HISTORY_STORE, {
+          const history = db.createObjectStore(HISTORY_STORE, {
             keyPath: "seriesKey",
           });
+          history.createIndex("position", "position", { unique: false });
         } else {
           const history = request.transaction?.objectStore(HISTORY_STORE);
-          if (history?.indexNames.contains("position")) {
-            history.deleteIndex("position");
-          }
+          ensureStoreIndex(history, "position", "position");
         }
         if (!db.objectStoreNames.contains(UPDATES_STORE)) {
-          db.createObjectStore(UPDATES_STORE, {
+          const updates = db.createObjectStore(UPDATES_STORE, {
             keyPath: ["seriesKey", "chapterID"],
           });
+          updates.createIndex("position", "position", { unique: false });
         } else {
           const updates = request.transaction?.objectStore(UPDATES_STORE);
-          if (updates?.indexNames.contains("position")) {
-            updates.deleteIndex("position");
-          }
+          ensureStoreIndex(updates, "position", "position");
           if (updates?.indexNames.contains("createdAt")) {
             updates.deleteIndex("createdAt");
           }
@@ -641,6 +653,72 @@ export function sortSubscriptionRowsByCheckedAt(rows: SubscriptionRow[]) {
   );
 }
 
+function hasIndex(store: IDBObjectStore, indexName: string) {
+  if (typeof store.index !== "function") {
+    return false;
+  }
+  if (!("indexNames" in store) || !store.indexNames) {
+    return true;
+  }
+  return store.indexNames.contains(indexName);
+}
+
+async function readRowsFromCursor<T>(
+  source: IDBObjectStore | IDBIndex,
+  options: {
+    limit?: number;
+    direction?: IDBCursorDirection;
+  } = {},
+) {
+  const { limit = Number.POSITIVE_INFINITY, direction = "next" } = options;
+  return new Promise<T[]>((resolve, reject) => {
+    const rows: T[] = [];
+    const request = source.openCursor(undefined, direction);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) {
+        resolve(rows);
+        return;
+      }
+      rows.push(cursor.value as T);
+      if (rows.length >= limit) {
+        resolve(rows);
+        return;
+      }
+      cursor.continue();
+    };
+  });
+}
+
+export async function loadRowsByPositionInTransaction<T extends { position: number }>(
+  store: IDBObjectStore,
+) {
+  if (hasIndex(store, "position")) {
+    return readRowsFromCursor<T>(store.index("position"));
+  }
+  const rows = await requestToPromise<T[]>(store.getAll());
+  return sortRowsByPosition(rows);
+}
+
+export async function loadSubscriptionKeysByCheckedAtInTransaction(
+  store: IDBObjectStore,
+  limit = Number.POSITIVE_INFINITY,
+) {
+  if (hasIndex(store, "checkedAtPosition")) {
+    const rows = await readRowsFromCursor<SubscriptionRow>(store.index("checkedAtPosition"), {
+      limit: Number.isFinite(limit) ? Math.max(0, limit) : Number.POSITIVE_INFINITY,
+    });
+    return rows.map((row) => row.seriesKey).filter(Boolean);
+  }
+
+  const rows = await requestToPromise<SubscriptionRow[]>(store.getAll());
+  return sortSubscriptionRowsByCheckedAt(rows)
+    .slice(0, Number.isFinite(limit) ? Math.max(0, limit) : rows.length)
+    .map((row) => row.seriesKey)
+    .filter(Boolean);
+}
+
 export function resolveSeriesKeyInput(siteOrSeriesKey: string, comicsID?: string) {
   if (typeof comicsID === "string") {
     return buildSeriesKey(siteOrSeriesKey, comicsID);
@@ -825,10 +903,8 @@ export async function addReadChapterInTransaction(
 }
 
 export async function loadOrderedSeriesKeysInTransaction(store: IDBObjectStore) {
-  const rows = await requestToPromise<Array<{ seriesKey: string; position: number }>>(
-    store.getAll(),
-  );
-  return sortRowsByPosition(rows).map((row) => row.seriesKey);
+  const rows = await loadRowsByPositionInTransaction<{ seriesKey: string; position: number }>(store);
+  return rows.map((row) => row.seriesKey);
 }
 
 export async function writeOrderedSeriesKeysInTransaction(
@@ -851,8 +927,7 @@ export async function writeOrderedSeriesKeysInTransaction(
 }
 
 export async function loadUpdatesInTransaction(store: IDBObjectStore) {
-  const rows = await requestToPromise<UpdateRow[]>(store.getAll());
-  return sortRowsByPosition(rows);
+  return loadRowsByPositionInTransaction<UpdateRow>(store);
 }
 
 export async function readSeriesSnapshotByKey(seriesKey: string) {

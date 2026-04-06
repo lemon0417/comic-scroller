@@ -18,7 +18,10 @@ jest.mock("./shared", () => {
   return {
     ...actual,
     ensureLibraryReady: jest.fn(() => Promise.resolve()),
+    loadRowsByPositionInTransaction: jest.fn(),
     loadReadChapterIDsInTransaction: jest.fn(() => Promise.resolve([])),
+    loadSubscriptionKeysByCheckedAtInTransaction: jest.fn(),
+    loadUpdatesInTransaction: jest.fn(),
     openLibraryDb: jest.fn(),
     requestToPromise: jest.fn((value) => Promise.resolve(value)),
     transactionDone: jest.fn(() => Promise.resolve()),
@@ -26,7 +29,10 @@ jest.mock("./shared", () => {
 });
 
 const shared = jest.requireMock("./shared") as {
+  loadRowsByPositionInTransaction: jest.Mock;
   loadReadChapterIDsInTransaction: jest.Mock;
+  loadSubscriptionKeysByCheckedAtInTransaction: jest.Mock;
+  loadUpdatesInTransaction: jest.Mock;
   openLibraryDb: jest.Mock;
 };
 
@@ -107,6 +113,12 @@ describe("library queries", () => {
       transaction: jest.fn(() => transaction),
     };
     shared.openLibraryDb.mockResolvedValue(db);
+    shared.loadRowsByPositionInTransaction
+      .mockResolvedValueOnce([{ seriesKey: "dm5:m123", position: 0 }])
+      .mockResolvedValueOnce([{ seriesKey: "dm5:m123", position: 0 }]);
+    shared.loadUpdatesInTransaction.mockResolvedValue([
+      { seriesKey: "dm5:m123", chapterID: "m2", createdAt: 2, position: 0 },
+    ]);
 
     const result = await getPopupFeedSnapshot();
 
@@ -246,6 +258,10 @@ describe("library queries", () => {
       transaction: jest.fn(() => transaction),
     };
     shared.openLibraryDb.mockResolvedValue(db);
+    shared.loadRowsByPositionInTransaction
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+    shared.loadUpdatesInTransaction.mockResolvedValue([]);
 
     await expect(getPopupFeedSnapshot()).resolves.toEqual({
       update: [],
@@ -407,6 +423,10 @@ describe("library queries", () => {
       transaction: jest.fn(() => transaction),
     };
     shared.openLibraryDb.mockResolvedValue(db);
+    shared.loadSubscriptionKeysByCheckedAtInTransaction.mockResolvedValue([
+      "dm5:m-oldest",
+      "dm5:m-middle",
+    ]);
 
     await expect(listSubscriptionKeys(2)).resolves.toEqual([
       "dm5:m-oldest",

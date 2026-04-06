@@ -23,12 +23,13 @@ import {
   composeSeriesRecord,
   ensureLibraryReady,
   loadReadChapterIDsInTransaction,
+  loadRowsByPositionInTransaction,
+  loadSubscriptionKeysByCheckedAtInTransaction,
+  loadUpdatesInTransaction,
   openLibraryDb,
   readSeriesSnapshotByKey,
   requestToPromise,
   resolveSeriesKeyInput,
-  sortRowsByPosition,
-  sortSubscriptionRowsByCheckedAt,
   transactionDone,
 } from "./shared";
 
@@ -139,7 +140,7 @@ function mapPopupUpdates(
   updateChaptersByKey: Record<string, ChapterRow>,
   updates: UpdateRow[],
 ) {
-  return sortRowsByPosition(updates)
+  return updates
     .map((item, index) =>
       buildPopupFeedEntry(
         seriesByKey,
@@ -160,10 +161,8 @@ function buildPopupFeedSnapshot(input: {
   history: HistoryRow[];
   updates: UpdateRow[];
 }): PopupFeedSnapshot {
-  const subscriptionKeys = sortRowsByPosition(input.subscriptions).map(
-    (row) => row.seriesKey,
-  );
-  const historyKeys = sortRowsByPosition(input.history).map((row) => row.seriesKey);
+  const subscriptionKeys = input.subscriptions.map((row) => row.seriesKey);
+  const historyKeys = input.history.map((row) => row.seriesKey);
   const update = mapPopupUpdates(
     input.seriesByKey,
     input.updateChaptersByKey,
@@ -240,7 +239,7 @@ async function loadUpdateChapterRows(
   const chapterRows = await Promise.all(
     Array.from(
       new Set(
-        sortRowsByPosition(updates)
+        updates
           .map((row) => buildUpdateChapterKey(row.seriesKey, row.chapterID))
           .filter(Boolean),
       ),
@@ -363,11 +362,10 @@ export async function listSubscriptionKeys(limit = Number.POSITIVE_INFINITY) {
   const transaction = db.transaction([SUBSCRIPTIONS_STORE], "readonly");
   const done = transactionDone(transaction);
   const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
-  const rows = await requestToPromise<SubscriptionRow[]>(subscriptionsStore.getAll());
-  const seriesKeys = sortSubscriptionRowsByCheckedAt(rows)
-    .slice(0, Number.isFinite(limit) ? Math.max(0, limit) : rows.length)
-    .map((row) => row.seriesKey)
-    .filter(Boolean);
+  const seriesKeys = await loadSubscriptionKeysByCheckedAtInTransaction(
+    subscriptionsStore,
+    limit,
+  );
   await done;
   return seriesKeys;
 }
@@ -387,16 +385,16 @@ export async function getPopupFeedSnapshot() {
   const updatesStore = transaction.objectStore(UPDATES_STORE);
 
   const [subscriptions, history, updates] = await Promise.all([
-    requestToPromise<SubscriptionRow[]>(subscriptionsStore.getAll()),
-    requestToPromise<HistoryRow[]>(historyStore.getAll()),
-    requestToPromise<UpdateRow[]>(updatesStore.getAll()),
+    loadRowsByPositionInTransaction<SubscriptionRow>(subscriptionsStore),
+    loadRowsByPositionInTransaction<HistoryRow>(historyStore),
+    loadUpdatesInTransaction(updatesStore),
   ]);
 
   const referencedKeys = Array.from(
     new Set([
-      ...sortRowsByPosition(subscriptions).map((row) => row.seriesKey),
-      ...sortRowsByPosition(history).map((row) => row.seriesKey),
-      ...sortRowsByPosition(updates).map((row) => row.seriesKey),
+      ...subscriptions.map((row) => row.seriesKey),
+      ...history.map((row) => row.seriesKey),
+      ...updates.map((row) => row.seriesKey),
     ]),
   );
 

@@ -1,5 +1,5 @@
 export const LIBRARY_SCHEMA_VERSION = 2;
-export const LIBRARY_DB_VERSION = 4;
+export const LIBRARY_DB_VERSION = 5;
 export const HISTORY_LIMIT = 50;
 export const SITE_KEYS = ["dm5", "sf", "comicbus"] as const;
 export const LIBRARY_SIGNAL_KEY = "librarySignal";

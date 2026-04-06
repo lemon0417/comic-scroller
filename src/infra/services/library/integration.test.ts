@@ -6,6 +6,7 @@ import {
   LIBRARY_DB_VERSION,
   LIBRARY_META_KEY,
   META_STORE,
+  READS_STORE,
   SERIES_STORE,
   SUBSCRIPTIONS_STORE,
   UPDATES_STORE,
@@ -702,7 +703,7 @@ describe("library integration", () => {
     expect(chromeEnv.getStorageState()).toEqual({});
   });
 
-  it("upgrades the IndexedDB schema by removing dead indexes and scrubbing obsolete row fields", async () => {
+  it("upgrades the IndexedDB schema by restoring active ordering indexes and scrubbing obsolete row fields", async () => {
     await seedLegacyLibraryDbV1();
 
     await expect(queries.getPopupFeedSnapshot()).resolves.toMatchObject({
@@ -711,11 +712,12 @@ describe("library integration", () => {
 
     const db = await shared.openLibraryDb();
     const transaction = db.transaction(
-      [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE],
+      [SERIES_STORE, CHAPTERS_STORE, READS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE],
       "readonly",
     );
     const seriesStore = transaction.objectStore(SERIES_STORE);
     const chaptersStore = transaction.objectStore(CHAPTERS_STORE);
+    const readsStore = transaction.objectStore(READS_STORE);
     const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
     const historyStore = transaction.objectStore(HISTORY_STORE);
     const updatesStore = transaction.objectStore(UPDATES_STORE);
@@ -741,9 +743,11 @@ describe("library integration", () => {
     expect(chapterRows).toEqual([
       expect.not.objectContaining({ chapter: expect.anything() }),
     ]);
-    expect(subscriptionsStore.indexNames.contains("position")).toBe(false);
-    expect(historyStore.indexNames.contains("position")).toBe(false);
-    expect(updatesStore.indexNames.contains("position")).toBe(false);
+    expect(readsStore.indexNames.contains("seriesKey")).toBe(true);
+    expect(subscriptionsStore.indexNames.contains("position")).toBe(true);
+    expect(subscriptionsStore.indexNames.contains("checkedAtPosition")).toBe(true);
+    expect(historyStore.indexNames.contains("position")).toBe(true);
+    expect(updatesStore.indexNames.contains("position")).toBe(true);
     expect(updatesStore.indexNames.contains("createdAt")).toBe(false);
     expect(metaRow?.value?.dbSchemaVersion).toBe(LIBRARY_DB_VERSION);
   });
