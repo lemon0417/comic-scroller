@@ -8,6 +8,7 @@ import {
 import {
   CHAPTERS_STORE,
   HISTORY_STORE,
+  READS_STORE,
   SERIES_STORE,
   SUBSCRIPTIONS_STORE,
   UPDATES_STORE,
@@ -17,24 +18,30 @@ jest.mock("./shared", () => {
   const actual = jest.requireActual("./shared");
   return {
     ...actual,
+    addReadChapterInTransaction: jest.fn(() => Promise.resolve()),
     emitLibrarySignal: jest.fn(() => Promise.resolve()),
     ensureLibraryReady: jest.fn(() => Promise.resolve()),
+    loadReadChapterIDsInTransaction: jest.fn(() => Promise.resolve([])),
     loadOrderedSeriesKeysInTransaction: jest.fn(),
     loadUpdatesInTransaction: jest.fn(),
     openLibraryDb: jest.fn(),
     requestToPromise: jest.fn((value) => Promise.resolve(value)),
     replaceSeriesChaptersInTransaction: jest.fn(() => Promise.resolve()),
+    replaceSeriesReadsInTransaction: jest.fn(() => Promise.resolve()),
     transactionDone: jest.fn(() => Promise.resolve()),
     writeOrderedSeriesKeysInTransaction: jest.fn(() => Promise.resolve()),
   };
 });
 
 const shared = jest.requireMock("./shared") as {
+  addReadChapterInTransaction: jest.Mock;
   emitLibrarySignal: jest.Mock;
+  loadReadChapterIDsInTransaction: jest.Mock;
   loadOrderedSeriesKeysInTransaction: jest.Mock;
   loadUpdatesInTransaction: jest.Mock;
   openLibraryDb: jest.Mock;
   replaceSeriesChaptersInTransaction: jest.Mock;
+  replaceSeriesReadsInTransaction: jest.Mock;
   writeOrderedSeriesKeysInTransaction: jest.Mock;
 };
 
@@ -58,6 +65,15 @@ describe("library mutations", () => {
     };
     const subscriptionsStore = {};
     const historyStore = {};
+    const readsStore = {
+      index: jest.fn(() => ({
+        getAllKeys: jest.fn(() => [
+          ["dm5:m123", "m1"],
+          ["dm5:m123", "m2"],
+        ]),
+      })),
+      delete: jest.fn(() => undefined),
+    };
     const updatesStore = {
       delete: jest.fn(() => undefined),
       count: jest.fn(() => 1),
@@ -65,6 +81,7 @@ describe("library mutations", () => {
     const stores = {
       [SERIES_STORE]: seriesStore,
       [CHAPTERS_STORE]: chaptersStore,
+      [READS_STORE]: readsStore,
       [SUBSCRIPTIONS_STORE]: subscriptionsStore,
       [HISTORY_STORE]: historyStore,
       [UPDATES_STORE]: updatesStore,
@@ -93,6 +110,8 @@ describe("library mutations", () => {
     expect(seriesStore.delete).toHaveBeenCalledWith("dm5:m123");
     expect(chaptersStore.delete).toHaveBeenCalledWith(["dm5:m123", "m1"]);
     expect(chaptersStore.delete).toHaveBeenCalledWith(["dm5:m123", "m2"]);
+    expect(readsStore.delete).toHaveBeenCalledWith(["dm5:m123", "m1"]);
+    expect(readsStore.delete).toHaveBeenCalledWith(["dm5:m123", "m2"]);
     expect(shared.writeOrderedSeriesKeysInTransaction).toHaveBeenNthCalledWith(
       1,
       subscriptionsStore,
@@ -128,6 +147,12 @@ describe("library mutations", () => {
       })),
       delete: jest.fn(() => undefined),
     };
+    const readsStore = {
+      index: jest.fn(() => ({
+        getAllKeys: jest.fn(() => []),
+      })),
+      delete: jest.fn(() => undefined),
+    };
     const historyStore = {
       get: jest.fn(() => undefined),
     };
@@ -138,6 +163,7 @@ describe("library mutations", () => {
     const stores = {
       [SERIES_STORE]: seriesStore,
       [CHAPTERS_STORE]: chaptersStore,
+      [READS_STORE]: readsStore,
       [SUBSCRIPTIONS_STORE]: subscriptionsStore,
       [HISTORY_STORE]: historyStore,
       [UPDATES_STORE]: updatesStore,
@@ -208,6 +234,12 @@ describe("library mutations", () => {
       })),
       delete: jest.fn(() => undefined),
     };
+    const readsStore = {
+      index: jest.fn(() => ({
+        getAllKeys: jest.fn(() => []),
+      })),
+      delete: jest.fn(() => undefined),
+    };
     const subscriptionsStore = {
       get: jest.fn(() => ({ seriesKey: "dm5:m123", position: 0, checkedAt: 100 })),
     };
@@ -221,6 +253,7 @@ describe("library mutations", () => {
     const stores = {
       [SERIES_STORE]: seriesStore,
       [CHAPTERS_STORE]: chaptersStore,
+      [READS_STORE]: readsStore,
       [SUBSCRIPTIONS_STORE]: subscriptionsStore,
       [HISTORY_STORE]: historyStore,
       [UPDATES_STORE]: updatesStore,
@@ -283,6 +316,7 @@ describe("library mutations", () => {
         orderIndex: 1,
       })),
     };
+    const readsStore = {};
     const updatesStore = {
       delete: jest.fn(() => undefined),
       count: jest.fn(() => 0),
@@ -290,6 +324,7 @@ describe("library mutations", () => {
     const stores = {
       [SERIES_STORE]: seriesStore,
       [CHAPTERS_STORE]: chaptersStore,
+      [READS_STORE]: readsStore,
       [UPDATES_STORE]: updatesStore,
     };
     const transaction = {
@@ -302,10 +337,11 @@ describe("library mutations", () => {
     };
 
     shared.openLibraryDb.mockResolvedValue(db);
+    shared.loadReadChapterIDsInTransaction.mockResolvedValue(["m1"]);
     const result = await applyReadProgress("dm5", "m123", "m2");
 
     expect(db.transaction).toHaveBeenCalledWith(
-      [SERIES_STORE, CHAPTERS_STORE, UPDATES_STORE],
+      [SERIES_STORE, CHAPTERS_STORE, READS_STORE, UPDATES_STORE],
       "readwrite",
     );
     expect(shared.replaceSeriesChaptersInTransaction).not.toHaveBeenCalled();
@@ -313,7 +349,6 @@ describe("library mutations", () => {
       expect.objectContaining({
         seriesKey: "dm5:m123",
         lastRead: "m2",
-        read: ["m1", "m2"],
         lastReadTitle: "Ch 2",
         lastReadHref: "https://www.dm5.com/m123/2.html",
         latestChapterID: "m3",
@@ -322,6 +357,11 @@ describe("library mutations", () => {
       }),
     );
     expect(updatesStore.delete).toHaveBeenCalledWith(["dm5:m123", "m2"]);
+    expect(shared.addReadChapterInTransaction).toHaveBeenCalledWith(
+      readsStore,
+      "dm5:m123",
+      "m2",
+    );
     expect(shared.emitLibrarySignal).toHaveBeenCalledWith(
       "seriesMutation",
       ["series", "updates"],
@@ -367,6 +407,11 @@ describe("library mutations", () => {
         ]),
       })),
     };
+    const readsStore = {
+      index: jest.fn(() => ({
+        getAllKeys: jest.fn(() => [["dm5:m123", "m1"]]),
+      })),
+    };
     const updatesStore = {
       delete: jest.fn(() => undefined),
       put: jest.fn(() => undefined),
@@ -375,6 +420,7 @@ describe("library mutations", () => {
     const stores = {
       [SERIES_STORE]: seriesStore,
       [CHAPTERS_STORE]: chaptersStore,
+      [READS_STORE]: readsStore,
       [UPDATES_STORE]: updatesStore,
     };
     const transaction = {

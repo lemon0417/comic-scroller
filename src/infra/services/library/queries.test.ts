@@ -7,6 +7,7 @@ import {
 import {
   CHAPTERS_STORE,
   HISTORY_STORE,
+  READS_STORE,
   SERIES_STORE,
   SUBSCRIPTIONS_STORE,
   UPDATES_STORE,
@@ -17,6 +18,7 @@ jest.mock("./shared", () => {
   return {
     ...actual,
     ensureLibraryReady: jest.fn(() => Promise.resolve()),
+    loadReadChapterIDsInTransaction: jest.fn(() => Promise.resolve([])),
     openLibraryDb: jest.fn(),
     requestToPromise: jest.fn((value) => Promise.resolve(value)),
     transactionDone: jest.fn(() => Promise.resolve()),
@@ -24,6 +26,7 @@ jest.mock("./shared", () => {
 });
 
 const shared = jest.requireMock("./shared") as {
+  loadReadChapterIDsInTransaction: jest.Mock;
   openLibraryDb: jest.Mock;
 };
 
@@ -289,9 +292,11 @@ describe("library queries", () => {
     const subscriptionsStore = {
       get: jest.fn(() => ({ seriesKey: "dm5:m123", position: 0 })),
     };
+    const readsStore = {};
     const stores = {
       [SERIES_STORE]: seriesStore,
       [CHAPTERS_STORE]: chaptersStore,
+      [READS_STORE]: readsStore,
       [SUBSCRIPTIONS_STORE]: subscriptionsStore,
     };
     const transaction = {
@@ -303,6 +308,7 @@ describe("library queries", () => {
       transaction: jest.fn(() => transaction),
     };
     shared.openLibraryDb.mockResolvedValue(db);
+    shared.loadReadChapterIDsInTransaction.mockResolvedValue(["m1"]);
 
     const result = await getReaderSeriesState("dm5:m123");
 
@@ -326,7 +332,7 @@ describe("library queries", () => {
       subscribed: true,
     });
     expect(db.transaction).toHaveBeenCalledWith(
-      [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE],
+      [SERIES_STORE, CHAPTERS_STORE, READS_STORE, SUBSCRIPTIONS_STORE],
       "readonly",
     );
   });

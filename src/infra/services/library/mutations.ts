@@ -6,6 +6,7 @@ import {
   HISTORY_STORE,
   type LibraryUpdateRecord,
   normalizeSeriesRecord,
+  READS_STORE,
   SERIES_STORE,
   type SeriesRecord,
   type SeriesRow,
@@ -16,14 +17,17 @@ import {
   UPDATES_STORE,
 } from "./schema";
 import {
+  addReadChapterInTransaction,
   composeSeriesRecord,
   createSeriesRow,
   emitLibrarySignal,
   ensureLibraryReady,
   loadOrderedSeriesKeysInTransaction,
+  loadReadChapterIDsInTransaction,
   loadUpdatesInTransaction,
   openLibraryDb,
   replaceSeriesChaptersInTransaction,
+  replaceSeriesReadsInTransaction,
   requestToPromise,
   transactionDone,
   writeOrderedSeriesKeysInTransaction,
@@ -46,9 +50,13 @@ async function persistSeriesRecordState(
     input.record && ("chapterList" in input.record || "chapters" in input.record),
   );
   const shouldLoadReadChapter = Boolean(input.readChapterID && !shouldPersistChapterCache);
+  const shouldLoadReads = Boolean(
+    input.readChapterID || (input.record && "read" in input.record),
+  );
   const storeNames = [
     SERIES_STORE,
     ...(shouldPersistChapterCache || shouldLoadReadChapter ? [CHAPTERS_STORE] : []),
+    ...(shouldLoadReads ? [READS_STORE] : []),
     ...(input.addHistory ? [HISTORY_STORE] : []),
     UPDATES_STORE,
     ...(input.includeSubscriptionState ? [SUBSCRIPTIONS_STORE] : []),
@@ -60,6 +68,7 @@ async function persistSeriesRecordState(
   const chaptersStore = shouldPersistChapterCache || shouldLoadReadChapter
     ? transaction.objectStore(CHAPTERS_STORE)
     : null;
+  const readsStore = shouldLoadReads ? transaction.objectStore(READS_STORE) : null;
   const historyStore = input.addHistory
     ? transaction.objectStore(HISTORY_STORE)
     : null;
@@ -76,6 +85,10 @@ async function persistSeriesRecordState(
         chaptersStore.index("seriesKey").getAll(seriesKey),
       )
     : [];
+  const previousReadChapterIDs =
+    previousRow && readsStore
+      ? await loadReadChapterIDsInTransaction(readsStore, seriesKey)
+      : [];
   const readChapterRow =
     shouldLoadReadChapter && chaptersStore && input.readChapterID
       ? await requestToPromise<ChapterRow | undefined>(
@@ -83,7 +96,7 @@ async function persistSeriesRecordState(
         )
       : undefined;
   const previousRecord = previousRow
-    ? composeSeriesRecord(previousRow, previousChapters)
+    ? composeSeriesRecord(previousRow, previousChapters, previousReadChapterIDs)
     : normalizeSeriesRecord(site, comicsID, {});
 
   const mergedRecord = mergeSeriesRecord(site, comicsID, previousRecord, input.record);
@@ -103,6 +116,13 @@ async function persistSeriesRecordState(
   );
   if (shouldPersistChapterCache && chaptersStore) {
     await replaceSeriesChaptersInTransaction(chaptersStore, seriesKey, mergedRecord);
+  }
+  if (readsStore) {
+    if (input.readChapterID) {
+      await addReadChapterInTransaction(readsStore, seriesKey, input.readChapterID);
+    } else if (input.record && "read" in input.record) {
+      await replaceSeriesReadsInTransaction(readsStore, seriesKey, mergedRecord);
+    }
   }
 
   if (historyStore) {
@@ -183,6 +203,18 @@ async function deleteSeriesUpdatesInTransaction(
   }
 }
 
+async function deleteSeriesReadsInTransaction(
+  readsStore: IDBObjectStore,
+  seriesKey: string,
+) {
+  const readKeys = await requestToPromise<IDBValidKey[]>(
+    readsStore.index("seriesKey").getAllKeys(seriesKey),
+  );
+  for (const key of readKeys) {
+    await requestToPromise(readsStore.delete(key));
+  }
+}
+
 async function prependSeriesUpdatesInTransaction(
   updatesStore: IDBObjectStore,
   seriesKey: string,
@@ -233,6 +265,7 @@ async function pruneSeriesCacheIfOrphanedInTransaction(
   stores: {
     seriesStore: IDBObjectStore;
     chaptersStore: IDBObjectStore;
+    readsStore: IDBObjectStore;
     subscriptionsStore: IDBObjectStore;
     historyStore: IDBObjectStore;
     updatesStore: IDBObjectStore;
@@ -242,6 +275,7 @@ async function pruneSeriesCacheIfOrphanedInTransaction(
   const {
     seriesStore,
     chaptersStore,
+    readsStore,
     subscriptionsStore,
     historyStore,
     updatesStore,
@@ -269,6 +303,7 @@ async function pruneSeriesCacheIfOrphanedInTransaction(
   for (const key of chapterKeys) {
     await requestToPromise(chaptersStore.delete(key));
   }
+  await deleteSeriesReadsInTransaction(readsStore, seriesKey);
   return true;
 }
 
@@ -286,7 +321,7 @@ async function mutateSeriesUpdates(
   const storeNames = [
     UPDATES_STORE,
     ...(options.pruneIfOrphaned
-      ? [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE]
+      ? [SERIES_STORE, CHAPTERS_STORE, READS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE]
       : []),
   ] as const;
   const db = await openLibraryDb();
@@ -299,6 +334,9 @@ async function mutateSeriesUpdates(
   const chaptersStore = options.pruneIfOrphaned
     ? transaction.objectStore(CHAPTERS_STORE)
     : null;
+  const readsStore = options.pruneIfOrphaned
+    ? transaction.objectStore(READS_STORE)
+    : null;
   const subscriptionsStore = options.pruneIfOrphaned
     ? transaction.objectStore(SUBSCRIPTIONS_STORE)
     : null;
@@ -307,11 +345,12 @@ async function mutateSeriesUpdates(
     : null;
   await mutator(updatesStore, seriesKey);
   const updatesCount = await requestToPromise<number>(updatesStore.count());
-  const pruned = options.pruneIfOrphaned && seriesStore && chaptersStore && subscriptionsStore && historyStore
+  const pruned = options.pruneIfOrphaned && seriesStore && chaptersStore && readsStore && subscriptionsStore && historyStore
     ? await pruneSeriesCacheIfOrphanedInTransaction(
         {
           seriesStore,
           chaptersStore,
+          readsStore,
           subscriptionsStore,
           historyStore,
           updatesStore,
@@ -342,7 +381,7 @@ async function rewriteOrderedSeriesStore(
   const storeNames = [
     storeName,
     ...(options.pruneIfOrphaned
-      ? [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE]
+      ? [SERIES_STORE, CHAPTERS_STORE, READS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE]
       : []),
   ] as const;
   const db = await openLibraryDb();
@@ -354,6 +393,9 @@ async function rewriteOrderedSeriesStore(
     : null;
   const chaptersStore = options.pruneIfOrphaned
     ? transaction.objectStore(CHAPTERS_STORE)
+    : null;
+  const readsStore = options.pruneIfOrphaned
+    ? transaction.objectStore(READS_STORE)
     : null;
   const subscriptionsStore = options.pruneIfOrphaned
     ? transaction.objectStore(SUBSCRIPTIONS_STORE)
@@ -386,11 +428,12 @@ async function rewriteOrderedSeriesStore(
   } else {
     await writeOrderedSeriesKeysInTransaction(store, nextKeys);
   }
-  const pruned = options.pruneIfOrphaned && seriesStore && chaptersStore && subscriptionsStore && historyStore && updatesStore
+  const pruned = options.pruneIfOrphaned && seriesStore && chaptersStore && readsStore && subscriptionsStore && historyStore && updatesStore
     ? await pruneSeriesCacheIfOrphanedInTransaction(
         {
           seriesStore,
           chaptersStore,
+          readsStore,
           subscriptionsStore,
           historyStore,
           updatesStore,
@@ -427,12 +470,13 @@ export async function toggleSeriesSubscriptionByKey(seriesKey: string) {
   await ensureLibraryReady();
   const db = await openLibraryDb();
   const transaction = db.transaction(
-    [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE],
+    [SERIES_STORE, CHAPTERS_STORE, READS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE],
     "readwrite",
   );
   const done = transactionDone(transaction);
   const seriesStore = transaction.objectStore(SERIES_STORE);
   const chaptersStore = transaction.objectStore(CHAPTERS_STORE);
+  const readsStore = transaction.objectStore(READS_STORE);
   const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
   const historyStore = transaction.objectStore(HISTORY_STORE);
   const updatesStore = transaction.objectStore(UPDATES_STORE);
@@ -464,6 +508,7 @@ export async function toggleSeriesSubscriptionByKey(seriesKey: string) {
         {
           seriesStore,
           chaptersStore,
+          readsStore,
           subscriptionsStore,
           historyStore,
           updatesStore,
@@ -552,12 +597,13 @@ export async function removeSeriesCascade(site: SiteKey, comicsID: string) {
   const seriesKey = buildSeriesKey(site, comicsID);
   const db = await openLibraryDb();
   const transaction = db.transaction(
-    [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE],
+    [SERIES_STORE, CHAPTERS_STORE, READS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE],
     "readwrite",
   );
   const done = transactionDone(transaction);
   const seriesStore = transaction.objectStore(SERIES_STORE);
   const chaptersStore = transaction.objectStore(CHAPTERS_STORE);
+  const readsStore = transaction.objectStore(READS_STORE);
   const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
   const historyStore = transaction.objectStore(HISTORY_STORE);
   const updatesStore = transaction.objectStore(UPDATES_STORE);
@@ -569,6 +615,7 @@ export async function removeSeriesCascade(site: SiteKey, comicsID: string) {
   for (const key of chapterKeys) {
     await requestToPromise(chaptersStore.delete(key));
   }
+  await deleteSeriesReadsInTransaction(readsStore, seriesKey);
 
   await writeOrderedSeriesKeysInTransaction(
     subscriptionsStore,

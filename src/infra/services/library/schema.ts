@@ -1,5 +1,5 @@
 export const LIBRARY_SCHEMA_VERSION = 2;
-export const LIBRARY_DB_VERSION = 3;
+export const LIBRARY_DB_VERSION = 4;
 export const HISTORY_LIMIT = 50;
 export const SITE_KEYS = ["dm5", "sf", "comicbus"] as const;
 export const LIBRARY_SIGNAL_KEY = "librarySignal";
@@ -8,6 +8,7 @@ export const LIBRARY_DB_NAME = "comic-scroller-library";
 export const META_STORE = "meta";
 export const SERIES_STORE = "series";
 export const CHAPTERS_STORE = "chapters";
+export const READS_STORE = "reads";
 export const SUBSCRIPTIONS_STORE = "subscriptions";
 export const HISTORY_STORE = "history";
 export const UPDATES_STORE = "updates";
@@ -70,7 +71,7 @@ export type SeriesRow = {
   cover: string;
   url: string;
   lastRead: string;
-  read: string[];
+  read?: string[];
   lastReadTitle: string;
   lastReadHref: string;
   latestChapterID: string;
@@ -84,6 +85,11 @@ export type ChapterRow = {
   title: string;
   href: string;
   orderIndex: number;
+};
+
+export type ReadRow = {
+  seriesKey: SeriesKey;
+  chapterID: string;
 };
 
 export type SubscriptionRow = {

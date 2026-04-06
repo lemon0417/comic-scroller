@@ -11,6 +11,7 @@ import {
   CHAPTERS_STORE,
   HISTORY_STORE,
   type HistoryRow,
+  READS_STORE,
   SERIES_STORE,
   type SeriesRow,
   type SubscriptionRow,
@@ -21,6 +22,7 @@ import {
 import {
   composeSeriesRecord,
   ensureLibraryReady,
+  loadReadChapterIDsInTransaction,
   openLibraryDb,
   readSeriesSnapshotByKey,
   requestToPromise,
@@ -274,12 +276,13 @@ export async function getReaderSeriesState(
   await ensureLibraryReady();
   const db = await openLibraryDb();
   const transaction = db.transaction(
-    [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE],
+    [SERIES_STORE, CHAPTERS_STORE, READS_STORE, SUBSCRIPTIONS_STORE],
     "readonly",
   );
   const done = transactionDone(transaction);
   const seriesStore = transaction.objectStore(SERIES_STORE);
   const chaptersStore = transaction.objectStore(CHAPTERS_STORE);
+  const readsStore = transaction.objectStore(READS_STORE);
   const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
   const row = await requestToPromise<SeriesRow | undefined>(seriesStore.get(seriesKey));
   const subscriptionRow = await requestToPromise(subscriptionsStore.get(seriesKey));
@@ -295,10 +298,11 @@ export async function getReaderSeriesState(
   const chapterRows = await requestToPromise<ChapterRow[]>(
     chaptersStore.index("seriesKey").getAll(seriesKey),
   );
+  const readChapterIDs = await loadReadChapterIDsInTransaction(readsStore, seriesKey);
   await done;
 
   return {
-    series: composeSeriesRecord(row, chapterRows),
+    series: composeSeriesRecord(row, chapterRows, readChapterIDs),
     subscribed: Boolean(subscriptionRow),
   };
 }
