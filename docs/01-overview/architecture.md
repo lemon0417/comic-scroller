@@ -41,6 +41,12 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - `subscriptions`
   - `history`
   - `updates`
+- `series` store 保存作品主資料與閱讀進度，例如 `title / cover / url / lastRead / read[]`
+- `chapters` store 保存章節索引與章節摘要，定位上屬於可回收快取，不是永久核心資料
+- reader 打開章節依賴 URL 上的 `chapter` 參數；`chapters` 快取主要服務：
+  - reader 章節列表 UI
+  - popup/manage 的章節標題摘要
+  - background 更新比對
 - `subscriptions` row 保留 UI 顯示排序 `position`，並額外記錄背景輪詢用的 `checkedAt`
 - `chrome.storage.local.librarySignal` 用於跨 context 通知資料已變更
 - repository 目前分成兩層 API：
@@ -51,6 +57,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - `history -> 移除`：只刪 `history` row，不刪作品、章節、追蹤或更新
   - `subscribe -> 棄坑`：預設只取消追蹤並清除該作品的更新提醒
   - `subscribe -> 棄坑 + 清除資料`：才使用 `removeSeriesCascade` 刪除作品資料、章節快取、追蹤、紀錄與更新
+- `history -> 移除` 與 `unsubscribe-only` 不保證立刻清掉章節快取；若作品後續不再被引用，章節快取可由後續 maintenance/GC 回收
 - 核心欄位：
   - `seriesByKey`
   - `subscriptions`
@@ -82,6 +89,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - 圖片閱讀列表使用 `react-window` 虛擬化；`ImageContainer` 透過 `onRowsRendered` 回報目前可視 row 範圍，再由 `scrollEpic` 觸發圖片載入、已讀更新與前章預載
   - 是否允許向前預載章節，由 `canPreloadPreviousChapter` 顯式控制，不使用 sentinel index 表示流程狀態
   - reader UI 同步 library 狀態時，優先使用單一 query `getReaderSeriesState()`，不要拆成多次查詢再自行拼裝
+  - `applyReadProgress()` 只更新閱讀進度與 updates，不應重寫章節快取；章節快取刷新由 metadata/background 流程負責
 - Background：
   - `src/background.ts` 只保留 MV3 listener wiring
   - 更新檢查、安裝處理、通知點擊、ping 回應、reader redirect 解析集中在 `src/infra/services/background.ts`

@@ -8,6 +8,16 @@
 - UI 只表達目前 repository 狀態，不直接拼接舊 snapshot schema
 - 任何 destructive action 都要先經過 custom dialog 確認，不使用原生 `confirm()`
 
+## 作品快取語意
+- 作品的 `chapterList / chapters` 屬於章節快取，不是每部作品都必須永久保存的核心資料
+- 章節快取主要用於：
+  - reader 章節列表
+  - popup/manage 的章節標題摘要
+  - background 更新比對
+- `紀錄 -> 移除` 與未勾選清除資料的 `棄坑` 不會主動刪除章節快取
+- 只有「清除資料」或全量 `重置資料` 會保證刪掉作品快取
+- 若作品後續不再被任何列表引用，殘留快取可視為後續 maintenance/GC 的回收對象
+
 ## 分頁語意
 
 ### 更新
