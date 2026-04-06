@@ -27,7 +27,6 @@ import {
   requestToPromise,
   transactionDone,
   writeOrderedSeriesKeysInTransaction,
-  writeUpdatesInTransaction,
 } from "./shared";
 
 async function persistSeriesRecordState(
@@ -115,19 +114,8 @@ async function persistSeriesRecordState(
   }
 
   if (input.dismissChapterID) {
-    const updates = await loadUpdatesInTransaction(updatesStore);
-    await writeUpdatesInTransaction(
-      updatesStore,
-      updates
-        .map(({ seriesKey: currentSeriesKey, chapterID, createdAt }) => ({
-          seriesKey: currentSeriesKey,
-          chapterID,
-          createdAt,
-        }))
-        .filter(
-          (item) =>
-            item.seriesKey !== seriesKey || item.chapterID !== input.dismissChapterID,
-        ),
+    await requestToPromise(
+      updatesStore.delete([seriesKey, input.dismissChapterID]),
     );
   }
 
@@ -176,6 +164,55 @@ function createSeriesUpdateKeyRange(seriesKey: string) {
     return null;
   }
   return IDBKeyRange.bound([seriesKey, ""], [seriesKey, "\uffff"]);
+}
+
+async function deleteSeriesUpdatesInTransaction(
+  updatesStore: IDBObjectStore,
+  seriesKey: string,
+) {
+  const keyRange = createSeriesUpdateKeyRange(seriesKey);
+  if (keyRange) {
+    await requestToPromise(updatesStore.delete(keyRange));
+    return;
+  }
+
+  const updates = await loadUpdatesInTransaction(updatesStore);
+  for (const item of updates) {
+    if (item.seriesKey !== seriesKey) continue;
+    await requestToPromise(updatesStore.delete([item.seriesKey, item.chapterID]));
+  }
+}
+
+async function prependSeriesUpdatesInTransaction(
+  updatesStore: IDBObjectStore,
+  seriesKey: string,
+  chapterIDs: string[],
+) {
+  const nextChapterIDs = uniqueStrings(chapterIDs).filter(Boolean);
+  if (nextChapterIDs.length === 0) {
+    return;
+  }
+
+  const existingUpdates = await loadUpdatesInTransaction(updatesStore);
+  const minPosition = existingUpdates.reduce(
+    (currentMin, row) => Math.min(currentMin, row.position),
+    0,
+  );
+  const firstPosition = minPosition - nextChapterIDs.length;
+  const createdAt = Date.now();
+
+  for (let index = 0; index < nextChapterIDs.length; index += 1) {
+    const chapterID = nextChapterIDs[index];
+    await requestToPromise(updatesStore.delete([seriesKey, chapterID]));
+    await requestToPromise(
+      updatesStore.put({
+        seriesKey,
+        chapterID,
+        createdAt,
+        position: firstPosition + index,
+      }),
+    );
+  }
 }
 
 async function hasSeriesUpdatesInTransaction(
@@ -235,10 +272,10 @@ async function pruneSeriesCacheIfOrphanedInTransaction(
   return true;
 }
 
-async function rewriteUpdatesForSeries(
+async function mutateSeriesUpdates(
   site: SiteKey,
   comicsID: string,
-  updater: (updates: LibraryUpdateRecord[], seriesKey: string) => LibraryUpdateRecord[],
+  mutator: (updatesStore: IDBObjectStore, seriesKey: string) => Promise<void>,
   source: string,
   options: {
     pruneIfOrphaned?: boolean;
@@ -268,14 +305,7 @@ async function rewriteUpdatesForSeries(
   const historyStore = options.pruneIfOrphaned
     ? transaction.objectStore(HISTORY_STORE)
     : null;
-  const updates = await loadUpdatesInTransaction(updatesStore);
-  const normalizedUpdates = updates.map(({ seriesKey: currentSeriesKey, chapterID, createdAt }) => ({
-    seriesKey: currentSeriesKey,
-    chapterID,
-    createdAt,
-  }));
-  const nextUpdates = updater(normalizedUpdates, seriesKey);
-  await writeUpdatesInTransaction(updatesStore, nextUpdates);
+  await mutator(updatesStore, seriesKey);
   const updatesCount = await requestToPromise<number>(updatesStore.count());
   const pruned = options.pruneIfOrphaned && seriesStore && chaptersStore && subscriptionsStore && historyStore
     ? await pruneSeriesCacheIfOrphanedInTransaction(
@@ -486,13 +516,16 @@ export async function dismissSeriesUpdate(
   comicsID: string,
   chapterID?: string,
 ) {
-  return rewriteUpdatesForSeries(
+  return mutateSeriesUpdates(
     site,
     comicsID,
-    (updates, seriesKey) =>
-      updates.filter(
-        (item) => item.seriesKey !== seriesKey || (chapterID && item.chapterID !== chapterID),
-      ),
+    async (updatesStore, seriesKey) => {
+      if (chapterID) {
+        await requestToPromise(updatesStore.delete([seriesKey, chapterID]));
+        return;
+      }
+      await deleteSeriesUpdatesInTransaction(updatesStore, seriesKey);
+    },
     "dismissUpdate",
     {
       pruneIfOrphaned: true,
@@ -549,16 +582,7 @@ export async function removeSeriesCascade(site: SiteKey, comicsID: string) {
       (item) => item !== seriesKey,
     ),
   );
-  await writeUpdatesInTransaction(
-    updatesStore,
-    (await loadUpdatesInTransaction(updatesStore))
-      .map(({ seriesKey: currentSeriesKey, chapterID, createdAt }) => ({
-        seriesKey: currentSeriesKey,
-        chapterID,
-        createdAt,
-      }))
-      .filter((item) => item.seriesKey !== seriesKey),
-  );
+  await deleteSeriesUpdatesInTransaction(updatesStore, seriesKey);
   const updatesCount = await requestToPromise<number>(updatesStore.count());
   await done;
   await emitLibrarySignal(
@@ -627,28 +651,7 @@ export async function applyBackgroundSeriesRefresh(
     ),
   );
   await replaceSeriesChaptersInTransaction(chaptersStore, seriesKey, mergedRecord);
-
-  const existingUpdates = await loadUpdatesInTransaction(updatesStore);
-  const nextUpdates = [
-    ...uniqueStrings(newChapterIDs)
-      .filter(Boolean)
-      .map((chapterID) => ({
-        seriesKey,
-        chapterID,
-        createdAt: Date.now(),
-      })),
-    ...existingUpdates
-      .map(({ seriesKey: currentSeriesKey, chapterID, createdAt }) => ({
-        seriesKey: currentSeriesKey,
-        chapterID,
-        createdAt,
-      }))
-      .filter(
-        (item) =>
-          item.seriesKey !== seriesKey || !newChapterIDs.includes(item.chapterID),
-      ),
-  ];
-  await writeUpdatesInTransaction(updatesStore, nextUpdates);
+  await prependSeriesUpdatesInTransaction(updatesStore, seriesKey, newChapterIDs);
   const updatesCount = await requestToPromise<number>(updatesStore.count());
   await done;
   await emitLibrarySignal("backgroundRefresh", ["series", "updates"], [seriesKey]);

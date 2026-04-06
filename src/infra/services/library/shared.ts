@@ -750,24 +750,6 @@ export async function loadUpdatesInTransaction(store: IDBObjectStore) {
   return sortRowsByPosition(rows);
 }
 
-export async function writeUpdatesInTransaction(
-  store: IDBObjectStore,
-  updates: LibraryUpdateRecord[],
-) {
-  await requestToPromise(store.clear());
-  for (let position = 0; position < updates.length; position += 1) {
-    const item = updates[position];
-    await requestToPromise(
-      store.put({
-        seriesKey: item.seriesKey,
-        chapterID: item.chapterID,
-        createdAt: item.createdAt,
-        position,
-      }),
-    );
-  }
-}
-
 export async function readSeriesSnapshotByKey(seriesKey: string) {
   await ensureLibraryReady();
   const db = await openLibraryDb();

@@ -1,4 +1,5 @@
 import {
+  applyBackgroundSeriesRefresh,
   applyReadProgress,
   removeSeriesCascade,
   removeSeriesFromHistory,
@@ -25,7 +26,6 @@ jest.mock("./shared", () => {
     replaceSeriesChaptersInTransaction: jest.fn(() => Promise.resolve()),
     transactionDone: jest.fn(() => Promise.resolve()),
     writeOrderedSeriesKeysInTransaction: jest.fn(() => Promise.resolve()),
-    writeUpdatesInTransaction: jest.fn(() => Promise.resolve()),
   };
 });
 
@@ -36,7 +36,6 @@ const shared = jest.requireMock("./shared") as {
   openLibraryDb: jest.Mock;
   replaceSeriesChaptersInTransaction: jest.Mock;
   writeOrderedSeriesKeysInTransaction: jest.Mock;
-  writeUpdatesInTransaction: jest.Mock;
 };
 
 describe("library mutations", () => {
@@ -60,6 +59,7 @@ describe("library mutations", () => {
     const subscriptionsStore = {};
     const historyStore = {};
     const updatesStore = {
+      delete: jest.fn(() => undefined),
       count: jest.fn(() => 1),
     };
     const stores = {
@@ -103,9 +103,7 @@ describe("library mutations", () => {
       historyStore,
       ["comicbus:88"],
     );
-    expect(shared.writeUpdatesInTransaction).toHaveBeenCalledWith(updatesStore, [
-      { seriesKey: "sf:77", chapterID: "c7", createdAt: 2 },
-    ]);
+    expect(updatesStore.delete).toHaveBeenCalledWith(["dm5:m123", "m2"]);
     expect(shared.emitLibrarySignal).toHaveBeenCalledWith(
       "removeSeries",
       ["series", "subscriptions", "history", "updates"],
@@ -286,6 +284,7 @@ describe("library mutations", () => {
       })),
     };
     const updatesStore = {
+      delete: jest.fn(() => undefined),
       count: jest.fn(() => 0),
     };
     const stores = {
@@ -303,10 +302,6 @@ describe("library mutations", () => {
     };
 
     shared.openLibraryDb.mockResolvedValue(db);
-    shared.loadUpdatesInTransaction.mockResolvedValue([
-      { seriesKey: "dm5:m123", chapterID: "m2", createdAt: 2, position: 0 },
-    ]);
-
     const result = await applyReadProgress("dm5", "m123", "m2");
 
     expect(db.transaction).toHaveBeenCalledWith(
@@ -326,10 +321,7 @@ describe("library mutations", () => {
         latestChapterHref: "https://www.dm5.com/m123/3.html",
       }),
     );
-    expect(shared.writeUpdatesInTransaction).toHaveBeenCalledWith(
-      updatesStore,
-      [],
-    );
+    expect(updatesStore.delete).toHaveBeenCalledWith(["dm5:m123", "m2"]);
     expect(shared.emitLibrarySignal).toHaveBeenCalledWith(
       "seriesMutation",
       ["series", "updates"],
@@ -341,5 +333,121 @@ describe("library mutations", () => {
         subscribed: false,
       }),
     );
+  });
+
+  it("prepends only new background updates without rewriting the entire store", async () => {
+    const seriesStore = {
+      get: jest.fn(() => ({
+        seriesKey: "dm5:m123",
+        site: "dm5",
+        comicsID: "m123",
+        title: "Demo",
+        cover: "cover.jpg",
+        url: "https://www.dm5.com/m123/",
+        lastRead: "m1",
+        read: ["m1"],
+        lastReadTitle: "Ch 1",
+        lastReadHref: "https://www.dm5.com/m123/1.html",
+        latestChapterID: "m2",
+        latestChapterTitle: "Ch 2",
+        latestChapterHref: "https://www.dm5.com/m123/2.html",
+      })),
+      put: jest.fn(() => undefined),
+    };
+    const chaptersStore = {
+      index: jest.fn(() => ({
+        getAll: jest.fn(() => [
+          {
+            seriesKey: "dm5:m123",
+            chapterID: "m2",
+            title: "Ch 2",
+            href: "https://www.dm5.com/m123/2.html",
+            orderIndex: 0,
+          },
+        ]),
+      })),
+    };
+    const updatesStore = {
+      delete: jest.fn(() => undefined),
+      put: jest.fn(() => undefined),
+      count: jest.fn(() => 3),
+    };
+    const stores = {
+      [SERIES_STORE]: seriesStore,
+      [CHAPTERS_STORE]: chaptersStore,
+      [UPDATES_STORE]: updatesStore,
+    };
+    const transaction = {
+      objectStore: jest.fn(
+        (storeName: keyof typeof stores) => stores[storeName],
+      ),
+    };
+    const db = {
+      transaction: jest.fn(() => transaction),
+    };
+
+    shared.openLibraryDb.mockResolvedValue(db);
+    shared.loadUpdatesInTransaction.mockResolvedValue([
+      { seriesKey: "sf:77", chapterID: "c9", createdAt: 8, position: 0 },
+      { seriesKey: "dm5:m123", chapterID: "m2", createdAt: 7, position: 1 },
+    ]);
+
+    const result = await applyBackgroundSeriesRefresh(
+      "dm5",
+      "m123",
+      {
+        title: "Demo",
+        cover: "",
+        url: "https://www.dm5.com/m123/",
+        chapterList: ["m3", "m2", "m1"],
+        chapters: {
+          m1: {
+            title: "Ch 1",
+            href: "https://www.dm5.com/m123/1.html",
+          },
+          m2: {
+            title: "Ch 2",
+            href: "https://www.dm5.com/m123/2.html",
+          },
+          m3: {
+            title: "Ch 3",
+            href: "https://www.dm5.com/m123/3.html",
+          },
+        },
+      },
+      ["m3", "m2"],
+    );
+
+    expect(shared.replaceSeriesChaptersInTransaction).toHaveBeenCalled();
+    expect(updatesStore.delete).toHaveBeenNthCalledWith(1, ["dm5:m123", "m3"]);
+    expect(updatesStore.delete).toHaveBeenNthCalledWith(2, ["dm5:m123", "m2"]);
+    expect(updatesStore.put).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        seriesKey: "dm5:m123",
+        chapterID: "m3",
+        position: -2,
+      }),
+    );
+    expect(updatesStore.put).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        seriesKey: "dm5:m123",
+        chapterID: "m2",
+        position: -1,
+      }),
+    );
+    expect(shared.emitLibrarySignal).toHaveBeenCalledWith(
+      "backgroundRefresh",
+      ["series", "updates"],
+      ["dm5:m123"],
+    );
+    expect(result.series).toEqual(
+      expect.objectContaining({
+        title: "Demo",
+        chapterList: ["m3", "m2", "m1"],
+      }),
+    );
+    expect(result.updatesCount).toBe(3);
   });
 });
