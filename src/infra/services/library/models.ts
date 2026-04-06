@@ -38,6 +38,12 @@ export type ReaderSeriesState = {
   subscribed: boolean;
 };
 
+export type BackgroundSeriesState = {
+  url: string;
+  cover: string;
+  knownChapterIDs: string[];
+};
+
 export function createEmptyPopupFeedSnapshot(): PopupFeedSnapshot {
   return {
     update: [],

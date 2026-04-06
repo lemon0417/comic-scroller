@@ -7,6 +7,7 @@ export {
   markSubscriptionCheckedByKey,
 } from "./mutations";
 export {
+  getBackgroundSeriesState,
   getSeriesSnapshot,
   getUpdateCount,
   listSubscriptionKeys,

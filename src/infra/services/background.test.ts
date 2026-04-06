@@ -37,12 +37,10 @@ describe("background service", () => {
       getFetchChapterPage: jest.fn(() => fetchChapterPage),
       getManifestVersion: jest.fn(() => "4.0.99"),
       getRuntimeUrl: jest.fn((path: string) => `chrome-extension:///${path}`),
-      getSeriesSnapshot: jest.fn().mockResolvedValue({
+      getBackgroundSeriesState: jest.fn().mockResolvedValue({
         url: "https://www.dm5.com/m123/",
         cover: "persisted-cover.jpg",
-        chapters: {
-          m1: { title: "Ch 1", href: "https://www.dm5.com/m123/1" },
-        },
+        knownChapterIDs: ["m1"],
       }),
       getUpdateCount: jest
         .fn()
@@ -106,19 +104,17 @@ describe("background service", () => {
             },
           }),
     );
-    const getSeriesSnapshot = jest
+    const getBackgroundSeriesState = jest
       .fn()
       .mockResolvedValueOnce({
         url: "https://www.dm5.com/m-stuck/",
         cover: "",
-        chapters: {},
+        knownChapterIDs: [],
       })
       .mockResolvedValueOnce({
         url: "https://www.dm5.com/m-ok/",
         cover: "",
-        chapters: {
-          m1: { title: "Ch 1", href: "https://www.dm5.com/m-ok/1" },
-        },
+        knownChapterIDs: ["m1"],
       });
     const applyBackgroundSeriesRefresh = jest.fn().mockResolvedValue({
       updatesCount: 1,
@@ -132,7 +128,7 @@ describe("background service", () => {
         getFetchChapterPage: jest.fn(() => fetchChapterPage),
         getManifestVersion: jest.fn(() => "4.0.99"),
         getRuntimeUrl: jest.fn((path: string) => `chrome-extension:///${path}`),
-        getSeriesSnapshot,
+        getBackgroundSeriesState,
         getUpdateCount: jest
           .fn()
           .mockResolvedValueOnce(0)
@@ -195,7 +191,7 @@ describe("background service", () => {
       getFetchChapterPage: jest.fn(),
       getManifestVersion: jest.fn(() => "4.0.99"),
       getRuntimeUrl: jest.fn((path: string) => `chrome-extension:///${path}`),
-      getSeriesSnapshot: jest.fn(),
+      getBackgroundSeriesState: jest.fn(),
       getUpdateCount: jest.fn(),
       listSubscriptionKeys: jest.fn(),
       markSubscriptionCheckedByKey: jest.fn(),

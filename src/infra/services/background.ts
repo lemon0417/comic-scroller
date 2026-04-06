@@ -1,6 +1,6 @@
 import {
   applyBackgroundSeriesRefresh,
-  getSeriesSnapshot,
+  getBackgroundSeriesState,
   getUpdateCount,
   listSubscriptionKeys,
   markSubscriptionCheckedByKey,
@@ -31,7 +31,7 @@ type BackgroundServiceDeps = {
   getFetchChapterPage: (site: string) => SiteMetaFetcher | undefined;
   getManifestVersion: () => string;
   getRuntimeUrl: (path: string) => string;
-  getSeriesSnapshot: typeof getSeriesSnapshot;
+  getBackgroundSeriesState: typeof getBackgroundSeriesState;
   getUpdateCount: typeof getUpdateCount;
   listSubscriptionKeys: typeof listSubscriptionKeys;
   markSubscriptionCheckedByKey: typeof markSubscriptionCheckedByKey;
@@ -68,7 +68,7 @@ function getDefaultDeps(): BackgroundServiceDeps {
     getFetchChapterPage: (site) => getSiteAdapter(site)?.fetchMeta,
     getManifestVersion: () => chrome.runtime.getManifest().version,
     getRuntimeUrl: (path) => chrome.runtime.getURL(path),
-    getSeriesSnapshot,
+    getBackgroundSeriesState,
     getUpdateCount,
     listSubscriptionKeys,
     markSubscriptionCheckedByKey,
@@ -128,7 +128,7 @@ async function checkSubscribedSeries(
 
   try {
     const { site, comicsID } = deps.parseSeriesKey(seriesKey);
-    const comic = await deps.getSeriesSnapshot(seriesKey);
+    const comic = await deps.getBackgroundSeriesState(seriesKey);
 
     if (!site || !comicsID || !comic?.url) {
       return { checked: 0, updated: 0, errors: 0 };
@@ -145,8 +145,9 @@ async function checkSubscribedSeries(
       deps.getFetchChapterPage,
       options.timeoutMs,
     );
+    const knownChapterIDs = new Set(comic.knownChapterIDs || []);
     const nextChapterIDs = (chapterList || []).filter(
-      (chapterID: string) => !comic.chapters?.[chapterID],
+      (chapterID: string) => !knownChapterIDs.has(chapterID),
     );
 
     if (nextChapterIDs.length > 0) {

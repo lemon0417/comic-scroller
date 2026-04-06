@@ -1,4 +1,5 @@
 import {
+  getBackgroundSeriesState,
   getPopupFeedSnapshot,
   getReaderSeriesState,
   listSubscriptionKeys,
@@ -326,6 +327,61 @@ describe("library queries", () => {
     });
     expect(db.transaction).toHaveBeenCalledWith(
       [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE],
+      "readonly",
+    );
+  });
+
+  it("loads background series state with chapter ids only", async () => {
+    const seriesStore = {
+      get: jest.fn(() => ({
+        seriesKey: "dm5:m123",
+        site: "dm5",
+        comicsID: "m123",
+        title: "Demo",
+        cover: "cover.jpg",
+        url: "https://www.dm5.com/m123/",
+        lastRead: "m1",
+        read: ["m1"],
+        lastReadTitle: "Ch 1",
+        lastReadHref: "https://www.dm5.com/m123/1.html",
+        latestChapterID: "m2",
+        latestChapterTitle: "Ch 2",
+        latestChapterHref: "https://www.dm5.com/m123/2.html",
+      })),
+    };
+    const chapterIndex = {
+      getAllKeys: jest.fn(() => [
+        ["dm5:m123", "m2"],
+        ["dm5:m123", "m1"],
+      ]),
+    };
+    const chaptersStore = {
+      index: jest.fn(() => chapterIndex),
+    };
+    const stores = {
+      [SERIES_STORE]: seriesStore,
+      [CHAPTERS_STORE]: chaptersStore,
+    };
+    const transaction = {
+      objectStore: jest.fn(
+        (storeName: keyof typeof stores) => stores[storeName],
+      ),
+    };
+    const db = {
+      transaction: jest.fn(() => transaction),
+    };
+    shared.openLibraryDb.mockResolvedValue(db);
+
+    await expect(getBackgroundSeriesState("dm5:m123")).resolves.toEqual({
+      url: "https://www.dm5.com/m123/",
+      cover: "cover.jpg",
+      knownChapterIDs: ["m2", "m1"],
+    });
+
+    expect(chaptersStore.index).toHaveBeenCalledWith("seriesKey");
+    expect(chapterIndex.getAllKeys).toHaveBeenCalledWith("dm5:m123");
+    expect(db.transaction).toHaveBeenCalledWith(
+      [SERIES_STORE, CHAPTERS_STORE],
       "readonly",
     );
   });
