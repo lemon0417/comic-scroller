@@ -119,9 +119,29 @@ describe("library mutations", () => {
         { seriesKey: "dm5:m123", position: 0, checkedAt: 200 },
         { seriesKey: "sf:77", position: 1, checkedAt: 100 },
       ]),
+      get: jest.fn(() => undefined),
+    };
+    const seriesStore = {
+      get: jest.fn(() => undefined),
+    };
+    const chaptersStore = {
+      index: jest.fn(() => ({
+        getAllKeys: jest.fn(() => []),
+      })),
+      delete: jest.fn(() => undefined),
+    };
+    const historyStore = {
+      get: jest.fn(() => undefined),
+    };
+    const updatesStore = {
+      getAll: jest.fn(() => []),
     };
     const stores = {
+      [SERIES_STORE]: seriesStore,
+      [CHAPTERS_STORE]: chaptersStore,
       [SUBSCRIPTIONS_STORE]: subscriptionsStore,
+      [HISTORY_STORE]: historyStore,
+      [UPDATES_STORE]: updatesStore,
     };
     const transaction = {
       objectStore: jest.fn(
@@ -165,9 +185,45 @@ describe("library mutations", () => {
   });
 
   it("removes only history entries without touching series data", async () => {
-    const historyStore = {};
+    const seriesStore = {
+      get: jest.fn(() => ({
+        seriesKey: "dm5:m123",
+        site: "dm5",
+        comicsID: "m123",
+        title: "Demo",
+        cover: "cover.jpg",
+        url: "https://www.dm5.com/m123/",
+        lastRead: "m1",
+        read: ["m1"],
+        lastReadTitle: "Ch 1",
+        lastReadHref: "https://www.dm5.com/m123/1.html",
+        latestChapterID: "m1",
+        latestChapterTitle: "Ch 1",
+        latestChapterHref: "https://www.dm5.com/m123/1.html",
+      })),
+      delete: jest.fn(() => undefined),
+    };
+    const chaptersStore = {
+      index: jest.fn(() => ({
+        getAllKeys: jest.fn(() => []),
+      })),
+      delete: jest.fn(() => undefined),
+    };
+    const subscriptionsStore = {
+      get: jest.fn(() => ({ seriesKey: "dm5:m123", position: 0, checkedAt: 100 })),
+    };
+    const historyStore = {
+      get: jest.fn(() => undefined),
+    };
+    const updatesStore = {
+      getAll: jest.fn(() => []),
+    };
     const stores = {
+      [SERIES_STORE]: seriesStore,
+      [CHAPTERS_STORE]: chaptersStore,
+      [SUBSCRIPTIONS_STORE]: subscriptionsStore,
       [HISTORY_STORE]: historyStore,
+      [UPDATES_STORE]: updatesStore,
     };
     const transaction = {
       objectStore: jest.fn(
@@ -195,6 +251,8 @@ describe("library mutations", () => {
       ["history"],
       ["dm5:m123"],
     );
+    expect(seriesStore.delete).not.toHaveBeenCalled();
+    expect(chaptersStore.delete).not.toHaveBeenCalled();
   });
 
   it("updates read progress without rewriting chapter cache", async () => {

@@ -57,7 +57,9 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - `history -> 移除`：只刪 `history` row，不刪作品、章節、追蹤或更新
   - `subscribe -> 棄坑`：預設只取消追蹤並清除該作品的更新提醒
   - `subscribe -> 棄坑 + 清除資料`：才使用 `removeSeriesCascade` 刪除作品資料、章節快取、追蹤、紀錄與更新
-- `history -> 移除` 與 `unsubscribe-only` 不保證立刻清掉章節快取；若作品後續不再被引用，章節快取可由後續 maintenance/GC 回收
+- `history -> 移除`、`unsubscribe-only`、`dismiss update` 都不直接做 cascade delete
+- 但 repository 會在 mutation 後檢查該作品是否已不再被 `subscriptions / history / updates` 任一列表引用
+- 若作品已成為 orphan cache，會自動回收 `series + chapters`
 - 核心欄位：
   - `seriesByKey`
   - `subscriptions`

@@ -171,11 +171,60 @@ function mergeSeriesRecord(
   return nextRecord;
 }
 
+async function pruneSeriesCacheIfOrphaned(
+  seriesKey: string,
+  source = "pruneSeriesCache",
+) {
+  await ensureLibraryReady();
+  const db = await openLibraryDb();
+  const transaction = db.transaction(
+    [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE],
+    "readwrite",
+  );
+  const done = transactionDone(transaction);
+  const seriesStore = transaction.objectStore(SERIES_STORE);
+  const chaptersStore = transaction.objectStore(CHAPTERS_STORE);
+  const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
+  const historyStore = transaction.objectStore(HISTORY_STORE);
+  const updatesStore = transaction.objectStore(UPDATES_STORE);
+
+  const [seriesRow, subscriptionRow, historyRow, updates] = await Promise.all([
+    requestToPromise<SeriesRow | undefined>(seriesStore.get(seriesKey)),
+    requestToPromise<SubscriptionRow | undefined>(subscriptionsStore.get(seriesKey)),
+    requestToPromise(historyStore.get(seriesKey)),
+    requestToPromise<LibraryUpdateRecord[]>(updatesStore.getAll()),
+  ]);
+
+  if (
+    !seriesRow ||
+    subscriptionRow ||
+    historyRow ||
+    updates.some((item) => item.seriesKey === seriesKey)
+  ) {
+    await done;
+    return false;
+  }
+
+  await requestToPromise(seriesStore.delete(seriesKey));
+  const chapterKeys = await requestToPromise<IDBValidKey[]>(
+    chaptersStore.index("seriesKey").getAllKeys(seriesKey),
+  );
+  for (const key of chapterKeys) {
+    await requestToPromise(chaptersStore.delete(key));
+  }
+  await done;
+  await emitLibrarySignal(source, ["series"], [seriesKey]);
+  return true;
+}
+
 async function rewriteUpdatesForSeries(
   site: SiteKey,
   comicsID: string,
   updater: (updates: LibraryUpdateRecord[], seriesKey: string) => LibraryUpdateRecord[],
   source: string,
+  options: {
+    pruneIfOrphaned?: boolean;
+  } = {},
 ) {
   await ensureLibraryReady();
   const seriesKey = buildSeriesKey(site, comicsID);
@@ -194,6 +243,9 @@ async function rewriteUpdatesForSeries(
   const updatesCount = await requestToPromise<number>(updatesStore.count());
   await done;
   await emitLibrarySignal(source, ["updates"], [seriesKey]);
+  if (options.pruneIfOrphaned) {
+    await pruneSeriesCacheIfOrphaned(seriesKey, `${source}:prune`);
+  }
   return Number(updatesCount || 0);
 }
 
@@ -203,6 +255,9 @@ async function rewriteOrderedSeriesStore(
   updater: (seriesKeys: string[]) => string[],
   source: string,
   scope: "subscriptions" | "history",
+  options: {
+    pruneIfOrphaned?: boolean;
+  } = {},
 ) {
   await ensureLibraryReady();
   const db = await openLibraryDb();
@@ -233,6 +288,9 @@ async function rewriteOrderedSeriesStore(
   }
   await done;
   await emitLibrarySignal(source, [scope], [seriesKey]);
+  if (options.pruneIfOrphaned) {
+    await pruneSeriesCacheIfOrphaned(seriesKey, `${source}:prune`);
+  }
 }
 
 export async function setSeriesSubscriptionByKey(seriesKey: string, subscribed: boolean) {
@@ -245,6 +303,9 @@ export async function setSeriesSubscriptionByKey(seriesKey: string, subscribed: 
         : seriesKeys.filter((item) => item !== seriesKey),
     "setSubscription",
     "subscriptions",
+    {
+      pruneIfOrphaned: !subscribed,
+    },
   );
   return subscribed;
 }
@@ -280,6 +341,9 @@ export async function toggleSeriesSubscriptionByKey(seriesKey: string) {
   );
   await done;
   await emitLibrarySignal("toggleSubscription", ["subscriptions"], [seriesKey]);
+  if (!nextSubscribed) {
+    await pruneSeriesCacheIfOrphaned(seriesKey, "toggleSubscription:prune");
+  }
   return nextSubscribed;
 }
 
@@ -327,6 +391,9 @@ export async function dismissSeriesUpdate(
         (item) => item.seriesKey !== seriesKey || (chapterID && item.chapterID !== chapterID),
       ),
     "dismissUpdate",
+    {
+      pruneIfOrphaned: true,
+    },
   );
 }
 
@@ -338,6 +405,9 @@ export async function removeSeriesFromHistory(site: SiteKey, comicsID: string) {
     (seriesKeys) => seriesKeys.filter((item) => item !== seriesKey),
     "removeHistory",
     "history",
+    {
+      pruneIfOrphaned: true,
+    },
   );
 }
 

@@ -476,6 +476,143 @@ describe("library integration", () => {
     expect(feed.continueReading?.category).toBe("subscribe");
   });
 
+  it("prunes orphaned series cache after removing the last history reference", async () => {
+    await compat.importLibraryDump({
+      format: "comic-scroller-db-dump",
+      formatVersion: 1,
+      exportedAt: 1,
+      dbSchemaVersion: 1,
+      data: {
+        series: [
+          {
+            seriesKey: "dm5:m123",
+            site: "dm5",
+            comicsID: "m123",
+            title: "Demo",
+            cover: "cover.jpg",
+            url: "https://www.dm5.com/m123/",
+            lastRead: "m1",
+            read: ["m1"],
+          },
+        ],
+        chapters: [
+          {
+            seriesKey: "dm5:m123",
+            chapterID: "m1",
+            title: "Ch 1",
+            href: "https://www.dm5.com/m123/1.html",
+            orderIndex: 0,
+          },
+        ],
+        subscriptions: [],
+        history: [{ seriesKey: "dm5:m123", position: 0 }],
+        updates: [],
+      },
+    });
+
+    await mutations.removeSeriesFromHistory("dm5", "m123");
+
+    await expect(queries.getSeriesSnapshot("dm5:m123")).resolves.toBeNull();
+    await expect(queries.getPopupFeedSnapshot()).resolves.toEqual({
+      update: [],
+      subscribe: [],
+      history: [],
+      continueReading: null,
+    });
+  });
+
+  it("prunes orphaned series cache after dismissing the last update", async () => {
+    await compat.importLibraryDump({
+      format: "comic-scroller-db-dump",
+      formatVersion: 1,
+      exportedAt: 1,
+      dbSchemaVersion: 1,
+      data: {
+        series: [
+          {
+            seriesKey: "dm5:m123",
+            site: "dm5",
+            comicsID: "m123",
+            title: "Demo",
+            cover: "cover.jpg",
+            url: "https://www.dm5.com/m123/",
+            lastRead: "",
+            read: [],
+          },
+        ],
+        chapters: [
+          {
+            seriesKey: "dm5:m123",
+            chapterID: "m2",
+            title: "Ch 2",
+            href: "https://www.dm5.com/m123/2.html",
+            orderIndex: 0,
+          },
+        ],
+        subscriptions: [],
+        history: [],
+        updates: [
+          {
+            seriesKey: "dm5:m123",
+            chapterID: "m2",
+            createdAt: 2,
+            position: 0,
+          },
+        ],
+      },
+    });
+
+    await mutations.dismissSeriesUpdate("dm5", "m123", "m2");
+
+    await expect(queries.getUpdateCount()).resolves.toBe(0);
+    await expect(queries.getSeriesSnapshot("dm5:m123")).resolves.toBeNull();
+  });
+
+  it("prunes orphaned series cache after unsubscribing the last tracked reference", async () => {
+    await compat.importLibraryDump({
+      format: "comic-scroller-db-dump",
+      formatVersion: 1,
+      exportedAt: 1,
+      dbSchemaVersion: 1,
+      data: {
+        series: [
+          {
+            seriesKey: "dm5:m123",
+            site: "dm5",
+            comicsID: "m123",
+            title: "Demo",
+            cover: "cover.jpg",
+            url: "https://www.dm5.com/m123/",
+            lastRead: "",
+            read: [],
+          },
+        ],
+        chapters: [
+          {
+            seriesKey: "dm5:m123",
+            chapterID: "m1",
+            title: "Ch 1",
+            href: "https://www.dm5.com/m123/1.html",
+            orderIndex: 0,
+          },
+        ],
+        subscriptions: [{ seriesKey: "dm5:m123", position: 0 }],
+        history: [],
+        updates: [],
+      },
+    });
+
+    await mutations.setSeriesSubscriptionByKey("dm5:m123", false);
+
+    await expect(queries.getSeriesSnapshot("dm5:m123")).resolves.toBeNull();
+    await expect(queries.getPopupFeedSnapshot()).resolves.toEqual({
+      update: [],
+      subscribe: [],
+      history: [],
+      continueReading: null,
+    });
+  });
+
   it("orders background polling subscriptions by the oldest checkedAt first", async () => {
     await compat.importLibraryDump({
       format: "comic-scroller-db-dump",

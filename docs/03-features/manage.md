@@ -14,9 +14,9 @@
   - reader 章節列表
   - popup/manage 的章節標題摘要
   - background 更新比對
-- `紀錄 -> 移除` 與未勾選清除資料的 `棄坑` 不會主動刪除章節快取
+- `紀錄 -> 移除`、未勾選清除資料的 `棄坑`、以及 `更新 -> 略過` 都不會直接做作品級 cascade delete
 - 只有「清除資料」或全量 `重置資料` 會保證刪掉作品快取
-- 若作品後續不再被任何列表引用，殘留快取可視為後續 maintenance/GC 的回收對象
+- 若作品後續不再被 `追蹤 / 紀錄 / 更新` 任一列表引用，repository 會把殘留的 `series / chapters` 當作 orphan cache 自動回收
 
 ## 分頁語意
 
@@ -45,7 +45,8 @@
 - `移除`：只移除該作品的閱讀紀錄
 - 不會取消追蹤
 - 不會刪除更新提醒
-- 不會刪除作品或章節快取
+- 不會直接做作品級刪除
+- 若移除後該作品已沒有任何追蹤、更新或紀錄引用，殘留快取會被 repository 自動 GC
 - repository 對應：`removeSeriesFromHistory(site, comicsID)`
 
 ### 選項
