@@ -142,6 +142,40 @@ function buildPopupFeedSnapshot(input: {
   };
 }
 
+async function loadReferencedSeriesRecords(
+  seriesStore: IDBObjectStore,
+  chaptersStore: IDBObjectStore,
+  referencedKeys: string[],
+) {
+  if (referencedKeys.length === 0) {
+    return {};
+  }
+
+  const chapterIndex = chaptersStore.index("seriesKey");
+  const seriesEntries = await Promise.all(
+    referencedKeys.map(async (seriesKey) => {
+      const row = await requestToPromise<SeriesRow | undefined>(seriesStore.get(seriesKey));
+      if (!row) {
+        return null;
+      }
+
+      const chapterRows = await requestToPromise<ChapterRow[]>(
+        chapterIndex.getAll(seriesKey),
+      );
+      return [seriesKey, composeSeriesRecord(row, chapterRows)] as const;
+    }),
+  );
+
+  return seriesEntries.reduce<Record<string, SeriesRecord>>((acc, entry) => {
+    if (!entry) {
+      return acc;
+    }
+    const [seriesKey, record] = entry;
+    acc[seriesKey] = record;
+    return acc;
+  }, {});
+}
+
 export async function getSeriesSnapshot(siteOrSeriesKey: string, comicsID?: string) {
   return readSeriesSnapshotByKey(resolveSeriesKeyInput(siteOrSeriesKey, comicsID));
 }
@@ -232,12 +266,10 @@ export async function getPopupFeedSnapshot() {
   const historyStore = transaction.objectStore(HISTORY_STORE);
   const updatesStore = transaction.objectStore(UPDATES_STORE);
 
-  const [subscriptions, history, updates, seriesRows, chapterRows] = await Promise.all([
+  const [subscriptions, history, updates] = await Promise.all([
     requestToPromise<SubscriptionRow[]>(subscriptionsStore.getAll()),
     requestToPromise<HistoryRow[]>(historyStore.getAll()),
     requestToPromise<UpdateRow[]>(updatesStore.getAll()),
-    requestToPromise<SeriesRow[]>(seriesStore.getAll()),
-    requestToPromise<ChapterRow[]>(chaptersStore.getAll()),
   ]);
 
   const referencedKeys = Array.from(
@@ -248,30 +280,11 @@ export async function getPopupFeedSnapshot() {
     ]),
   );
 
-  const referencedKeySet = new Set(referencedKeys);
-  const chapterRowsBySeriesKey = chapterRows.reduce<Record<string, ChapterRow[]>>(
-    (acc, row) => {
-      if (!referencedKeySet.has(row.seriesKey)) {
-        return acc;
-      }
-      if (!acc[row.seriesKey]) {
-        acc[row.seriesKey] = [];
-      }
-      acc[row.seriesKey].push(row);
-      return acc;
-    },
-    {},
+  const seriesByKey = await loadReferencedSeriesRecords(
+    seriesStore,
+    chaptersStore,
+    referencedKeys,
   );
-  const seriesByKey: Record<string, SeriesRecord> = {};
-  for (const row of seriesRows) {
-    if (!referencedKeySet.has(row.seriesKey)) {
-      continue;
-    }
-    seriesByKey[row.seriesKey] = composeSeriesRecord(
-      row,
-      chapterRowsBySeriesKey[row.seriesKey] || [],
-    );
-  }
 
   await done;
 

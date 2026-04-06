@@ -44,6 +44,17 @@ describe("library queries", () => {
         read: ["m1"],
         updatedAt: 1,
       },
+      "sf:77": {
+        seriesKey: "sf:77",
+        site: "sf",
+        comicsID: "77",
+        title: "Unreferenced",
+        cover: "",
+        url: "http://comic.sfacg.com/HTML/77/",
+        lastRead: "",
+        read: [],
+        updatedAt: 1,
+      },
     };
     const chapterRows = {
       "dm5:m123": [
@@ -62,14 +73,25 @@ describe("library queries", () => {
           orderIndex: 1,
         },
       ],
+      "sf:77": [
+        {
+          seriesKey: "sf:77",
+          chapterID: "c1",
+          title: "Extra Chapter",
+          href: "http://comic.sfacg.com/HTML/77/c1.html",
+          orderIndex: 0,
+        },
+      ],
     };
 
     const stores = {
       [SERIES_STORE]: {
-        getAll: jest.fn(() => Object.values(seriesRows)),
+        get: jest.fn((seriesKey: keyof typeof seriesRows) => seriesRows[seriesKey]),
       },
       [CHAPTERS_STORE]: {
-        getAll: jest.fn(() => Object.values(chapterRows).flat()),
+        index: jest.fn(() => ({
+          getAll: jest.fn((seriesKey: keyof typeof chapterRows) => chapterRows[seriesKey] || []),
+        })),
       },
       [SUBSCRIPTIONS_STORE]: {
         getAll: jest.fn(() => [{ seriesKey: "dm5:m123", position: 0 }]),
@@ -195,10 +217,52 @@ describe("library queries", () => {
         continueHref: "https://www.dm5.com/m123/1.html",
       },
     });
-    expect(stores[SERIES_STORE].getAll).toHaveBeenCalledTimes(1);
-    expect(stores[CHAPTERS_STORE].getAll).toHaveBeenCalledTimes(1);
+    expect(stores[SERIES_STORE].get).toHaveBeenCalledTimes(1);
+    expect(stores[SERIES_STORE].get).toHaveBeenCalledWith("dm5:m123");
+    expect(stores[CHAPTERS_STORE].index).toHaveBeenCalledWith("seriesKey");
     expect(transaction.objectStore).toHaveBeenCalledWith(SERIES_STORE);
     expect(transaction.objectStore).toHaveBeenCalledWith(CHAPTERS_STORE);
+  });
+
+  it("does not read series or chapter stores when the popup feed has no referenced series", async () => {
+    const seriesStore = {
+      get: jest.fn(),
+    };
+    const chaptersStore = {
+      index: jest.fn(),
+    };
+    const stores = {
+      [SERIES_STORE]: seriesStore,
+      [CHAPTERS_STORE]: chaptersStore,
+      [SUBSCRIPTIONS_STORE]: {
+        getAll: jest.fn(() => []),
+      },
+      [HISTORY_STORE]: {
+        getAll: jest.fn(() => []),
+      },
+      [UPDATES_STORE]: {
+        getAll: jest.fn(() => []),
+      },
+    };
+    const transaction = {
+      objectStore: jest.fn(
+        (storeName: keyof typeof stores) => stores[storeName],
+      ),
+    };
+    const db = {
+      transaction: jest.fn(() => transaction),
+    };
+    shared.openLibraryDb.mockResolvedValue(db);
+
+    await expect(getPopupFeedSnapshot()).resolves.toEqual({
+      update: [],
+      subscribe: [],
+      history: [],
+      continueReading: null,
+    });
+
+    expect(seriesStore.get).not.toHaveBeenCalled();
+    expect(chaptersStore.index).not.toHaveBeenCalled();
   });
 
   it("loads reader series state and subscription in a single query", async () => {
