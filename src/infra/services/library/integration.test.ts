@@ -24,6 +24,20 @@ if (typeof globalThis.structuredClone !== "function") {
     JSON.parse(JSON.stringify(value));
 }
 
+if (typeof globalThis.CompressionStream !== "function") {
+  const { CompressionStream, DecompressionStream, ReadableStream } = require("stream/web");
+  (globalThis as any).CompressionStream = CompressionStream;
+  (globalThis as any).DecompressionStream = DecompressionStream;
+  (globalThis as any).ReadableStream = ReadableStream;
+}
+
+if (
+  typeof globalThis.Blob !== "function" ||
+  typeof globalThis.Blob.prototype.arrayBuffer !== "function"
+) {
+  (globalThis as any).Blob = require("buffer").Blob;
+}
+
 function createChromeMock() {
   const listeners = new Set<ChromeStorageListener>();
   let storageState: Record<string, any> = {};
@@ -413,6 +427,103 @@ describe("library integration", () => {
     const readerState = await queries.getReaderSeriesState("dm5:m123");
     expect(readerState.series?.cover).toBe("persisted-cover.jpg");
     expect(readerState.series?.chapterList).toEqual(["m2", "m1"]);
+  });
+
+  it("imports plain JSON bytes from the manage file picker flow", async () => {
+    const payload = {
+      format: "comic-scroller-db-dump" as const,
+      formatVersion: 1 as const,
+      exportedAt: 1,
+      dbSchemaVersion: 1,
+      data: {
+        series: [
+          {
+            seriesKey: "dm5:m123",
+            site: "dm5" as const,
+            comicsID: "m123",
+            title: "Demo",
+            cover: "cover.jpg",
+            url: "https://www.dm5.com/m123/",
+            lastRead: "m1",
+            read: ["m1"],
+            updatedAt: 1,
+          },
+        ],
+        chapters: [
+          {
+            seriesKey: "dm5:m123",
+            chapterID: "m1",
+            title: "Ch 1",
+            href: "https://www.dm5.com/m123/1.html",
+            orderIndex: 0,
+          },
+        ],
+        subscriptions: [{ seriesKey: "dm5:m123", position: 0 }],
+        history: [{ seriesKey: "dm5:m123", position: 0 }],
+        updates: [],
+      },
+    };
+
+    await compat.importLibraryDump(
+      Uint8Array.from(Buffer.from(JSON.stringify(payload), "utf8")).buffer,
+    );
+
+    const feed = await queries.getPopupFeedSnapshot();
+    expect(feed.subscribe).toHaveLength(1);
+    expect(feed.history).toHaveLength(1);
+    expect(feed.subscribe[0].title).toBe("Demo");
+  });
+
+  it("exports gzip archives that can be imported again", async () => {
+    await compat.importLibraryDump({
+      format: "comic-scroller-db-dump",
+      formatVersion: 1,
+      exportedAt: 1,
+      dbSchemaVersion: 1,
+      data: {
+        series: [
+          {
+            seriesKey: "dm5:m123",
+            site: "dm5",
+            comicsID: "m123",
+            title: "Demo",
+            cover: "cover.jpg",
+            url: "https://www.dm5.com/m123/",
+            lastRead: "m1",
+            read: ["m1"],
+            updatedAt: 1,
+          },
+        ],
+        chapters: [
+          {
+            seriesKey: "dm5:m123",
+            chapterID: "m1",
+            title: "Ch 1",
+            href: "https://www.dm5.com/m123/1.html",
+            orderIndex: 0,
+          },
+        ],
+        subscriptions: [{ seriesKey: "dm5:m123", position: 0 }],
+        history: [{ seriesKey: "dm5:m123", position: 0 }],
+        updates: [],
+      },
+    });
+
+    const archive = await compat.exportLibraryArchive();
+    expect(archive.filename).toBe("comic-scroller-library.json.gz");
+    expect(archive.blob.type).toBe("application/gzip");
+    const archiveBytes = await archive.blob.arrayBuffer();
+    expect(new Uint8Array(archiveBytes).slice(0, 2)).toEqual(
+      new Uint8Array([0x1f, 0x8b]),
+    );
+
+    await compat.resetLibrary();
+    await compat.importLibraryDump(archiveBytes);
+
+    const feed = await queries.getPopupFeedSnapshot();
+    expect(feed.subscribe).toHaveLength(1);
+    expect(feed.history).toHaveLength(1);
+    expect(feed.subscribe[0].lastReadTitle).toBe("Ch 1");
   });
 
   it("removes only history entries while preserving subscriptions and series data", async () => {

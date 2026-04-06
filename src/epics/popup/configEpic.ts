@@ -11,7 +11,7 @@ import {
 } from "@domain/reducers/popupState";
 import type { PopupFeedEntry } from "@infra/services/library/models";
 import {
-  exportLibraryDump,
+  exportLibraryArchive,
   getPopupFeedSnapshot,
   importLibraryDump,
   resetLibrary,
@@ -100,12 +100,10 @@ const popupConfigEpic: PopupEpic = (action$) =>
       }
 
       if (action.type === REQUEST_EXPORT_CONFIG) {
-        return from(exportLibraryDump()).pipe(
-          mergeMap((dump) => {
-            const json = JSON.stringify(dump);
-            const blob = new Blob([json], { type: "octet/stream" });
+        return from(exportLibraryArchive()).pipe(
+          mergeMap(({ blob, filename }) => {
             const url = window.URL.createObjectURL(blob);
-            return [setExportConfig(url, "comic-scroller-library.json")];
+            return [setExportConfig(url, filename)];
           }),
           catchError(() =>
             of(setPopupNotice(getPopupConfigErrorMessage(action.type))),

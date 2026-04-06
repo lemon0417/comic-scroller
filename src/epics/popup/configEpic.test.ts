@@ -17,13 +17,13 @@ import { lastValueFrom, of } from "rxjs";
 import { toArray } from "rxjs/operators";
 
 jest.mock("@infra/services/library/popup", () => ({
-  exportLibraryDump: jest.fn(),
+  exportLibraryArchive: jest.fn(),
   getPopupFeedSnapshot: jest.fn(),
   importLibraryDump: jest.fn(),
   resetLibrary: jest.fn(),
 }));
 
-const { exportLibraryDump, getPopupFeedSnapshot, importLibraryDump, resetLibrary } = jest.requireMock(
+const { exportLibraryArchive, getPopupFeedSnapshot, importLibraryDump, resetLibrary } = jest.requireMock(
   "@infra/services/library/popup",
 );
 
@@ -136,18 +136,9 @@ describe("popupConfigEpic", () => {
   });
 
   it("exports config url", async () => {
-    exportLibraryDump.mockResolvedValue({
-      format: "comic-scroller-db-dump",
-      formatVersion: 1,
-      exportedAt: 1,
-      dbSchemaVersion: 1,
-      data: {
-        series: [],
-        chapters: [],
-        subscriptions: [],
-        history: [],
-        updates: [],
-      },
+    exportLibraryArchive.mockResolvedValue({
+      blob: new Blob(["gzip"], { type: "application/gzip" }),
+      filename: "comic-scroller-library.json.gz",
     });
 
     const actions = await lastValueFrom(
@@ -155,7 +146,7 @@ describe("popupConfigEpic", () => {
     );
 
     expect(actions).toEqual([
-      setExportConfig("blob:mock", "comic-scroller-library.json"),
+      setExportConfig("blob:mock", "comic-scroller-library.json.gz"),
     ]);
   });
 
@@ -172,7 +163,7 @@ describe("popupConfigEpic", () => {
   });
 
   it("surfaces a notice when export fails", async () => {
-    exportLibraryDump.mockRejectedValue(new Error("boom"));
+    exportLibraryArchive.mockRejectedValue(new Error("boom"));
 
     const actions = await lastValueFrom(
       popupConfigEpic(of(requestExportConfig())).pipe(toArray()),

@@ -277,23 +277,21 @@ function ManageAppComponent(props: ManageAppProps) {
   const handleFileChange: ChangeEventHandler<HTMLInputElement> = (event) => {
     const file = event.currentTarget.files?.item(0);
     if (!file) return;
-    const reader = new FileReader();
+    const input = event.currentTarget;
 
-    reader.onload = (loadEvent) => {
-      const raw = loadEvent.target && (loadEvent.target as FileReader).result;
-      try {
-        const parsed = JSON.parse(String(raw || "{}"));
+    void file
+      .arrayBuffer()
+      .then((raw) => {
         setLocalError("");
         clearPopupNoticeProp();
-        requestImportConfigProp(parsed);
-      } catch {
-        setLocalError("設定檔格式錯誤，請上傳有效 JSON。");
-      } finally {
-        event.currentTarget.value = "";
-      }
-    };
-
-    reader.readAsText(file);
+        requestImportConfigProp(raw);
+      })
+      .catch(() => {
+        setLocalError("目前無法讀取設定檔。");
+      })
+      .finally(() => {
+        input.value = "";
+      });
   };
 
   const handleDebugLogToggle = () => {

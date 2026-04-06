@@ -1,4 +1,5 @@
 export {
+  exportLibraryArchive,
   exportLibraryDump,
   importLibraryDump,
   resetLibrary,
