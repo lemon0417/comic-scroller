@@ -46,9 +46,10 @@ async function persistSeriesRecordState(
   const shouldPersistChapterCache = Boolean(
     input.record && ("chapterList" in input.record || "chapters" in input.record),
   );
+  const shouldLoadReadChapter = Boolean(input.readChapterID && !shouldPersistChapterCache);
   const storeNames = [
     SERIES_STORE,
-    ...(shouldPersistChapterCache ? [CHAPTERS_STORE] : []),
+    ...(shouldPersistChapterCache || shouldLoadReadChapter ? [CHAPTERS_STORE] : []),
     ...(input.addHistory ? [HISTORY_STORE] : []),
     UPDATES_STORE,
     ...(input.includeSubscriptionState ? [SUBSCRIPTIONS_STORE] : []),
@@ -57,7 +58,7 @@ async function persistSeriesRecordState(
   const transaction = db.transaction(storeNames, "readwrite");
   const done = transactionDone(transaction);
   const seriesStore = transaction.objectStore(SERIES_STORE);
-  const chaptersStore = shouldPersistChapterCache
+  const chaptersStore = shouldPersistChapterCache || shouldLoadReadChapter
     ? transaction.objectStore(CHAPTERS_STORE)
     : null;
   const historyStore = input.addHistory
@@ -71,11 +72,17 @@ async function persistSeriesRecordState(
   const previousRow = await requestToPromise<SeriesRow | undefined>(
     seriesStore.get(seriesKey),
   );
-  const previousChapters = previousRow && chaptersStore
+  const previousChapters = previousRow && shouldPersistChapterCache && chaptersStore
     ? await requestToPromise<ChapterRow[]>(
         chaptersStore.index("seriesKey").getAll(seriesKey),
       )
     : [];
+  const readChapterRow =
+    shouldLoadReadChapter && chaptersStore && input.readChapterID
+      ? await requestToPromise<ChapterRow | undefined>(
+          chaptersStore.get([seriesKey, input.readChapterID]),
+        )
+      : undefined;
   const previousRecord = previousRow
     ? composeSeriesRecord(previousRow, previousChapters)
     : normalizeSeriesRecord(site, comicsID, {});
@@ -87,8 +94,15 @@ async function persistSeriesRecordState(
     mergedRecord.read = uniqueStrings([...(mergedRecord.read || []), input.readChapterID]);
   }
 
-  await requestToPromise(seriesStore.put(createSeriesRow(seriesKey, mergedRecord)));
-  if (chaptersStore) {
+  await requestToPromise(
+    seriesStore.put(
+      createSeriesRow(seriesKey, mergedRecord, {
+        previousRow,
+        readChapterRow,
+      }),
+    ),
+  );
+  if (shouldPersistChapterCache && chaptersStore) {
     await replaceSeriesChaptersInTransaction(chaptersStore, seriesKey, mergedRecord);
   }
 
@@ -432,7 +446,13 @@ export async function applyBackgroundSeriesRefresh(
     : normalizeSeriesRecord(site, comicsID, {});
   const mergedRecord = mergeSeriesRecord(site, comicsID, previousRecord, record);
 
-  await requestToPromise(seriesStore.put(createSeriesRow(seriesKey, mergedRecord)));
+  await requestToPromise(
+    seriesStore.put(
+      createSeriesRow(seriesKey, mergedRecord, {
+        previousRow,
+      }),
+    ),
+  );
   await replaceSeriesChaptersInTransaction(chaptersStore, seriesKey, mergedRecord);
 
   const existingUpdates = await loadUpdatesInTransaction(updatesStore);

@@ -42,6 +42,11 @@ describe("library queries", () => {
         url: "https://www.dm5.com/m123/",
         lastRead: "m1",
         read: ["m1"],
+        lastReadTitle: "Ch 1",
+        lastReadHref: "https://www.dm5.com/m123/1.html",
+        latestChapterID: "m1",
+        latestChapterTitle: "Ch 1",
+        latestChapterHref: "https://www.dm5.com/m123/1.html",
       },
       "sf:77": {
         seriesKey: "sf:77",
@@ -52,34 +57,12 @@ describe("library queries", () => {
         url: "http://comic.sfacg.com/HTML/77/",
         lastRead: "",
         read: [],
+        lastReadTitle: "",
+        lastReadHref: "",
+        latestChapterID: "c1",
+        latestChapterTitle: "Extra Chapter",
+        latestChapterHref: "http://comic.sfacg.com/HTML/77/c1.html",
       },
-    };
-    const chapterRows = {
-      "dm5:m123": [
-        {
-          seriesKey: "dm5:m123",
-          chapterID: "m1",
-          title: "Ch 1",
-          href: "https://www.dm5.com/m123/1.html",
-          orderIndex: 0,
-        },
-        {
-          seriesKey: "dm5:m123",
-          chapterID: "m2",
-          title: "Ch 2",
-          href: "https://www.dm5.com/m123/2.html",
-          orderIndex: 1,
-        },
-      ],
-      "sf:77": [
-        {
-          seriesKey: "sf:77",
-          chapterID: "c1",
-          title: "Extra Chapter",
-          href: "http://comic.sfacg.com/HTML/77/c1.html",
-          orderIndex: 0,
-        },
-      ],
     };
 
     const stores = {
@@ -87,9 +70,17 @@ describe("library queries", () => {
         get: jest.fn((seriesKey: keyof typeof seriesRows) => seriesRows[seriesKey]),
       },
       [CHAPTERS_STORE]: {
-        index: jest.fn(() => ({
-          getAll: jest.fn((seriesKey: keyof typeof chapterRows) => chapterRows[seriesKey] || []),
-        })),
+        get: jest.fn((key: [string, string]) =>
+          key[0] === "dm5:m123" && key[1] === "m2"
+            ? {
+                seriesKey: "dm5:m123",
+                chapterID: "m2",
+                title: "Ch 2",
+                href: "https://www.dm5.com/m123/2.html",
+                orderIndex: 1,
+              }
+            : undefined,
+        ),
       },
       [SUBSCRIPTIONS_STORE]: {
         getAll: jest.fn(() => [{ seriesKey: "dm5:m123", position: 0 }]),
@@ -217,7 +208,7 @@ describe("library queries", () => {
     });
     expect(stores[SERIES_STORE].get).toHaveBeenCalledTimes(1);
     expect(stores[SERIES_STORE].get).toHaveBeenCalledWith("dm5:m123");
-    expect(stores[CHAPTERS_STORE].index).toHaveBeenCalledWith("seriesKey");
+    expect(stores[CHAPTERS_STORE].get).toHaveBeenCalledWith(["dm5:m123", "m2"]);
     expect(transaction.objectStore).toHaveBeenCalledWith(SERIES_STORE);
     expect(transaction.objectStore).toHaveBeenCalledWith(CHAPTERS_STORE);
   });
@@ -274,6 +265,11 @@ describe("library queries", () => {
         url: "https://www.dm5.com/m123/",
         lastRead: "m1",
         read: ["m1"],
+        lastReadTitle: "Ch 1",
+        lastReadHref: "https://www.dm5.com/m123/1.html",
+        latestChapterID: "m1",
+        latestChapterTitle: "Ch 1",
+        latestChapterHref: "https://www.dm5.com/m123/1.html",
       })),
     };
     const chaptersStore = {

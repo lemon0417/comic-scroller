@@ -3,6 +3,7 @@ import "fake-indexeddb/auto";
 import {
   CHAPTERS_STORE,
   HISTORY_STORE,
+  LIBRARY_DB_VERSION,
   LIBRARY_META_KEY,
   META_STORE,
   SERIES_STORE,
@@ -591,8 +592,15 @@ describe("library integration", () => {
     await shared.transactionDone(transaction);
 
     expect(seriesRows).toEqual([
-      expect.not.objectContaining({ updatedAt: expect.anything() }),
+      expect.objectContaining({
+        lastReadTitle: "Ch 1",
+        lastReadHref: "https://www.dm5.com/m123/1.html",
+        latestChapterID: "m1",
+        latestChapterTitle: "Ch 1",
+        latestChapterHref: "https://www.dm5.com/m123/1.html",
+      }),
     ]);
+    expect(seriesRows[0]).not.toHaveProperty("updatedAt");
     expect(chapterRows).toEqual([
       expect.not.objectContaining({ chapter: expect.anything() }),
     ]);
@@ -600,6 +608,6 @@ describe("library integration", () => {
     expect(historyStore.indexNames.contains("position")).toBe(false);
     expect(updatesStore.indexNames.contains("position")).toBe(false);
     expect(updatesStore.indexNames.contains("createdAt")).toBe(false);
-    expect(metaRow?.value?.dbSchemaVersion).toBe(2);
+    expect(metaRow?.value?.dbSchemaVersion).toBe(LIBRARY_DB_VERSION);
   });
 });

@@ -208,15 +208,29 @@ describe("library mutations", () => {
         url: "https://www.dm5.com/m123/",
         lastRead: "m1",
         read: ["m1"],
-        updatedAt: 1,
+        lastReadTitle: "Ch 1",
+        lastReadHref: "https://www.dm5.com/m123/1.html",
+        latestChapterID: "m3",
+        latestChapterTitle: "Ch 3",
+        latestChapterHref: "https://www.dm5.com/m123/3.html",
       })),
       put: jest.fn(() => undefined),
+    };
+    const chaptersStore = {
+      get: jest.fn(() => ({
+        seriesKey: "dm5:m123",
+        chapterID: "m2",
+        title: "Ch 2",
+        href: "https://www.dm5.com/m123/2.html",
+        orderIndex: 1,
+      })),
     };
     const updatesStore = {
       count: jest.fn(() => 0),
     };
     const stores = {
       [SERIES_STORE]: seriesStore,
+      [CHAPTERS_STORE]: chaptersStore,
       [UPDATES_STORE]: updatesStore,
     };
     const transaction = {
@@ -236,7 +250,7 @@ describe("library mutations", () => {
     const result = await applyReadProgress("dm5", "m123", "m2");
 
     expect(db.transaction).toHaveBeenCalledWith(
-      [SERIES_STORE, UPDATES_STORE],
+      [SERIES_STORE, CHAPTERS_STORE, UPDATES_STORE],
       "readwrite",
     );
     expect(shared.replaceSeriesChaptersInTransaction).not.toHaveBeenCalled();
@@ -245,6 +259,11 @@ describe("library mutations", () => {
         seriesKey: "dm5:m123",
         lastRead: "m2",
         read: ["m1", "m2"],
+        lastReadTitle: "Ch 2",
+        lastReadHref: "https://www.dm5.com/m123/2.html",
+        latestChapterID: "m3",
+        latestChapterTitle: "Ch 3",
+        latestChapterHref: "https://www.dm5.com/m123/3.html",
       }),
     );
     expect(shared.writeUpdatesInTransaction).toHaveBeenCalledWith(

@@ -11,7 +11,6 @@ import {
   HISTORY_STORE,
   type HistoryRow,
   SERIES_STORE,
-  type SeriesRecord,
   type SeriesRow,
   type SubscriptionRow,
   SUBSCRIPTIONS_STORE,
@@ -36,72 +35,105 @@ const SITE_LABELS: Record<string, string> = {
   comicbus: "ComicBus",
 };
 
+function buildUpdateChapterKey(seriesKey: string, chapterID: string) {
+  return `${seriesKey}::${chapterID}`;
+}
+
 function buildPopupFeedEntry(
-  seriesByKey: Record<string, SeriesRecord>,
+  seriesByKey: Record<string, SeriesRow>,
+  updateChaptersByKey: Record<string, ChapterRow>,
   category: PopupFeedCategory,
   seriesKey: string,
   index: number,
   chapterID = "",
 ): PopupFeedEntry | null {
-  const record = seriesByKey[seriesKey];
-  if (!record) return null;
+  const row = seriesByKey[seriesKey];
+  if (!row) return null;
 
-  const chapters = record.chapters || {};
-  const chapterList = record.chapterList || [];
-  const lastReadChapterID = record.lastRead || "";
-  const lastChapterID = chapterList[0] || "";
-  const lastRead = (lastReadChapterID ? chapters[lastReadChapterID] : null) || null;
-  const lastChapter = (lastChapterID ? chapters[lastChapterID] : null) || null;
-  const updateChapter = (chapterID ? chapters[chapterID] : null) || null;
+  const lastReadChapterID = row.lastRead || "";
+  const lastChapterID = row.latestChapterID || "";
+  const updateChapter =
+    (chapterID ? updateChaptersByKey[buildUpdateChapterKey(seriesKey, chapterID)] : null) ||
+    null;
+  const lastReadTitle =
+    row.lastReadTitle ||
+    (lastReadChapterID && lastReadChapterID === lastChapterID
+      ? row.latestChapterTitle
+      : "") ||
+    "Not started";
+  const lastReadHref =
+    row.lastReadHref ||
+    (lastReadChapterID && lastReadChapterID === lastChapterID
+      ? row.latestChapterHref
+      : "");
+  const lastChapterTitle = row.latestChapterTitle || "No chapters yet";
+  const lastChapterHref = row.latestChapterHref || "";
+  const updateChapterTitle =
+    updateChapter?.title ||
+    (chapterID && chapterID === lastChapterID ? row.latestChapterTitle : "") ||
+    "";
+  const updateChapterHref =
+    updateChapter?.href ||
+    (chapterID && chapterID === lastChapterID ? row.latestChapterHref : "") ||
+    "";
   const continueChapterID = lastReadChapterID || chapterID || lastChapterID;
   const continueHref =
-    lastRead?.href || updateChapter?.href || lastChapter?.href || record.url || "";
+    lastReadHref || updateChapterHref || row.latestChapterHref || row.url || "";
 
   return {
     category,
     key: `${category}_${seriesKey}_${chapterID || index}`,
     index,
-    site: record.site,
-    siteLabel: SITE_LABELS[record.site] || String(record.site || "").toUpperCase(),
-    comicsID: record.comicsID,
+    site: row.site,
+    siteLabel: SITE_LABELS[row.site] || String(row.site || "").toUpperCase(),
+    comicsID: row.comicsID,
     chapterID,
     lastReadChapterID,
     lastChapterID,
     updateChapterID: chapterID,
     continueChapterID,
-    title: record.title || "Untitled Series",
-    url: record.url || "",
-    cover: record.cover || "",
-    lastReadTitle: lastRead?.title || "Not started",
-    lastReadHref: lastRead?.href || "",
-    lastChapterTitle: lastChapter?.title || "No chapters yet",
-    lastChapterHref: lastChapter?.href || "",
-    updateChapterTitle: updateChapter?.title || "",
-    updateChapterHref: updateChapter?.href || "",
+    title: row.title || "Untitled Series",
+    url: row.url || "",
+    cover: row.cover || "",
+    lastReadTitle,
+    lastReadHref,
+    lastChapterTitle,
+    lastChapterHref,
+    updateChapterTitle,
+    updateChapterHref,
     continueHref,
   };
 }
 
 function mapPopupSeriesList(
-  seriesByKey: Record<string, SeriesRecord>,
+  seriesByKey: Record<string, SeriesRow>,
+  updateChaptersByKey: Record<string, ChapterRow>,
   category: Extract<PopupFeedCategory, "subscribe" | "history">,
   list: string[],
 ) {
   return list
     .map((seriesKey, index) =>
-      buildPopupFeedEntry(seriesByKey, category, seriesKey, index),
+      buildPopupFeedEntry(
+        seriesByKey,
+        updateChaptersByKey,
+        category,
+        seriesKey,
+        index,
+      ),
     )
     .filter((entry): entry is PopupFeedEntry => entry !== null);
 }
 
 function mapPopupUpdates(
-  seriesByKey: Record<string, SeriesRecord>,
+  seriesByKey: Record<string, SeriesRow>,
+  updateChaptersByKey: Record<string, ChapterRow>,
   updates: UpdateRow[],
 ) {
   return sortRowsByPosition(updates)
     .map((item, index) =>
       buildPopupFeedEntry(
         seriesByKey,
+        updateChaptersByKey,
         "update",
         item.seriesKey,
         index,
@@ -112,7 +144,8 @@ function mapPopupUpdates(
 }
 
 function buildPopupFeedSnapshot(input: {
-  seriesByKey: Record<string, SeriesRecord>;
+  seriesByKey: Record<string, SeriesRow>;
+  updateChaptersByKey: Record<string, ChapterRow>;
   subscriptions: SubscriptionRow[];
   history: HistoryRow[];
   updates: UpdateRow[];
@@ -121,16 +154,36 @@ function buildPopupFeedSnapshot(input: {
     (row) => row.seriesKey,
   );
   const historyKeys = sortRowsByPosition(input.history).map((row) => row.seriesKey);
-  const update = mapPopupUpdates(input.seriesByKey, input.updates);
-  const subscribe = mapPopupSeriesList(input.seriesByKey, "subscribe", subscriptionKeys);
-  const history = mapPopupSeriesList(input.seriesByKey, "history", historyKeys);
+  const update = mapPopupUpdates(
+    input.seriesByKey,
+    input.updateChaptersByKey,
+    input.updates,
+  );
+  const subscribe = mapPopupSeriesList(
+    input.seriesByKey,
+    input.updateChaptersByKey,
+    "subscribe",
+    subscriptionKeys,
+  );
+  const history = mapPopupSeriesList(
+    input.seriesByKey,
+    input.updateChaptersByKey,
+    "history",
+    historyKeys,
+  );
   const firstSubscribed = subscriptionKeys.find(
     (seriesKey) => !!input.seriesByKey[seriesKey],
   );
   const continueReading =
     history[0] ||
     (firstSubscribed
-      ? buildPopupFeedEntry(input.seriesByKey, "subscribe", firstSubscribed, 0)
+      ? buildPopupFeedEntry(
+          input.seriesByKey,
+          input.updateChaptersByKey,
+          "subscribe",
+          firstSubscribed,
+          0,
+        )
       : null);
 
   return {
@@ -142,36 +195,63 @@ function buildPopupFeedSnapshot(input: {
   };
 }
 
-async function loadReferencedSeriesRecords(
+async function loadReferencedSeriesRows(
   seriesStore: IDBObjectStore,
-  chaptersStore: IDBObjectStore,
   referencedKeys: string[],
 ) {
   if (referencedKeys.length === 0) {
     return {};
   }
 
-  const chapterIndex = chaptersStore.index("seriesKey");
   const seriesEntries = await Promise.all(
     referencedKeys.map(async (seriesKey) => {
       const row = await requestToPromise<SeriesRow | undefined>(seriesStore.get(seriesKey));
       if (!row) {
         return null;
       }
-
-      const chapterRows = await requestToPromise<ChapterRow[]>(
-        chapterIndex.getAll(seriesKey),
-      );
-      return [seriesKey, composeSeriesRecord(row, chapterRows)] as const;
+      return [seriesKey, row] as const;
     }),
   );
 
-  return seriesEntries.reduce<Record<string, SeriesRecord>>((acc, entry) => {
+  return seriesEntries.reduce<Record<string, SeriesRow>>((acc, entry) => {
     if (!entry) {
       return acc;
     }
-    const [seriesKey, record] = entry;
-    acc[seriesKey] = record;
+    const [seriesKey, row] = entry;
+    acc[seriesKey] = row;
+    return acc;
+  }, {});
+}
+
+async function loadUpdateChapterRows(
+  chaptersStore: IDBObjectStore,
+  updates: UpdateRow[],
+) {
+  const chapterRows = await Promise.all(
+    Array.from(
+      new Set(
+        sortRowsByPosition(updates)
+          .map((row) => buildUpdateChapterKey(row.seriesKey, row.chapterID))
+          .filter(Boolean),
+      ),
+    ).map(async (lookupKey) => {
+      const [seriesKey, chapterID] = lookupKey.split("::");
+      if (!seriesKey || !chapterID) {
+        return null;
+      }
+      const row = await requestToPromise<ChapterRow | undefined>(
+        chaptersStore.get([seriesKey, chapterID]),
+      );
+      return row ? ([lookupKey, row] as const) : null;
+    }),
+  );
+
+  return chapterRows.reduce<Record<string, ChapterRow>>((acc, entry) => {
+    if (!entry) {
+      return acc;
+    }
+    const [lookupKey, row] = entry;
+    acc[lookupKey] = row;
     return acc;
   }, {});
 }
@@ -280,16 +360,16 @@ export async function getPopupFeedSnapshot() {
     ]),
   );
 
-  const seriesByKey = await loadReferencedSeriesRecords(
-    seriesStore,
-    chaptersStore,
-    referencedKeys,
-  );
+  const [seriesByKey, updateChaptersByKey] = await Promise.all([
+    loadReferencedSeriesRows(seriesStore, referencedKeys),
+    loadUpdateChapterRows(chaptersStore, updates),
+  ]);
 
   await done;
 
   return buildPopupFeedSnapshot({
     seriesByKey,
+    updateChaptersByKey,
     subscriptions,
     history,
     updates,

@@ -1,5 +1,5 @@
 export const LIBRARY_SCHEMA_VERSION = 2;
-export const LIBRARY_DB_VERSION = 2;
+export const LIBRARY_DB_VERSION = 3;
 export const HISTORY_LIMIT = 50;
 export const SITE_KEYS = ["dm5", "sf", "comicbus"] as const;
 export const LIBRARY_SIGNAL_KEY = "librarySignal";
@@ -71,6 +71,11 @@ export type SeriesRow = {
   url: string;
   lastRead: string;
   read: string[];
+  lastReadTitle: string;
+  lastReadHref: string;
+  latestChapterID: string;
+  latestChapterTitle: string;
+  latestChapterHref: string;
 };
 
 export type ChapterRow = {

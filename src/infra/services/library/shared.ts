@@ -193,16 +193,7 @@ export function snapshotToRows(snapshot: LibrarySnapshotV2) {
 
   Object.entries(snapshot.seriesByKey || {}).forEach(([seriesKey, record]) => {
     const normalized = normalizeSeriesRecord(record.site, record.comicsID, record);
-    series.push({
-      seriesKey,
-      site: normalized.site,
-      comicsID: normalized.comicsID,
-      title: normalized.title,
-      cover: normalized.cover,
-      url: normalized.url,
-      lastRead: normalized.lastRead,
-      read: uniqueStrings(normalized.read),
-    });
+    series.push(createSeriesRow(seriesKey, normalized));
     normalized.chapterList.forEach((chapterID, orderIndex) => {
       if (!chapterID) return;
       const chapter = normalized.chapters[chapterID];
@@ -628,9 +619,60 @@ export function composeSeriesRecord(row: SeriesRow, chapterRows: ChapterRow[]) {
   });
 }
 
+function resolveSeriesRowSummary(
+  record: SeriesRecord,
+  input: {
+    previousRow?: SeriesRow | null;
+    readChapterRow?: ChapterRow | null;
+  } = {},
+) {
+  const latestChapterID = record.chapterList[0] || input.previousRow?.latestChapterID || "";
+  const latestChapter =
+    (latestChapterID ? record.chapters[latestChapterID] : null) || null;
+  const latestChapterTitle =
+    latestChapter?.title ||
+    (latestChapterID === input.previousRow?.latestChapterID
+      ? input.previousRow.latestChapterTitle
+      : "");
+  const latestChapterHref =
+    latestChapter?.href ||
+    (latestChapterID === input.previousRow?.latestChapterID
+      ? input.previousRow.latestChapterHref
+      : "");
+
+  const lastReadChapterID = record.lastRead || "";
+  const readChapter =
+    (input.readChapterRow ? normalizeChapterRecord(input.readChapterRow) : null) ||
+    (lastReadChapterID ? record.chapters[lastReadChapterID] : null) ||
+    (lastReadChapterID && lastReadChapterID === latestChapterID
+      ? { title: latestChapterTitle, href: latestChapterHref }
+      : null);
+  const canReusePreviousLastRead = lastReadChapterID === input.previousRow?.lastRead;
+  const lastReadTitle = lastReadChapterID
+    ? readChapter?.title ||
+      (canReusePreviousLastRead ? input.previousRow?.lastReadTitle || "" : "")
+    : "";
+  const lastReadHref = lastReadChapterID
+    ? readChapter?.href ||
+      (canReusePreviousLastRead ? input.previousRow?.lastReadHref || "" : "")
+    : "";
+
+  return {
+    lastReadTitle,
+    lastReadHref,
+    latestChapterID,
+    latestChapterTitle,
+    latestChapterHref,
+  };
+}
+
 export function createSeriesRow(
   seriesKey: string,
   record: SeriesRecord,
+  input: {
+    previousRow?: SeriesRow | null;
+    readChapterRow?: ChapterRow | null;
+  } = {},
 ): SeriesRow {
   return {
     seriesKey,
@@ -641,6 +683,7 @@ export function createSeriesRow(
     url: record.url,
     lastRead: record.lastRead,
     read: uniqueStrings(record.read),
+    ...resolveSeriesRowSummary(record, input),
   };
 }
 
