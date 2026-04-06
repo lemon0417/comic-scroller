@@ -127,23 +127,38 @@ export function openLibraryDb() {
           chapters.createIndex("seriesKey", "seriesKey", { unique: false });
         }
         if (!db.objectStoreNames.contains(SUBSCRIPTIONS_STORE)) {
-          const subscriptions = db.createObjectStore(SUBSCRIPTIONS_STORE, {
+          db.createObjectStore(SUBSCRIPTIONS_STORE, {
             keyPath: "seriesKey",
           });
-          subscriptions.createIndex("position", "position", { unique: false });
+        } else {
+          const subscriptions =
+            request.transaction?.objectStore(SUBSCRIPTIONS_STORE);
+          if (subscriptions?.indexNames.contains("position")) {
+            subscriptions.deleteIndex("position");
+          }
         }
         if (!db.objectStoreNames.contains(HISTORY_STORE)) {
-          const history = db.createObjectStore(HISTORY_STORE, {
+          db.createObjectStore(HISTORY_STORE, {
             keyPath: "seriesKey",
           });
-          history.createIndex("position", "position", { unique: false });
+        } else {
+          const history = request.transaction?.objectStore(HISTORY_STORE);
+          if (history?.indexNames.contains("position")) {
+            history.deleteIndex("position");
+          }
         }
         if (!db.objectStoreNames.contains(UPDATES_STORE)) {
-          const updates = db.createObjectStore(UPDATES_STORE, {
+          db.createObjectStore(UPDATES_STORE, {
             keyPath: ["seriesKey", "chapterID"],
           });
-          updates.createIndex("position", "position", { unique: false });
-          updates.createIndex("createdAt", "createdAt", { unique: false });
+        } else {
+          const updates = request.transaction?.objectStore(UPDATES_STORE);
+          if (updates?.indexNames.contains("position")) {
+            updates.deleteIndex("position");
+          }
+          if (updates?.indexNames.contains("createdAt")) {
+            updates.deleteIndex("createdAt");
+          }
         }
       };
       request.onsuccess = () => {
@@ -172,11 +187,6 @@ async function readMeta(key: string) {
   return row;
 }
 
-async function isLibraryInitialized() {
-  const row = await readMeta(LIBRARY_META_KEY);
-  return Boolean(row?.value?.initialized);
-}
-
 export function snapshotToRows(snapshot: LibrarySnapshotV2) {
   const series: SeriesRow[] = [];
   const chapters: ChapterRow[] = [];
@@ -192,7 +202,6 @@ export function snapshotToRows(snapshot: LibrarySnapshotV2) {
       url: normalized.url,
       lastRead: normalized.lastRead,
       read: uniqueStrings(normalized.read),
-      updatedAt: Date.now(),
     });
     normalized.chapterList.forEach((chapterID, orderIndex) => {
       if (!chapterID) return;
@@ -202,7 +211,6 @@ export function snapshotToRows(snapshot: LibrarySnapshotV2) {
         chapterID,
         title: chapter?.title || "",
         href: chapter?.href || "",
-        ...(chapter?.chapter ? { chapter: chapter.chapter } : {}),
         orderIndex,
       });
     });
@@ -432,8 +440,18 @@ export async function persistSnapshot(
 export async function ensureLibraryReady() {
   if (!libraryReadyPromise) {
     libraryReadyPromise = (async () => {
-      const initialized = await isLibraryInitialized();
-      if (initialized) return;
+      const meta = await readMeta(LIBRARY_META_KEY);
+      const initialized = Boolean(meta?.value?.initialized);
+      if (initialized) {
+        if (Number(meta?.value?.dbSchemaVersion || 0) < LIBRARY_DB_VERSION) {
+          const rows = await readRowsFromDb();
+          await writeRowsToDb(
+            snapshotToRows(rowsToSnapshot(rows)),
+            meta?.value?.version || getExtensionVersion(),
+          );
+        }
+        return;
+      }
 
       const raw = await getStorageSnapshot();
       const hasLegacy = hasLegacyLibraryData(raw);
@@ -623,7 +641,6 @@ export function createSeriesRow(
     url: record.url,
     lastRead: record.lastRead,
     read: uniqueStrings(record.read),
-    updatedAt: Date.now(),
   };
 }
 
@@ -637,7 +654,6 @@ function createChapterRows(seriesKey: string, record: SeriesRecord): ChapterRow[
         chapterID,
         title: chapter?.title || "",
         href: chapter?.href || "",
-        ...(chapter?.chapter ? { chapter: chapter.chapter } : {}),
         orderIndex,
       };
     });

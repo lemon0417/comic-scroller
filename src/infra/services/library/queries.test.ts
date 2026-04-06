@@ -42,7 +42,6 @@ describe("library queries", () => {
         url: "https://www.dm5.com/m123/",
         lastRead: "m1",
         read: ["m1"],
-        updatedAt: 1,
       },
       "sf:77": {
         seriesKey: "sf:77",
@@ -53,7 +52,6 @@ describe("library queries", () => {
         url: "http://comic.sfacg.com/HTML/77/",
         lastRead: "",
         read: [],
-        updatedAt: 1,
       },
     };
     const chapterRows = {
@@ -276,7 +274,6 @@ describe("library queries", () => {
         url: "https://www.dm5.com/m123/",
         lastRead: "m1",
         read: ["m1"],
-        updatedAt: 1,
       })),
     };
     const chaptersStore = {

@@ -1,5 +1,15 @@
 import "fake-indexeddb/auto";
 
+import {
+  CHAPTERS_STORE,
+  HISTORY_STORE,
+  LIBRARY_META_KEY,
+  META_STORE,
+  SERIES_STORE,
+  SUBSCRIPTIONS_STORE,
+  UPDATES_STORE,
+} from "./schema";
+
 type ChromeStorageListener = (changes: Record<string, any>, areaName: string) => void;
 
 let compat: typeof import("./compat");
@@ -143,6 +153,92 @@ async function resetLibraryPersistence(closeOpenDb = false) {
       return;
     }
     storage.clear(() => resolve());
+  });
+}
+
+async function seedLegacyLibraryDbV1() {
+  await new Promise<void>((resolve, reject) => {
+    const openRequest = indexedDB.open("comic-scroller-library", 1);
+    openRequest.onupgradeneeded = () => {
+      const db = openRequest.result;
+      db.createObjectStore("meta", { keyPath: "key" });
+      db.createObjectStore("series", { keyPath: "seriesKey" });
+      const chapters = db.createObjectStore("chapters", {
+        keyPath: ["seriesKey", "chapterID"],
+      });
+      chapters.createIndex("seriesKey", "seriesKey", { unique: false });
+      const subscriptions = db.createObjectStore("subscriptions", {
+        keyPath: "seriesKey",
+      });
+      subscriptions.createIndex("position", "position", { unique: false });
+      const history = db.createObjectStore("history", {
+        keyPath: "seriesKey",
+      });
+      history.createIndex("position", "position", { unique: false });
+      const updates = db.createObjectStore("updates", {
+        keyPath: ["seriesKey", "chapterID"],
+      });
+      updates.createIndex("position", "position", { unique: false });
+      updates.createIndex("createdAt", "createdAt", { unique: false });
+    };
+    openRequest.onerror = () => reject(openRequest.error);
+    openRequest.onsuccess = () => {
+      const db = openRequest.result;
+      const transaction = db.transaction(
+        ["meta", "series", "chapters", "subscriptions", "history", "updates"],
+        "readwrite",
+      );
+      transaction.objectStore("meta").put({
+        key: "library-state",
+        value: {
+          initialized: true,
+          version: "4.0.52",
+          schemaVersion: 2,
+          dbSchemaVersion: 1,
+          updatedAt: 1,
+        },
+      });
+      transaction.objectStore("series").put({
+        seriesKey: "dm5:m123",
+        site: "dm5",
+        comicsID: "m123",
+        title: "Legacy Demo",
+        cover: "legacy.jpg",
+        url: "https://www.dm5.com/m123/",
+        lastRead: "m1",
+        read: ["m1"],
+        updatedAt: 1,
+      });
+      transaction.objectStore("chapters").put({
+        seriesKey: "dm5:m123",
+        chapterID: "m1",
+        title: "Ch 1",
+        href: "https://www.dm5.com/m123/1.html",
+        chapter: "m1",
+        orderIndex: 0,
+      });
+      transaction.objectStore("subscriptions").put({
+        seriesKey: "dm5:m123",
+        position: 0,
+        checkedAt: 100,
+      });
+      transaction.objectStore("history").put({
+        seriesKey: "dm5:m123",
+        position: 0,
+      });
+      transaction.objectStore("updates").put({
+        seriesKey: "dm5:m123",
+        chapterID: "m1",
+        createdAt: 2,
+        position: 0,
+      });
+      transaction.oncomplete = () => {
+        db.close();
+        resolve();
+      };
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    };
   });
 }
 
@@ -466,5 +562,44 @@ describe("library integration", () => {
     expect(readerState.series?.title).toBe("Legacy Demo");
     expect(readerState.subscribed).toBe(true);
     expect(chromeEnv.getStorageState()).toEqual({});
+  });
+
+  it("upgrades the IndexedDB schema by removing dead indexes and scrubbing obsolete row fields", async () => {
+    await seedLegacyLibraryDbV1();
+
+    await expect(queries.getPopupFeedSnapshot()).resolves.toMatchObject({
+      subscribe: [expect.objectContaining({ comicsID: "m123", title: "Legacy Demo" })],
+    });
+
+    const db = await shared.openLibraryDb();
+    const transaction = db.transaction(
+      [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE],
+      "readonly",
+    );
+    const seriesStore = transaction.objectStore(SERIES_STORE);
+    const chaptersStore = transaction.objectStore(CHAPTERS_STORE);
+    const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
+    const historyStore = transaction.objectStore(HISTORY_STORE);
+    const updatesStore = transaction.objectStore(UPDATES_STORE);
+
+    const [seriesRows, chapterRows, metaRow] = await Promise.all([
+      shared.requestToPromise<any[]>(seriesStore.getAll()),
+      shared.requestToPromise<any[]>(chaptersStore.getAll()),
+      shared.requestToPromise<any>(db.transaction([META_STORE], "readonly").objectStore(META_STORE).get(LIBRARY_META_KEY)),
+    ]);
+
+    await shared.transactionDone(transaction);
+
+    expect(seriesRows).toEqual([
+      expect.not.objectContaining({ updatedAt: expect.anything() }),
+    ]);
+    expect(chapterRows).toEqual([
+      expect.not.objectContaining({ chapter: expect.anything() }),
+    ]);
+    expect(subscriptionsStore.indexNames.contains("position")).toBe(false);
+    expect(historyStore.indexNames.contains("position")).toBe(false);
+    expect(updatesStore.indexNames.contains("position")).toBe(false);
+    expect(updatesStore.indexNames.contains("createdAt")).toBe(false);
+    expect(metaRow?.value?.dbSchemaVersion).toBe(2);
   });
 });
