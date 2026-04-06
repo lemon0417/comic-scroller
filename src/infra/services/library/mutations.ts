@@ -171,37 +171,57 @@ function mergeSeriesRecord(
   return nextRecord;
 }
 
-async function pruneSeriesCacheIfOrphaned(
-  seriesKey: string,
-  source = "pruneSeriesCache",
-) {
-  await ensureLibraryReady();
-  const db = await openLibraryDb();
-  const transaction = db.transaction(
-    [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE],
-    "readwrite",
-  );
-  const done = transactionDone(transaction);
-  const seriesStore = transaction.objectStore(SERIES_STORE);
-  const chaptersStore = transaction.objectStore(CHAPTERS_STORE);
-  const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
-  const historyStore = transaction.objectStore(HISTORY_STORE);
-  const updatesStore = transaction.objectStore(UPDATES_STORE);
+function createSeriesUpdateKeyRange(seriesKey: string) {
+  if (typeof IDBKeyRange === "undefined") {
+    return null;
+  }
+  return IDBKeyRange.bound([seriesKey, ""], [seriesKey, "\uffff"]);
+}
 
-  const [seriesRow, subscriptionRow, historyRow, updates] = await Promise.all([
+async function hasSeriesUpdatesInTransaction(
+  updatesStore: IDBObjectStore,
+  seriesKey: string,
+) {
+  const keyRange = createSeriesUpdateKeyRange(seriesKey);
+  if (keyRange) {
+    const count = await requestToPromise<number>(updatesStore.count(keyRange));
+    return Number(count || 0) > 0;
+  }
+
+  const updates = await requestToPromise<LibraryUpdateRecord[]>(updatesStore.getAll());
+  return updates.some((item) => item.seriesKey === seriesKey);
+}
+
+async function pruneSeriesCacheIfOrphanedInTransaction(
+  stores: {
+    seriesStore: IDBObjectStore;
+    chaptersStore: IDBObjectStore;
+    subscriptionsStore: IDBObjectStore;
+    historyStore: IDBObjectStore;
+    updatesStore: IDBObjectStore;
+  },
+  seriesKey: string,
+) {
+  const {
+    seriesStore,
+    chaptersStore,
+    subscriptionsStore,
+    historyStore,
+    updatesStore,
+  } = stores;
+  const [seriesRow, subscriptionRow, historyRow, hasSeriesUpdates] = await Promise.all([
     requestToPromise<SeriesRow | undefined>(seriesStore.get(seriesKey)),
     requestToPromise<SubscriptionRow | undefined>(subscriptionsStore.get(seriesKey)),
     requestToPromise(historyStore.get(seriesKey)),
-    requestToPromise<LibraryUpdateRecord[]>(updatesStore.getAll()),
+    hasSeriesUpdatesInTransaction(updatesStore, seriesKey),
   ]);
 
   if (
     !seriesRow ||
     subscriptionRow ||
     historyRow ||
-    updates.some((item) => item.seriesKey === seriesKey)
+    hasSeriesUpdates
   ) {
-    await done;
     return false;
   }
 
@@ -212,8 +232,6 @@ async function pruneSeriesCacheIfOrphaned(
   for (const key of chapterKeys) {
     await requestToPromise(chaptersStore.delete(key));
   }
-  await done;
-  await emitLibrarySignal(source, ["series"], [seriesKey]);
   return true;
 }
 
@@ -228,10 +246,28 @@ async function rewriteUpdatesForSeries(
 ) {
   await ensureLibraryReady();
   const seriesKey = buildSeriesKey(site, comicsID);
+  const storeNames = [
+    UPDATES_STORE,
+    ...(options.pruneIfOrphaned
+      ? [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE]
+      : []),
+  ] as const;
   const db = await openLibraryDb();
-  const transaction = db.transaction([UPDATES_STORE], "readwrite");
+  const transaction = db.transaction(storeNames, "readwrite");
   const done = transactionDone(transaction);
   const updatesStore = transaction.objectStore(UPDATES_STORE);
+  const seriesStore = options.pruneIfOrphaned
+    ? transaction.objectStore(SERIES_STORE)
+    : null;
+  const chaptersStore = options.pruneIfOrphaned
+    ? transaction.objectStore(CHAPTERS_STORE)
+    : null;
+  const subscriptionsStore = options.pruneIfOrphaned
+    ? transaction.objectStore(SUBSCRIPTIONS_STORE)
+    : null;
+  const historyStore = options.pruneIfOrphaned
+    ? transaction.objectStore(HISTORY_STORE)
+    : null;
   const updates = await loadUpdatesInTransaction(updatesStore);
   const normalizedUpdates = updates.map(({ seriesKey: currentSeriesKey, chapterID, createdAt }) => ({
     seriesKey: currentSeriesKey,
@@ -241,11 +277,24 @@ async function rewriteUpdatesForSeries(
   const nextUpdates = updater(normalizedUpdates, seriesKey);
   await writeUpdatesInTransaction(updatesStore, nextUpdates);
   const updatesCount = await requestToPromise<number>(updatesStore.count());
+  const pruned = options.pruneIfOrphaned && seriesStore && chaptersStore && subscriptionsStore && historyStore
+    ? await pruneSeriesCacheIfOrphanedInTransaction(
+        {
+          seriesStore,
+          chaptersStore,
+          subscriptionsStore,
+          historyStore,
+          updatesStore,
+        },
+        seriesKey,
+      )
+    : false;
   await done;
-  await emitLibrarySignal(source, ["updates"], [seriesKey]);
-  if (options.pruneIfOrphaned) {
-    await pruneSeriesCacheIfOrphaned(seriesKey, `${source}:prune`);
-  }
+  await emitLibrarySignal(
+    source,
+    ["updates", ...(pruned ? ["series" as const] : [])],
+    [seriesKey],
+  );
   return Number(updatesCount || 0);
 }
 
@@ -260,10 +309,31 @@ async function rewriteOrderedSeriesStore(
   } = {},
 ) {
   await ensureLibraryReady();
+  const storeNames = [
+    storeName,
+    ...(options.pruneIfOrphaned
+      ? [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE]
+      : []),
+  ] as const;
   const db = await openLibraryDb();
-  const transaction = db.transaction([storeName], "readwrite");
+  const transaction = db.transaction(storeNames, "readwrite");
   const done = transactionDone(transaction);
   const store = transaction.objectStore(storeName);
+  const seriesStore = options.pruneIfOrphaned
+    ? transaction.objectStore(SERIES_STORE)
+    : null;
+  const chaptersStore = options.pruneIfOrphaned
+    ? transaction.objectStore(CHAPTERS_STORE)
+    : null;
+  const subscriptionsStore = options.pruneIfOrphaned
+    ? transaction.objectStore(SUBSCRIPTIONS_STORE)
+    : null;
+  const historyStore = options.pruneIfOrphaned
+    ? transaction.objectStore(HISTORY_STORE)
+    : null;
+  const updatesStore = options.pruneIfOrphaned
+    ? transaction.objectStore(UPDATES_STORE)
+    : null;
   const currentKeys = await loadOrderedSeriesKeysInTransaction(store);
   const nextKeys = updater(currentKeys);
   const subscriptionRowsByKey =
@@ -286,11 +356,24 @@ async function rewriteOrderedSeriesStore(
   } else {
     await writeOrderedSeriesKeysInTransaction(store, nextKeys);
   }
+  const pruned = options.pruneIfOrphaned && seriesStore && chaptersStore && subscriptionsStore && historyStore && updatesStore
+    ? await pruneSeriesCacheIfOrphanedInTransaction(
+        {
+          seriesStore,
+          chaptersStore,
+          subscriptionsStore,
+          historyStore,
+          updatesStore,
+        },
+        seriesKey,
+      )
+    : false;
   await done;
-  await emitLibrarySignal(source, [scope], [seriesKey]);
-  if (options.pruneIfOrphaned) {
-    await pruneSeriesCacheIfOrphaned(seriesKey, `${source}:prune`);
-  }
+  await emitLibrarySignal(
+    source,
+    [scope, ...(pruned ? ["series" as const] : [])],
+    [seriesKey],
+  );
 }
 
 export async function setSeriesSubscriptionByKey(seriesKey: string, subscribed: boolean) {
@@ -313,9 +396,16 @@ export async function setSeriesSubscriptionByKey(seriesKey: string, subscribed: 
 export async function toggleSeriesSubscriptionByKey(seriesKey: string) {
   await ensureLibraryReady();
   const db = await openLibraryDb();
-  const transaction = db.transaction([SUBSCRIPTIONS_STORE], "readwrite");
+  const transaction = db.transaction(
+    [SERIES_STORE, CHAPTERS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE],
+    "readwrite",
+  );
   const done = transactionDone(transaction);
+  const seriesStore = transaction.objectStore(SERIES_STORE);
+  const chaptersStore = transaction.objectStore(CHAPTERS_STORE);
   const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
+  const historyStore = transaction.objectStore(HISTORY_STORE);
+  const updatesStore = transaction.objectStore(UPDATES_STORE);
   const subscriptionRows = await requestToPromise<SubscriptionRow[]>(
     subscriptionsStore.getAll(),
   );
@@ -339,11 +429,24 @@ export async function toggleSeriesSubscriptionByKey(seriesKey: string) {
       checkedAt: Number(rowsBySeriesKey[currentSeriesKey]?.checkedAt || 0),
     }),
   );
+  const pruned = !nextSubscribed
+    ? await pruneSeriesCacheIfOrphanedInTransaction(
+        {
+          seriesStore,
+          chaptersStore,
+          subscriptionsStore,
+          historyStore,
+          updatesStore,
+        },
+        seriesKey,
+      )
+    : false;
   await done;
-  await emitLibrarySignal("toggleSubscription", ["subscriptions"], [seriesKey]);
-  if (!nextSubscribed) {
-    await pruneSeriesCacheIfOrphaned(seriesKey, "toggleSubscription:prune");
-  }
+  await emitLibrarySignal(
+    "toggleSubscription",
+    ["subscriptions", ...(pruned ? ["series" as const] : [])],
+    [seriesKey],
+  );
   return nextSubscribed;
 }
 

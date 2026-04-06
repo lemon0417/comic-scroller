@@ -134,6 +134,7 @@ describe("library mutations", () => {
       get: jest.fn(() => undefined),
     };
     const updatesStore = {
+      count: jest.fn(() => 0),
       getAll: jest.fn(() => []),
     };
     const stores = {
@@ -216,6 +217,7 @@ describe("library mutations", () => {
       get: jest.fn(() => undefined),
     };
     const updatesStore = {
+      count: jest.fn(() => 0),
       getAll: jest.fn(() => []),
     };
     const stores = {
