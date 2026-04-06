@@ -1,4 +1,5 @@
 import {
+  applyReadProgress,
   removeSeriesCascade,
   removeSeriesFromHistory,
   toggleSeriesSubscriptionByKey,
@@ -21,6 +22,7 @@ jest.mock("./shared", () => {
     loadUpdatesInTransaction: jest.fn(),
     openLibraryDb: jest.fn(),
     requestToPromise: jest.fn((value) => Promise.resolve(value)),
+    replaceSeriesChaptersInTransaction: jest.fn(() => Promise.resolve()),
     transactionDone: jest.fn(() => Promise.resolve()),
     writeOrderedSeriesKeysInTransaction: jest.fn(() => Promise.resolve()),
     writeUpdatesInTransaction: jest.fn(() => Promise.resolve()),
@@ -32,6 +34,7 @@ const shared = jest.requireMock("./shared") as {
   loadOrderedSeriesKeysInTransaction: jest.Mock;
   loadUpdatesInTransaction: jest.Mock;
   openLibraryDb: jest.Mock;
+  replaceSeriesChaptersInTransaction: jest.Mock;
   writeOrderedSeriesKeysInTransaction: jest.Mock;
   writeUpdatesInTransaction: jest.Mock;
 };
@@ -191,6 +194,73 @@ describe("library mutations", () => {
       "removeHistory",
       ["history"],
       ["dm5:m123"],
+    );
+  });
+
+  it("updates read progress without rewriting chapter cache", async () => {
+    const seriesStore = {
+      get: jest.fn(() => ({
+        seriesKey: "dm5:m123",
+        site: "dm5",
+        comicsID: "m123",
+        title: "Demo",
+        cover: "cover.jpg",
+        url: "https://www.dm5.com/m123/",
+        lastRead: "m1",
+        read: ["m1"],
+        updatedAt: 1,
+      })),
+      put: jest.fn(() => undefined),
+    };
+    const updatesStore = {
+      count: jest.fn(() => 0),
+    };
+    const stores = {
+      [SERIES_STORE]: seriesStore,
+      [UPDATES_STORE]: updatesStore,
+    };
+    const transaction = {
+      objectStore: jest.fn(
+        (storeName: keyof typeof stores) => stores[storeName],
+      ),
+    };
+    const db = {
+      transaction: jest.fn(() => transaction),
+    };
+
+    shared.openLibraryDb.mockResolvedValue(db);
+    shared.loadUpdatesInTransaction.mockResolvedValue([
+      { seriesKey: "dm5:m123", chapterID: "m2", createdAt: 2, position: 0 },
+    ]);
+
+    const result = await applyReadProgress("dm5", "m123", "m2");
+
+    expect(db.transaction).toHaveBeenCalledWith(
+      [SERIES_STORE, UPDATES_STORE],
+      "readwrite",
+    );
+    expect(shared.replaceSeriesChaptersInTransaction).not.toHaveBeenCalled();
+    expect(seriesStore.put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seriesKey: "dm5:m123",
+        lastRead: "m2",
+        read: ["m1", "m2"],
+      }),
+    );
+    expect(shared.writeUpdatesInTransaction).toHaveBeenCalledWith(
+      updatesStore,
+      [],
+    );
+    expect(shared.emitLibrarySignal).toHaveBeenCalledWith(
+      "seriesMutation",
+      ["series", "updates"],
+      ["dm5:m123"],
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        updatesCount: 0,
+        subscribed: false,
+      }),
     );
   });
 });

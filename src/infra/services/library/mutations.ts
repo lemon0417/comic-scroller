@@ -43,22 +43,35 @@ async function persistSeriesRecordState(
 ) {
   await ensureLibraryReady();
   const seriesKey = buildSeriesKey(site, comicsID);
-  const db = await openLibraryDb();
-  const transaction = db.transaction(
-    [SERIES_STORE, CHAPTERS_STORE, HISTORY_STORE, UPDATES_STORE, SUBSCRIPTIONS_STORE],
-    "readwrite",
+  const shouldPersistChapterCache = Boolean(
+    input.record && ("chapterList" in input.record || "chapters" in input.record),
   );
+  const storeNames = [
+    SERIES_STORE,
+    ...(shouldPersistChapterCache ? [CHAPTERS_STORE] : []),
+    ...(input.addHistory ? [HISTORY_STORE] : []),
+    UPDATES_STORE,
+    ...(input.includeSubscriptionState ? [SUBSCRIPTIONS_STORE] : []),
+  ] as const;
+  const db = await openLibraryDb();
+  const transaction = db.transaction(storeNames, "readwrite");
   const done = transactionDone(transaction);
   const seriesStore = transaction.objectStore(SERIES_STORE);
-  const chaptersStore = transaction.objectStore(CHAPTERS_STORE);
-  const historyStore = transaction.objectStore(HISTORY_STORE);
+  const chaptersStore = shouldPersistChapterCache
+    ? transaction.objectStore(CHAPTERS_STORE)
+    : null;
+  const historyStore = input.addHistory
+    ? transaction.objectStore(HISTORY_STORE)
+    : null;
   const updatesStore = transaction.objectStore(UPDATES_STORE);
-  const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
+  const subscriptionsStore = input.includeSubscriptionState
+    ? transaction.objectStore(SUBSCRIPTIONS_STORE)
+    : null;
 
   const previousRow = await requestToPromise<SeriesRow | undefined>(
     seriesStore.get(seriesKey),
   );
-  const previousChapters = previousRow
+  const previousChapters = previousRow && chaptersStore
     ? await requestToPromise<ChapterRow[]>(
         chaptersStore.index("seriesKey").getAll(seriesKey),
       )
@@ -75,9 +88,11 @@ async function persistSeriesRecordState(
   }
 
   await requestToPromise(seriesStore.put(createSeriesRow(seriesKey, mergedRecord)));
-  await replaceSeriesChaptersInTransaction(chaptersStore, seriesKey, mergedRecord);
+  if (chaptersStore) {
+    await replaceSeriesChaptersInTransaction(chaptersStore, seriesKey, mergedRecord);
+  }
 
-  if (input.addHistory) {
+  if (historyStore) {
     const historyKeys = await loadOrderedSeriesKeysInTransaction(historyStore);
     await writeOrderedSeriesKeysInTransaction(
       historyStore,
@@ -103,7 +118,7 @@ async function persistSeriesRecordState(
   }
 
   const updatesCount = await requestToPromise<number>(updatesStore.count());
-  const subscribed = input.includeSubscriptionState
+  const subscribed = subscriptionsStore
     ? Boolean(await requestToPromise(subscriptionsStore.get(seriesKey)))
     : false;
 
