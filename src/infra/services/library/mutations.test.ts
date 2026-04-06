@@ -24,6 +24,7 @@ jest.mock("./shared", () => {
     loadReadChapterIDsInTransaction: jest.fn(() => Promise.resolve([])),
     loadOrderedSeriesKeysInTransaction: jest.fn(),
     loadOrderedSubscriptionRowsInTransaction: jest.fn(),
+    loadRowsByPositionInTransaction: jest.fn(),
     loadUpdatesInTransaction: jest.fn(),
     openLibraryDb: jest.fn(),
     requestToPromise: jest.fn((value) => Promise.resolve(value)),
@@ -40,6 +41,7 @@ const shared = jest.requireMock("./shared") as {
   loadReadChapterIDsInTransaction: jest.Mock;
   loadOrderedSeriesKeysInTransaction: jest.Mock;
   loadOrderedSubscriptionRowsInTransaction: jest.Mock;
+  loadRowsByPositionInTransaction: jest.Mock;
   loadUpdatesInTransaction: jest.Mock;
   openLibraryDb: jest.Mock;
   replaceSeriesChaptersInTransaction: jest.Mock;
@@ -65,8 +67,12 @@ describe("library mutations", () => {
         ]),
       })),
     };
-    const subscriptionsStore = {};
-    const historyStore = {};
+    const subscriptionsStore = {
+      delete: jest.fn(() => undefined),
+    };
+    const historyStore = {
+      delete: jest.fn(() => undefined),
+    };
     const readsStore = {
       index: jest.fn(() => ({
         getAllKeys: jest.fn(() => [
@@ -96,11 +102,7 @@ describe("library mutations", () => {
     const db = {
       transaction: jest.fn(() => transaction),
     };
-
     shared.openLibraryDb.mockResolvedValue(db);
-    shared.loadOrderedSeriesKeysInTransaction
-      .mockResolvedValueOnce(["dm5:m123", "sf:77"])
-      .mockResolvedValueOnce(["dm5:m123", "comicbus:88"]);
     shared.loadUpdatesInTransaction.mockResolvedValue([
       { seriesKey: "dm5:m123", chapterID: "m2", createdAt: 1, position: 0 },
       { seriesKey: "sf:77", chapterID: "c7", createdAt: 2, position: 1 },
@@ -114,16 +116,9 @@ describe("library mutations", () => {
     expect(chaptersStore.delete).toHaveBeenCalledWith(["dm5:m123", "m2"]);
     expect(readsStore.delete).toHaveBeenCalledWith(["dm5:m123", "m1"]);
     expect(readsStore.delete).toHaveBeenCalledWith(["dm5:m123", "m2"]);
-    expect(shared.writeOrderedSeriesKeysInTransaction).toHaveBeenNthCalledWith(
-      1,
-      subscriptionsStore,
-      ["sf:77"],
-    );
-    expect(shared.writeOrderedSeriesKeysInTransaction).toHaveBeenNthCalledWith(
-      2,
-      historyStore,
-      ["comicbus:88"],
-    );
+    expect(subscriptionsStore.delete).toHaveBeenCalledWith("dm5:m123");
+    expect(historyStore.delete).toHaveBeenCalledWith("dm5:m123");
+    expect(shared.writeOrderedSeriesKeysInTransaction).not.toHaveBeenCalled();
     expect(updatesStore.delete).toHaveBeenCalledWith(["dm5:m123", "m2"]);
     expect(shared.emitLibrarySignal).toHaveBeenCalledWith(
       "removeSeries",
@@ -134,11 +129,9 @@ describe("library mutations", () => {
 
   it("toggles subscription state in a single mutation and preserves checkedAt", async () => {
     const subscriptionsStore = {
-      getAll: jest.fn(() => [
-        { seriesKey: "dm5:m123", position: 0, checkedAt: 200 },
-        { seriesKey: "sf:77", position: 1, checkedAt: 100 },
-      ]),
       get: jest.fn(() => undefined),
+      put: jest.fn(() => undefined),
+      delete: jest.fn(() => undefined),
     };
     const seriesStore = {
       get: jest.fn(() => undefined),
@@ -184,17 +177,10 @@ describe("library mutations", () => {
       { seriesKey: "dm5:m123", position: 0, checkedAt: 200 },
       { seriesKey: "sf:77", position: 1, checkedAt: 100 },
     ]);
-    shared.loadOrderedSeriesKeysInTransaction.mockResolvedValue([
-      "dm5:m123",
-      "sf:77",
-    ]);
 
     await expect(toggleSeriesSubscriptionByKey("dm5:m123")).resolves.toBe(false);
-    expect(shared.writeOrderedSeriesKeysInTransaction).toHaveBeenCalledWith(
-      subscriptionsStore,
-      ["sf:77"],
-      expect.any(Function),
-    );
+    expect(subscriptionsStore.delete).toHaveBeenCalledWith("dm5:m123");
+    expect(shared.writeOrderedSeriesKeysInTransaction).not.toHaveBeenCalled();
     expect(shared.emitLibrarySignal).toHaveBeenCalledWith(
       "toggleSubscription",
       ["subscriptions"],
@@ -207,15 +193,14 @@ describe("library mutations", () => {
     shared.loadOrderedSubscriptionRowsInTransaction.mockResolvedValue([
       { seriesKey: "sf:77", position: 0, checkedAt: 100 },
     ]);
-    shared.loadOrderedSeriesKeysInTransaction.mockResolvedValue(["sf:77"]);
 
     await expect(toggleSeriesSubscriptionByKey("dm5:m123")).resolves.toBe(true);
-    expect(shared.writeOrderedSeriesKeysInTransaction).toHaveBeenCalledWith(
-      subscriptionsStore,
-      ["dm5:m123", "sf:77"],
-      expect.any(Function),
-    );
-    expect(subscriptionsStore.getAll).not.toHaveBeenCalled();
+    expect(subscriptionsStore.put).toHaveBeenCalledWith({
+      seriesKey: "dm5:m123",
+      position: -1,
+      checkedAt: 0,
+    });
+    expect(shared.writeOrderedSeriesKeysInTransaction).not.toHaveBeenCalled();
   });
 
   it("removes only history entries without touching series data", async () => {
@@ -253,6 +238,7 @@ describe("library mutations", () => {
       get: jest.fn(() => ({ seriesKey: "dm5:m123", position: 0, checkedAt: 100 })),
     };
     const historyStore = {
+      delete: jest.fn(() => undefined),
       get: jest.fn(() => undefined),
     };
     const updatesStore = {
@@ -277,17 +263,15 @@ describe("library mutations", () => {
     };
 
     shared.openLibraryDb.mockResolvedValue(db);
-    shared.loadOrderedSeriesKeysInTransaction.mockResolvedValue([
-      "dm5:m123",
-      "sf:77",
+    shared.loadRowsByPositionInTransaction.mockResolvedValue([
+      { seriesKey: "dm5:m123", position: 0 },
+      { seriesKey: "sf:77", position: 1 },
     ]);
 
     await removeSeriesFromHistory("dm5", "m123");
 
-    expect(shared.writeOrderedSeriesKeysInTransaction).toHaveBeenCalledWith(
-      historyStore,
-      ["sf:77"],
-    );
+    expect(historyStore.delete).toHaveBeenCalledWith("dm5:m123");
+    expect(shared.writeOrderedSeriesKeysInTransaction).not.toHaveBeenCalled();
     expect(shared.emitLibrarySignal).toHaveBeenCalledWith(
       "removeHistory",
       ["history"],

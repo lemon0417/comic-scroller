@@ -22,9 +22,9 @@ import {
   createSeriesRow,
   emitLibrarySignal,
   ensureLibraryReady,
-  loadOrderedSeriesKeysInTransaction,
   loadOrderedSubscriptionRowsInTransaction,
   loadReadChapterIDsInTransaction,
+  loadRowsByPositionInTransaction,
   loadUpdatesInTransaction,
   openLibraryDb,
   replaceSeriesChaptersInTransaction,
@@ -127,11 +127,14 @@ async function persistSeriesRecordState(
   }
 
   if (historyStore) {
-    const historyKeys = await loadOrderedSeriesKeysInTransaction(historyStore);
-    await writeOrderedSeriesKeysInTransaction(
-      historyStore,
-      uniqueStrings([seriesKey, ...historyKeys], HISTORY_LIMIT),
-    );
+    const historyRows = await loadRowsByPositionInTransaction<{
+      seriesKey: string;
+      position: number;
+    }>(historyStore);
+    await prependOrderedSeriesKeyInTransaction(historyStore, seriesKey, {
+      currentRows: historyRows,
+      limit: HISTORY_LIMIT,
+    });
   }
 
   if (input.dismissChapterID) {
@@ -214,6 +217,53 @@ async function deleteSeriesReadsInTransaction(
   for (const key of readKeys) {
     await requestToPromise(readsStore.delete(key));
   }
+}
+
+async function prependOrderedSeriesKeyInTransaction(
+  store: IDBObjectStore,
+  seriesKey: string,
+  input: {
+    currentRows: Array<{ seriesKey: string; position: number; checkedAt?: number }>;
+    limit?: number;
+    resolveRowData?: (row?: { checkedAt?: number }) => Record<string, unknown>;
+  },
+) {
+  const { currentRows, limit = Number.POSITIVE_INFINITY, resolveRowData } = input;
+  const existingRow = currentRows.find((row) => row.seriesKey === seriesKey);
+  const nextKeys = uniqueStrings(
+    [seriesKey, ...currentRows.map((row) => row.seriesKey)],
+    limit,
+  );
+  const keysToDelete = currentRows
+    .map((row) => row.seriesKey)
+    .filter((currentSeriesKey) => !nextKeys.includes(currentSeriesKey));
+  for (const keyToDelete of keysToDelete) {
+    await requestToPromise(store.delete(keyToDelete));
+  }
+
+  if (nextKeys[0] === seriesKey && currentRows[0]?.seriesKey === seriesKey) {
+    return;
+  }
+
+  const minPosition = currentRows.reduce(
+    (currentMin, row) => Math.min(currentMin, row.position),
+    0,
+  );
+  const nextPosition = currentRows.length === 0 ? 0 : minPosition - 1;
+  await requestToPromise(
+    store.put({
+      seriesKey,
+      position: nextPosition,
+      ...(resolveRowData ? resolveRowData(existingRow) : {}),
+    }),
+  );
+}
+
+async function removeOrderedSeriesKeyInTransaction(
+  store: IDBObjectStore,
+  seriesKey: string,
+) {
+  await requestToPromise(store.delete(seriesKey));
 }
 
 async function prependSeriesUpdatesInTransaction(
@@ -407,32 +457,46 @@ async function rewriteOrderedSeriesStore(
   const updatesStore = options.pruneIfOrphaned
     ? transaction.objectStore(UPDATES_STORE)
     : null;
-  const subscriptionRows =
+  const currentRows =
     storeName === SUBSCRIPTIONS_STORE
       ? await loadOrderedSubscriptionRowsInTransaction(store)
-      : [];
-  const currentKeys =
-    storeName === SUBSCRIPTIONS_STORE
-      ? subscriptionRows.map((row) => row.seriesKey)
-      : await loadOrderedSeriesKeysInTransaction(store);
+      : await loadRowsByPositionInTransaction<{ seriesKey: string; position: number }>(store);
+  const currentKeys = currentRows.map((row) => row.seriesKey);
   const nextKeys = updater(currentKeys);
-  const subscriptionRowsByKey = subscriptionRows.reduce<Record<string, SubscriptionRow>>(
-    (acc, row) => {
-      acc[row.seriesKey] = row;
-      return acc;
-    },
-    {},
-  );
-  if (storeName === SUBSCRIPTIONS_STORE) {
+  const removed = currentKeys.includes(seriesKey) && !nextKeys.includes(seriesKey);
+  const prepended = nextKeys[0] === seriesKey;
+
+  if (removed) {
+    await removeOrderedSeriesKeyInTransaction(store, seriesKey);
+  } else if (prepended) {
+    await prependOrderedSeriesKeyInTransaction(store, seriesKey, {
+      currentRows,
+      ...(storeName === HISTORY_STORE
+        ? { limit: HISTORY_LIMIT }
+        : {}),
+      ...(storeName === SUBSCRIPTIONS_STORE
+        ? {
+            resolveRowData: (row?: { checkedAt?: number }) => ({
+              checkedAt: Number(row?.checkedAt || 0),
+            }),
+          }
+        : {}),
+    });
+  } else {
     await writeOrderedSeriesKeysInTransaction(
       store,
       nextKeys,
-      (seriesKey) => ({
-        checkedAt: Number(subscriptionRowsByKey[seriesKey]?.checkedAt || 0),
-      }),
+      storeName === SUBSCRIPTIONS_STORE
+        ? (currentSeriesKey) => {
+            const row = currentRows.find(
+              (item) => item.seriesKey === currentSeriesKey,
+            ) as SubscriptionRow | undefined;
+            return {
+              checkedAt: Number(row?.checkedAt || 0),
+            };
+          }
+        : undefined,
     );
-  } else {
-    await writeOrderedSeriesKeysInTransaction(store, nextKeys);
   }
   const pruned = options.pruneIfOrphaned && seriesStore && chaptersStore && readsStore && subscriptionsStore && historyStore && updatesStore
     ? await pruneSeriesCacheIfOrphanedInTransaction(
@@ -490,25 +554,16 @@ export async function toggleSeriesSubscriptionByKey(seriesKey: string) {
     subscriptionsStore,
   );
   const nextSubscribed = !subscriptionRows.some((row) => row.seriesKey === seriesKey);
-  const currentKeys = subscriptionRows.map((row) => row.seriesKey);
-  const rowsBySeriesKey = subscriptionRows.reduce<Record<string, SubscriptionRow>>(
-    (acc, row) => {
-      acc[row.seriesKey] = row;
-      return acc;
-    },
-    {},
-  );
-  const nextKeys = nextSubscribed
-    ? uniqueStrings([seriesKey, ...currentKeys])
-    : currentKeys.filter((item) => item !== seriesKey);
-
-  await writeOrderedSeriesKeysInTransaction(
-    subscriptionsStore,
-    nextKeys,
-    (currentSeriesKey) => ({
-      checkedAt: Number(rowsBySeriesKey[currentSeriesKey]?.checkedAt || 0),
-    }),
-  );
+  if (nextSubscribed) {
+    await prependOrderedSeriesKeyInTransaction(subscriptionsStore, seriesKey, {
+      currentRows: subscriptionRows,
+      resolveRowData: (row?: { checkedAt?: number }) => ({
+        checkedAt: Number(row?.checkedAt || 0),
+      }),
+    });
+  } else {
+    await removeOrderedSeriesKeyInTransaction(subscriptionsStore, seriesKey);
+  }
   const pruned = !nextSubscribed
     ? await pruneSeriesCacheIfOrphanedInTransaction(
         {
@@ -622,19 +677,8 @@ export async function removeSeriesCascade(site: SiteKey, comicsID: string) {
     await requestToPromise(chaptersStore.delete(key));
   }
   await deleteSeriesReadsInTransaction(readsStore, seriesKey);
-
-  await writeOrderedSeriesKeysInTransaction(
-    subscriptionsStore,
-    (await loadOrderedSeriesKeysInTransaction(subscriptionsStore)).filter(
-      (item) => item !== seriesKey,
-    ),
-  );
-  await writeOrderedSeriesKeysInTransaction(
-    historyStore,
-    (await loadOrderedSeriesKeysInTransaction(historyStore)).filter(
-      (item) => item !== seriesKey,
-    ),
-  );
+  await removeOrderedSeriesKeyInTransaction(subscriptionsStore, seriesKey);
+  await removeOrderedSeriesKeyInTransaction(historyStore, seriesKey);
   await deleteSeriesUpdatesInTransaction(updatesStore, seriesKey);
   const updatesCount = await requestToPromise<number>(updatesStore.count());
   await done;
