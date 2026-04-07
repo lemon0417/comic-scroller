@@ -10,6 +10,8 @@ import {
 import { type ComicsState, updateSubscribe } from "@domain/reducers/comics";
 import PrevIcon from "@imgs/circle-left.svg?react";
 import NextIcon from "@imgs/circle-right.svg?react";
+import FullscreenEnterIcon from "@imgs/fullscreen-enter.svg?react";
+import FullscreenExitIcon from "@imgs/fullscreen-exit.svg?react";
 import MenuIcon from "@imgs/menu.svg?react";
 import TagIcon from "@imgs/tag.svg?react";
 import {
@@ -61,7 +63,17 @@ function getNavigationIconClass(enabled: boolean) {
   return "fill-current text-comic-ink/60 transition-colors duration-150";
 }
 
+function getFullscreenIconClass(isFullscreen: boolean) {
+  if (isFullscreen) {
+    return "fill-current text-comic-accent transition-colors duration-150";
+  }
+  return "fill-current text-comic-ink/60 transition-colors duration-150";
+}
+
 function App(props: AppProps) {
+  const [isFullscreen, setIsFullscreen] = useState(() =>
+    Boolean(document.fullscreenElement),
+  );
   const [showChapterList, setShowChapterList] = useState(false);
   const {
     chapterList,
@@ -149,6 +161,17 @@ function App(props: AppProps) {
     };
   }, [showChapterList]);
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
   const showChapterListHandler = useCallback(() => {
     setShowChapterList((prevState) => !prevState);
   }, []);
@@ -166,6 +189,26 @@ function App(props: AppProps) {
   const subscribeHandler = useCallback(() => {
     toggleSubscribeProp();
   }, [toggleSubscribeProp]);
+
+  const fullscreenHandler = useCallback(() => {
+    if (document.fullscreenElement) {
+      if (typeof document.exitFullscreen !== "function") {
+        return;
+      }
+      void document.exitFullscreen().catch((error: unknown) => {
+        devLog("reader:fullscreen-exit-failed", error);
+      });
+      return;
+    }
+
+    if (typeof document.documentElement.requestFullscreen !== "function") {
+      return;
+    }
+
+    void document.documentElement.requestFullscreen().catch((error: unknown) => {
+      devLog("reader:fullscreen-enter-failed", error);
+    });
+  }, []);
 
   return (
     <div className="reader-shell">
@@ -219,6 +262,16 @@ function App(props: AppProps) {
             onClickHandler={chapterTitle !== "" ? subscribeHandler : undefined}
           >
             <TagIcon className={getTagIconClass(chapterTitle, subscribe)} />
+          </IconButton>
+          <IconButton
+            ariaLabel={isFullscreen ? "離開全螢幕" : "進入全螢幕"}
+            onClickHandler={fullscreenHandler}
+          >
+            {isFullscreen ? (
+              <FullscreenExitIcon className={getFullscreenIconClass(isFullscreen)} />
+            ) : (
+              <FullscreenEnterIcon className={getFullscreenIconClass(isFullscreen)} />
+            )}
           </IconButton>
           </div>
         </div>
