@@ -38,16 +38,19 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - 底層以 IndexedDB 結構化 stores 持久化：
   - `series`
   - `chapters`
+  - `reads`
   - `subscriptions`
   - `history`
   - `updates`
-- `series` store 保存作品主資料與閱讀進度，例如 `title / cover / url / lastRead / read[]`
+- `series` store 保存作品主資料與 popup/manage 摘要欄位，例如 `title / cover / url / lastRead / latestChapterTitle`
 - `chapters` store 保存章節索引與章節摘要，定位上屬於可回收快取，不是永久核心資料
+- `reads` store 保存結構化已讀章節 key；`series` row 不再保存 `read[]`
 - reader 打開章節依賴 URL 上的 `chapter` 參數；`chapters` 快取主要服務：
   - reader 章節列表 UI
   - popup/manage 的章節標題摘要
   - background 更新比對
 - `subscriptions` row 保留 UI 顯示排序 `position`，並額外記錄背景輪詢用的 `checkedAt`
+- `updates` row 只保留 `seriesKey / chapterID / position`；runtime 不再保存 `createdAt`
 - `chrome.storage.local.librarySignal` 用於跨 context 通知資料已變更
 - repository 目前分成兩層 API：
   - config / import-export：`resetLibrary`、`exportLibraryDump`、`importLibraryDump`、`setLibraryVersion`
@@ -71,8 +74,12 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - DM5 若傳入純數字或 `m123` 章節型 ID，才 canonical 成 `m123`
   - SF / ComicBus 維持原站點 ID
 - 舊版 storage schema 會在載入時自動 migration 到 IndexedDB
-- 匯出格式改為 DB dump JSON；匯入同時支援新 dump 與舊版 JSON
-- 目前 `read` 仍保留在 `series` row 內；尚未拆成獨立 table
+- 匯出預設為 compact dump v2，並下載為 gzip archive
+- 匯入同時支援：
+  - legacy `chrome.storage` JSON
+  - dump v1
+  - dump v2
+- runtime rows 與 dump rows 必須分開看待；dump 相容性集中在 `compat.ts`
 
 ## 模組位置
 - Actions：`src/domain/actions/`

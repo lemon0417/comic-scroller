@@ -50,8 +50,8 @@
 - repository 對應：`removeSeriesFromHistory(site, comicsID)`
 
 ### 選項
-- `匯入設定`：匯入設定與資料 dump
-- `匯出設定`：匯出目前資料
+- `匯入設定`：支援 legacy JSON、dump v1、dump v2、plain JSON bytes、`.json.gz`
+- `匯出設定`：匯出 compact dump v2，預設下載為 `.json.gz`
 - `重置資料`：清空整個 library，需經過確認 dialog
 
 ## 確認 dialog 規則

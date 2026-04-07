@@ -15,6 +15,7 @@
 
 ## 03 功能行為
 - `docs/03-features/manage.md`: 書庫管理頁的資料語意與刪除規則
+- `docs/03-features/library.md`: 書庫 runtime / dump / legacy 匯入資料模型
 
 ## 04 營運與維護
 - `docs/03-ops/background-check.md`: 背景更新檢查（僅 dev）

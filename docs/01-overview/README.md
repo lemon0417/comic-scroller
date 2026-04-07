@@ -34,6 +34,7 @@
 - facade 只保留業務 API；schema constants / row types / normalize helper 改由 `library/schema.ts` 內部持有
 - popup / manage / reader 的持久化同步：`chrome.storage.onChanged` + `librarySignal`
 - `LibrarySnapshotV2` 只留在 `compat.ts` 的匯入匯出與 migration 路徑，公開 facade 不再鼓勵 snapshot 型 API
+- runtime IndexedDB rows、dump v1/v2、legacy 匯入相容性是不同層次，細節見 `docs/03-features/library.md`
 - popup / manage 走 `getPopupFeedSnapshot()`，store 內只保存 popup feed 與 UI 狀態
 - `getPopupFeedSnapshot()` 直接從 IndexedDB rows 組出 feed，不再先還原成完整 library snapshot
 - reader 保存 canonical `seriesKey`，並以 `getReaderSeriesState()` 一次取回 series + subscription state
