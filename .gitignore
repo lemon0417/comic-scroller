@@ -198,6 +198,8 @@ sketch
 dist/
 # Extension zip file (from package.json zip script)
 *.zip
+# Extension CRX file (from package.json crx/release scripts)
+*.crx
 # TypeScript build output (if used)
 build/
 # macOS system files

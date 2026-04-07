@@ -32,6 +32,8 @@ jobs:
         run: corepack yarn install --immutable
 
       - name: Release Build
+        env:
+          CHROME_EXTENSION_PRIVATE_KEY_B64: ${{ secrets.CHROME_EXTENSION_PRIVATE_KEY_B64 }}
         run: corepack yarn release
 
       - name: Detect Tag Prefix
@@ -65,10 +67,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           body_path: release-notes.txt
-          files: comic-scroller-*.zip
+          files: |
+            comic-scroller-*.zip
+            comic-scroller-*.crx
 
-      - name: Upload Zip
+      - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: comic-scroller
-          path: comic-scroller-*.zip
+          path: |
+            comic-scroller-*.zip
+            comic-scroller-*.crx

@@ -19,10 +19,12 @@
 ## 發佈與版本
 - `yarn version:bump <major|minor|patch|x.y.z>`：同步更新 `package.json` + 兩份 manifest
 - `yarn verify:release`：檢查版本一致
+- `yarn crx`：以 `CHROME_EXTENSION_PRIVATE_KEY_B64` 產出 `comic-scroller-<version>.crx`
 - `yarn zip`：產出 `comic-scroller-<version>.zip`（內容為 `dist/`，不含目錄層）
-- `yarn release`：verify → lint → test → build → zip
+- `yarn release`：verify → lint → test → build → zip → crx
 
 ## 必要前置
 - 使用 Yarn 4（Corepack）：
   - `corepack enable`
   - `corepack prepare yarn@4.0.2 --activate`
+- 產出 CRX 前需設定 `CHROME_EXTENSION_PRIVATE_KEY_B64`

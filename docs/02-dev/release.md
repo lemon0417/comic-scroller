@@ -5,7 +5,32 @@
 - 會同步更新 `package.json` + `manifest.json` + `manifest.dev.json`
 
 ## 產出
-- `yarn release` 會產出 `comic-scroller-<version>.zip`
+- `yarn release` 會產出：
+  - `comic-scroller-<version>.zip`
+  - `comic-scroller-<version>.crx`
+
+## CRX 簽章金鑰
+- CRX 使用固定 private key 簽章，確保 extension ID 穩定。
+- CI / 本機都透過 `CHROME_EXTENSION_PRIVATE_KEY_B64` 提供金鑰。
+- Secret 內容應為 PEM private key 的 base64 字串。
+
+### 產生 base64 Secret
+```bash
+base64 < release-key.pem | tr -d '\n'
+```
+
+### 本機執行
+```bash
+export CHROME_EXTENSION_PRIVATE_KEY_B64="$(base64 < release-key.pem | tr -d '\n')"
+yarn release
+```
+
+## 安裝限制
+- GitHub Release 產出的 CRX 是自簽章附件，不是 Chrome Web Store 轉出的 CRX。
+- 這類 CRX 主要用於：
+  - 開發者模式 / 手動打包驗證
+  - policy / 自架更新流程
+- 一般使用者若只是要手動載入，仍以 zip / unpacked `dist/` 最穩定。
 
 ## Release 前檢查
 ### 自動化
@@ -37,8 +62,9 @@
 ## GitHub Actions
 - `Release` workflow 會：
   - 執行 `yarn release`
+  - 以 `CHROME_EXTENSION_PRIVATE_KEY_B64` 簽出 CRX
   - 產生 Release Notes（Conventional Commits / Angular preset）
-  - 上傳 zip 檔與建立 GitHub Release
+  - 上傳 zip / crx 並建立 GitHub Release
 
 ## Tag 規範
 - 支援 `v4.0.52` 或 `4.0.52`
