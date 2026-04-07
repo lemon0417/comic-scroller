@@ -4,9 +4,12 @@ import type {
   ChapterRow,
   HistoryRow,
   LibraryDbRows,
+  LibraryDumpChapterV2,
   LibraryDumpRowsV1,
+  LibraryDumpRowsV2,
   LibraryDumpSeriesRow,
   LibraryDumpV1,
+  LibraryDumpV2,
   LibrarySignal,
   LibrarySnapshotV2,
   LibraryUpdateRecord,
@@ -266,6 +269,48 @@ export function snapshotToRows(snapshot: LibrarySnapshotV2): LibraryDumpRowsV1 {
   };
 }
 
+export function snapshotToCompactDumpRows(
+  snapshot: LibrarySnapshotV2,
+): LibraryDumpRowsV2 {
+  const normalizedEntries = Object.entries(snapshot.seriesByKey || {}).map(
+    ([seriesKey, record]) => [seriesKey, normalizeSeriesRecord(record.site, record.comicsID, record)] as const,
+  );
+
+  return {
+    series: normalizedEntries.map(([, record]) => ({
+      site: record.site,
+      comicsID: record.comicsID,
+      title: record.title,
+      cover: record.cover,
+      url: record.url,
+      lastRead: record.lastRead,
+      chapters: record.chapterList
+        .filter(Boolean)
+        .map((chapterID): LibraryDumpChapterV2 => {
+          const chapter = record.chapters[chapterID];
+          return {
+            chapterID,
+            title: chapter?.title || "",
+            href: chapter?.href || "",
+          };
+        }),
+      ...(record.read.length > 0 ? { read: uniqueStrings(record.read) } : {}),
+    })),
+    subscriptions: uniqueStrings(snapshot.subscriptions).map((seriesKey) => ({
+      seriesKey,
+    })),
+    history: uniqueStrings(snapshot.history, HISTORY_LIMIT),
+    updates: (Array.isArray(snapshot.updates) ? snapshot.updates : [])
+      .map((item) => ({
+        seriesKey: String(item?.seriesKey || ""),
+        chapterID: String(item?.chapterID || ""),
+        createdAt:
+          typeof item?.createdAt === "number" ? item.createdAt : Date.now(),
+      }))
+      .filter((item) => !!item.seriesKey && !!item.chapterID),
+  };
+}
+
 function groupReadRowsBySeriesKey(reads: ReadRow[]) {
   return reads.reduce<Record<string, string[]>>((acc, row) => {
     if (!row.seriesKey || !row.chapterID) {
@@ -328,6 +373,76 @@ export function rowsToSnapshot(input: {
       seriesKey: item.seriesKey,
       chapterID: item.chapterID,
       createdAt: item.createdAt,
+    }))
+    .filter(
+      (item) =>
+        !!item.seriesKey &&
+        !!item.chapterID &&
+        !!snapshot.seriesByKey[item.seriesKey],
+    );
+
+  return snapshot;
+}
+
+export function compactDumpRowsToSnapshot(data: LibraryDumpRowsV2) {
+  const snapshot = createEmptyLibrarySnapshot();
+
+  for (const series of Array.isArray(data.series) ? data.series : []) {
+    const site = series?.site;
+    const comicsID = String(series?.comicsID || "");
+    if (!site || !comicsID) {
+      continue;
+    }
+
+    const normalizedChapters = Array.isArray(series?.chapters)
+      ? series.chapters
+          .map((chapter) => ({
+            chapterID: String(chapter?.chapterID || ""),
+            title: String(chapter?.title || ""),
+            href: String(chapter?.href || ""),
+          }))
+          .filter((chapter) => !!chapter.chapterID)
+      : [];
+
+    const key = buildSeriesKey(site, comicsID);
+    snapshot.seriesByKey[key] = normalizeSeriesRecord(site, comicsID, {
+      site,
+      comicsID,
+      title: String(series?.title || ""),
+      cover: String(series?.cover || ""),
+      url: String(series?.url || ""),
+      lastRead: String(series?.lastRead || ""),
+      chapterList: normalizedChapters.map((chapter) => chapter.chapterID),
+      chapters: normalizedChapters.reduce<Record<string, ChapterRecord>>(
+        (acc, chapter) => {
+          acc[chapter.chapterID] = {
+            title: chapter.title,
+            href: chapter.href,
+          };
+          return acc;
+        },
+        {},
+      ),
+      read: uniqueStrings(series?.read),
+    });
+  }
+
+  snapshot.subscriptions = uniqueStrings(
+    (Array.isArray(data.subscriptions) ? data.subscriptions : []).map((item) =>
+      String(item?.seriesKey || ""),
+    ),
+  ).filter((seriesKey) => !!snapshot.seriesByKey[seriesKey]);
+
+  snapshot.history = uniqueStrings(data.history, HISTORY_LIMIT).filter(
+    (seriesKey) => !!snapshot.seriesByKey[seriesKey],
+  );
+
+  snapshot.updates = (Array.isArray(data.updates) ? data.updates : [])
+    .map((item) => ({
+      seriesKey: String(item?.seriesKey || ""),
+      chapterID: String(item?.chapterID || ""),
+      createdAt:
+        typeof item?.createdAt === "number" ? item.createdAt : Date.now(),
     }))
     .filter(
       (item) =>
@@ -631,10 +746,33 @@ export function isLibraryDumpV1(raw: unknown): raw is LibraryDumpV1 {
   );
 }
 
+export function isLibraryDumpV2(raw: unknown): raw is LibraryDumpV2 {
+  if (!raw || typeof raw !== "object") {
+    return false;
+  }
+  const candidate = raw as Partial<LibraryDumpV2>;
+  return (
+    candidate.format === "comic-scroller-db-dump" &&
+    candidate.formatVersion === 2 &&
+    Boolean(candidate.data)
+  );
+}
+
 export function migrateDump(data: LibraryDumpV1) {
   return rowsToSnapshot({
     series: Array.isArray(data.data?.series) ? data.data.series : [],
     chapters: Array.isArray(data.data?.chapters) ? data.data.chapters : [],
+    subscriptions: Array.isArray(data.data?.subscriptions)
+      ? data.data.subscriptions
+      : [],
+    history: Array.isArray(data.data?.history) ? data.data.history : [],
+    updates: Array.isArray(data.data?.updates) ? data.data.updates : [],
+  });
+}
+
+export function migrateCompactDump(data: LibraryDumpV2) {
+  return compactDumpRowsToSnapshot({
+    series: Array.isArray(data.data?.series) ? data.data.series : [],
     subscriptions: Array.isArray(data.data?.subscriptions)
       ? data.data.subscriptions
       : [],

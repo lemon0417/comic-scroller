@@ -385,11 +385,33 @@ describe("library integration", () => {
     expect(await queries.getUpdateCount()).toBe(0);
 
     const exported = await compat.exportLibraryDump();
+    expect(exported.formatVersion).toBe(2);
     expect(exported.data.series).toHaveLength(1);
     expect(exported.data.updates).toEqual([]);
     expect(exported.data.subscriptions).toEqual([
-      { seriesKey: "dm5:m123", position: 0, checkedAt: 0 },
+      { seriesKey: "dm5:m123" },
     ]);
+    expect(exported.data.history).toEqual(["dm5:m123"]);
+    expect(exported.data.series[0]).toEqual(
+      expect.objectContaining({
+        site: "dm5",
+        comicsID: "m123",
+        lastRead: "m1",
+        read: ["m1"],
+        chapters: [
+          {
+            chapterID: "m2",
+            title: "Ch 2",
+            href: "https://www.dm5.com/m123/2.html",
+          },
+          {
+            chapterID: "m1",
+            title: "Ch 1",
+            href: "https://www.dm5.com/m123/1.html",
+          },
+        ],
+      }),
+    );
   });
 
   it("keeps existing cover when refresh payload omits a replacement cover", async () => {

@@ -127,6 +127,33 @@ export type LibraryDumpRowsV1 = {
   updates: UpdateRow[];
 };
 
+export type LibraryDumpChapterV2 = {
+  chapterID: string;
+  title: string;
+  href: string;
+};
+
+export type LibraryDumpSeriesV2 = {
+  site: SiteKey;
+  comicsID: string;
+  title: string;
+  cover: string;
+  url: string;
+  lastRead: string;
+  chapters: LibraryDumpChapterV2[];
+  read?: string[];
+};
+
+export type LibraryDumpRowsV2 = {
+  series: LibraryDumpSeriesV2[];
+  subscriptions: Array<{
+    seriesKey: string;
+    checkedAt?: number;
+  }>;
+  history: string[];
+  updates: LibraryUpdateRecord[];
+};
+
 export type LibrarySignal = {
   revision: string;
   changedAt: number;
@@ -143,6 +170,16 @@ export type LibraryDumpV1 = {
   dbSchemaVersion: number;
   data: LibraryDumpRowsV1;
 };
+
+export type LibraryDumpV2 = {
+  format: "comic-scroller-db-dump";
+  formatVersion: 2;
+  exportedAt: number;
+  dbSchemaVersion: number;
+  data: LibraryDumpRowsV2;
+};
+
+export type LibraryDump = LibraryDumpV1 | LibraryDumpV2;
 
 function toRecord(input: unknown): Record<string, unknown> {
   if (!input || typeof input !== "object" || Array.isArray(input)) {

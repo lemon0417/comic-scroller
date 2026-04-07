@@ -1,4 +1,4 @@
-import type { LibraryDumpV1 } from "./schema";
+import type { LibraryDumpV2 } from "./schema";
 import {
   createEmptyLibrarySnapshot,
   getExtensionVersion,
@@ -10,6 +10,8 @@ import {
 import {
   ensureLibraryReady,
   isLibraryDumpV1,
+  isLibraryDumpV2,
+  migrateCompactDump,
   migrateDump,
   migrateLibrary,
   openLibraryDb,
@@ -17,7 +19,7 @@ import {
   readRowsFromDb,
   requestToPromise,
   rowsToSnapshot,
-  snapshotToRows,
+  snapshotToCompactDumpRows,
   transactionDone,
 } from "./shared";
 
@@ -168,14 +170,14 @@ export async function resetLibrary() {
   });
 }
 
-export async function exportLibraryDump(): Promise<LibraryDumpV1> {
+export async function exportLibraryDump(): Promise<LibraryDumpV2> {
   const snapshot = await loadLibrary();
   return {
     format: "comic-scroller-db-dump",
-    formatVersion: 1,
+    formatVersion: 2,
     exportedAt: Date.now(),
     dbSchemaVersion: LIBRARY_DB_VERSION,
-    data: snapshotToRows(snapshot),
+    data: snapshotToCompactDumpRows(snapshot),
   };
 }
 
@@ -186,7 +188,11 @@ export async function exportLibraryArchive() {
 
 export async function importLibraryDump(raw: unknown) {
   const parsed = await decodeImportPayload(raw);
-  const snapshot = isLibraryDumpV1(parsed) ? migrateDump(parsed) : migrateLibrary(parsed);
+  const snapshot = isLibraryDumpV2(parsed)
+    ? migrateCompactDump(parsed)
+    : isLibraryDumpV1(parsed)
+      ? migrateDump(parsed)
+      : migrateLibrary(parsed);
   return persistSnapshot(snapshot, {
     cleanupLegacy: true,
     emitSignal: true,
