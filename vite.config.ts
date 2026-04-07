@@ -3,6 +3,10 @@ import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
 import path from "path";
 import fs from "fs";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const { resolveManifestKeyFromEnv } = require("./scripts/crx-release-utils.cjs");
 
 const rootDir = process.cwd();
 const srcDir = path.join(rootDir, "src");
@@ -10,6 +14,8 @@ const outDir = path.join(rootDir, "dist");
 const manifestDir = path.join(srcDir, "manifest");
 
 function copyManifest(mode: string) {
+  const manifestKey = resolveManifestKeyFromEnv(process.env);
+
   return {
     name: "copy-extension-manifest",
     apply: "build",
@@ -21,7 +27,11 @@ function copyManifest(mode: string) {
       if (!fs.existsSync(srcPath)) {
         throw new Error(`Missing manifest file: ${srcPath}`);
       }
-      fs.copyFileSync(srcPath, destPath);
+      const manifest = JSON.parse(fs.readFileSync(srcPath, "utf8"));
+      if (manifestKey) {
+        manifest.key = manifestKey;
+      }
+      fs.writeFileSync(destPath, JSON.stringify(manifest, null, 2) + "\n");
     },
   };
 }

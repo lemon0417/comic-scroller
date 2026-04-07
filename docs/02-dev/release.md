@@ -13,6 +13,7 @@
 - CRX 使用固定 private key 簽章，確保 extension ID 穩定。
 - CI / 本機都透過 `CHROME_EXTENSION_PRIVATE_KEY_B64` 提供金鑰。
 - Secret 內容應為 PEM private key 的 base64 字串。
+- build / release 若拿得到這把 key，輸出的 `dist/manifest.json` 也會自動注入對應的 `key` 欄位，讓 zip / unpacked build 維持同一個 extension ID。
 
 ### 產生 base64 Secret
 ```bash
@@ -23,6 +24,13 @@ base64 < release-key.pem | tr -d '\n'
 ```bash
 export CHROME_EXTENSION_PRIVATE_KEY_B64="$(base64 < release-key.pem | tr -d '\n')"
 yarn release
+```
+
+### 只固定 unpacked ID
+若你不需要在本機簽 CRX，也可以只提供 public key：
+```bash
+export CHROME_EXTENSION_PUBLIC_KEY="$(openssl rsa -in release-key.pem -pubout | sed '/BEGIN PUBLIC KEY/d;/END PUBLIC KEY/d' | tr -d '\n')"
+yarn build
 ```
 
 ## 安裝限制

@@ -28,3 +28,4 @@
   - `corepack enable`
   - `corepack prepare yarn@4.0.2 --activate`
 - 產出 CRX 前需設定 `CHROME_EXTENSION_PRIVATE_KEY_B64`
+- 若 `build / release` 時有提供 `CHROME_EXTENSION_PRIVATE_KEY_B64` 或 `CHROME_EXTENSION_PUBLIC_KEY`，輸出的 `dist/manifest.json` 會自動注入 `key`，讓 unpacked 版本也能維持固定 extension ID

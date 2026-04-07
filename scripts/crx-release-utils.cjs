@@ -1,3 +1,5 @@
+const { createPublicKey } = require('crypto');
+
 const BASE64_PATTERN = /^[A-Za-z0-9+/=\s]+$/;
 
 function getCrxArtifactName(version) {
@@ -39,7 +41,52 @@ function decodePrivateKeyBase64(raw) {
   return `${pem}\n`;
 }
 
+function normalizeManifestPublicKey(publicKeyPem) {
+  return String(publicKeyPem || '')
+    .replace(/-----BEGIN PUBLIC KEY-----/g, '')
+    .replace(/-----END PUBLIC KEY-----/g, '')
+    .replace(/\s+/g, '')
+    .trim();
+}
+
+function deriveManifestKeyFromPrivateKeyBase64(raw) {
+  const privateKeyPem = decodePrivateKeyBase64(raw);
+  const publicKeyPem = createPublicKey(privateKeyPem).export({
+    type: 'spki',
+    format: 'pem',
+  });
+
+  const manifestKey = normalizeManifestPublicKey(publicKeyPem);
+  if (!manifestKey) {
+    throw new Error(
+      'crx-release: failed to derive a manifest public key from CHROME_EXTENSION_PRIVATE_KEY_B64.',
+    );
+  }
+
+  return manifestKey;
+}
+
+function resolveManifestKeyFromEnv(env = process.env) {
+  const explicitPublicKey = normalizeManifestPublicKey(
+    env.CHROME_EXTENSION_PUBLIC_KEY,
+  );
+  if (explicitPublicKey) {
+    return explicitPublicKey;
+  }
+
+  if (env.CHROME_EXTENSION_PRIVATE_KEY_B64) {
+    return deriveManifestKeyFromPrivateKeyBase64(
+      env.CHROME_EXTENSION_PRIVATE_KEY_B64,
+    );
+  }
+
+  return '';
+}
+
 module.exports = {
   decodePrivateKeyBase64,
+  deriveManifestKeyFromPrivateKeyBase64,
   getCrxArtifactName,
+  normalizeManifestPublicKey,
+  resolveManifestKeyFromEnv,
 };
