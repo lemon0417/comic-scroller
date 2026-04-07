@@ -11,7 +11,7 @@ const readerLocationEpic: AppEpic = (action$, state$) =>
     mergeMap(() => {
       const comics = state$?.value?.comics;
       const chapter = comics?.chapterList?.[comics?.chapterNowIndex];
-      const chapterTitle = chapter ? comics?.chapters?.[chapter]?.title || "" : "";
+      const chapterTitle = comics?.currentChapterTitle || "";
       if (!chapter || !comics?.site) {
         return EMPTY;
       }

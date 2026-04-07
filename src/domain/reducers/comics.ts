@@ -31,6 +31,7 @@ export type ComicsState = {
   seriesKey: string;
   comicsID: string;
   title: string;
+  currentChapterTitle: string;
   chapterLatestIndex: number;
   chapterNowIndex: number;
   canPreloadPreviousChapter: boolean;
@@ -77,6 +78,7 @@ const initialState: ComicsState = {
   seriesKey: "",
   comicsID: "",
   title: "",
+  currentChapterTitle: "",
   chapterLatestIndex: 0,
   chapterNowIndex: 0,
   canPreloadPreviousChapter: true,
@@ -122,6 +124,15 @@ function createFallbackImageRecord(chapter = ""): ComicsImageRecord {
     naturalWidth: 0,
     type: "image",
   };
+}
+
+function resolveCurrentChapterTitle(input: {
+  chapterList: string[];
+  chapters: Record<string, ComicsChapterRecord>;
+  chapterNowIndex: number;
+}) {
+  const chapterID = input.chapterList[input.chapterNowIndex];
+  return chapterID ? input.chapters[chapterID]?.title || "" : "";
 }
 
 export default function comics(
@@ -231,12 +242,19 @@ export default function comics(
         ...state,
         chapterLatestIndex: action.data,
       };
-    case UPDATE_CHAPTER_NOW_INDEX:
+    case UPDATE_CHAPTER_NOW_INDEX: {
       if (typeof action.data !== "number") return state;
+      const chapterNowIndex = action.data;
       return {
         ...state,
-        chapterNowIndex: action.data,
+        chapterNowIndex,
+        currentChapterTitle: resolveCurrentChapterTitle({
+          chapterList: state.chapterList,
+          chapters: state.chapters,
+          chapterNowIndex,
+        }),
       };
+    }
     case UPDATE_CAN_PRELOAD_PREVIOUS_CHAPTER:
       if (typeof action.data !== "boolean") return state;
       return {
@@ -259,20 +277,34 @@ export default function comics(
         ...state,
         read: action.data as string[],
       };
-    case UPDATE_CHAPTERS:
+    case UPDATE_CHAPTERS: {
       if (!action.data || typeof action.data !== "object" || Array.isArray(action.data)) {
         return state;
       }
+      const chapters = action.data as Record<string, ComicsChapterRecord>;
       return {
         ...state,
-        chapters: action.data as Record<string, ComicsChapterRecord>,
+        chapters,
+        currentChapterTitle: resolveCurrentChapterTitle({
+          chapterList: state.chapterList,
+          chapters,
+          chapterNowIndex: state.chapterNowIndex,
+        }),
       };
-    case UPDATE_CHAPTER_LIST:
+    }
+    case UPDATE_CHAPTER_LIST: {
       if (!Array.isArray(action.data)) return state;
+      const chapterList = action.data as string[];
       return {
         ...state,
-        chapterList: action.data as string[],
+        chapterList,
+        currentChapterTitle: resolveCurrentChapterTitle({
+          chapterList,
+          chapters: state.chapters,
+          chapterNowIndex: state.chapterNowIndex,
+        }),
       };
+    }
     case UPDATE_COMICS_ID:
       if (typeof action.data !== "string") return state;
       return {

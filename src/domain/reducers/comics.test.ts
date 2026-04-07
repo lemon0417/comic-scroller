@@ -2,6 +2,9 @@ import comics, {
   concatImageList,
   resetImg,
   updateCanPreloadPreviousChapter,
+  updateChapterList,
+  updateChapterNowIndex,
+  updateChapters,
   updateComicsID,
   updateInnerHeight,
   updateInnerWidth,
@@ -94,5 +97,29 @@ describe("comics reducer", () => {
         type: "paywall",
       }),
     );
+  });
+
+  it("tracks currentChapterTitle from chapter metadata and navigation", () => {
+    const prevState = comics(undefined, { type: "@@INIT" } as any) as any;
+    const withChapters = comics(
+      prevState,
+      updateChapters({
+        c1: { title: "Chapter 1" },
+        c2: { title: "Chapter 2" },
+      }) as any,
+    );
+    const withChapterList = comics(
+      withChapters,
+      updateChapterList(["c2", "c1"]) as any,
+    );
+
+    expect(withChapterList.currentChapterTitle).toBe("Chapter 2");
+
+    const nextState = comics(
+      withChapterList,
+      updateChapterNowIndex(1) as any,
+    );
+
+    expect(nextState.currentChapterTitle).toBe("Chapter 1");
   });
 });

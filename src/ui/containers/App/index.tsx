@@ -235,22 +235,18 @@ function App(props: AppProps) {
 function mapStateToProps({ comics }: { comics: ComicsState }): AppStateProps {
   const {
     title,
+    currentChapterTitle,
     chapterNowIndex,
     chapterList,
-    chapters,
     subscribe,
     site,
     comicsID,
     seriesKey,
     baseURL,
   } = comics;
-  const chapterID = chapterList[chapterNowIndex];
   return {
     title,
-    chapterTitle:
-      chapterList.length > 0 && chapters[chapterID]
-        ? chapters[chapterID].title
-        : "",
+    chapterTitle: currentChapterTitle,
     site,
     chapterList,
     prevable: chapterNowIndex < chapterList.length,
