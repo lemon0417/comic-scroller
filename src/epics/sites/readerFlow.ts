@@ -7,6 +7,7 @@ import {
   UPDATE_READ,
 } from "@domain/actions/reader";
 import {
+  type ComicsChapterRecord,
   type ComicsImageSource,
   concatImageList,
   loadImgSrc,
@@ -80,6 +81,23 @@ function getCanPreloadPreviousChapter(payload: ReaderChapterPayload) {
   return payload.canPreloadPreviousChapter !== false;
 }
 
+function toReaderChapterTitles(
+  chapters: SiteMeta["chapters"],
+): Record<string, ComicsChapterRecord> {
+  return Object.entries(chapters || {}).reduce<Record<string, ComicsChapterRecord>>(
+    (acc, [chapterID, chapter]) => {
+      if (!chapterID) {
+        return acc;
+      }
+      acc[chapterID] = {
+        title: chapter?.title || "",
+      };
+      return acc;
+    },
+    {},
+  );
+}
+
 function buildInitialChapterActions(payload: ReaderChapterPayload): EpicAction[] {
   return [
     updateComicsID(payload.seriesID),
@@ -108,7 +126,7 @@ function buildMetadataActions(input: {
     updateSubscribe(subscribed),
     updateTitle(meta.title || ""),
     updateReadChapters(seriesRead),
-    updateChapters(meta.chapters),
+    updateChapters(toReaderChapterTitles(meta.chapters)),
     updateChapterList(meta.chapterList),
     updateChapterNowIndex(chapterIndex),
     updateCanPreloadPreviousChapter(canPreloadPreviousChapter),

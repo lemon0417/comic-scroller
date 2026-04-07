@@ -2,8 +2,6 @@ import { buildSeriesKey } from "@infra/services/library/schema";
 import reduce from "lodash/reduce";
 
 export type ComicsChapterRecord = {
-  chapter?: string;
-  href?: string;
   title: string;
 };
 
