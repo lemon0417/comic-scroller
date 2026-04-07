@@ -183,6 +183,32 @@ function mergeSeriesRecord(
   return nextRecord;
 }
 
+type BackgroundRefreshRecordInput = Pick<
+  SeriesRecord,
+  "url" | "chapterList" | "chapters"
+> &
+  Partial<Pick<SeriesRecord, "title" | "cover">>;
+
+function mergeBackgroundRefreshRecord(
+  site: SiteKey,
+  comicsID: string,
+  previousRow: SeriesRow | undefined,
+  readChapterIDs: string[],
+  record: BackgroundRefreshRecordInput,
+) {
+  return normalizeSeriesRecord(site, comicsID, {
+    site,
+    comicsID,
+    title: record.title || previousRow?.title || "",
+    cover: record.cover || previousRow?.cover || "",
+    url: record.url || previousRow?.url || "",
+    chapterList: record.chapterList,
+    chapters: record.chapters,
+    lastRead: previousRow?.lastRead || "",
+    read: readChapterIDs,
+  });
+}
+
 function createSeriesUpdateKeyRange(seriesKey: string) {
   if (typeof IDBKeyRange === "undefined") {
     return null;
@@ -737,30 +763,33 @@ export async function applyReadProgress(site: SiteKey, comicsID: string, chapter
 export async function applyBackgroundSeriesRefresh(
   site: SiteKey,
   comicsID: string,
-  record: Partial<SeriesRecord>,
+  record: BackgroundRefreshRecordInput,
   newChapterIDs: string[],
 ) {
   await ensureLibraryReady();
   const seriesKey = buildSeriesKey(site, comicsID);
   const db = await openLibraryDb();
-  const transaction = db.transaction([SERIES_STORE, CHAPTERS_STORE, UPDATES_STORE], "readwrite");
+  const transaction = db.transaction(
+    [SERIES_STORE, CHAPTERS_STORE, READS_STORE, UPDATES_STORE],
+    "readwrite",
+  );
   const done = transactionDone(transaction);
   const seriesStore = transaction.objectStore(SERIES_STORE);
   const chaptersStore = transaction.objectStore(CHAPTERS_STORE);
+  const readsStore = transaction.objectStore(READS_STORE);
   const updatesStore = transaction.objectStore(UPDATES_STORE);
 
-  const previousRow = await requestToPromise<SeriesRow | undefined>(
-    seriesStore.get(seriesKey),
+  const [previousRow, readChapterIDs] = await Promise.all([
+    requestToPromise<SeriesRow | undefined>(seriesStore.get(seriesKey)),
+    loadReadChapterIDsInTransaction(readsStore, seriesKey),
+  ]);
+  const mergedRecord = mergeBackgroundRefreshRecord(
+    site,
+    comicsID,
+    previousRow,
+    readChapterIDs,
+    record,
   );
-  const previousChapters = previousRow
-    ? await requestToPromise<ChapterRow[]>(
-        chaptersStore.index("seriesKey").getAll(seriesKey),
-      )
-    : [];
-  const previousRecord = previousRow
-    ? composeSeriesRecord(previousRow, previousChapters)
-    : normalizeSeriesRecord(site, comicsID, {});
-  const mergedRecord = mergeSeriesRecord(site, comicsID, previousRecord, record);
 
   await requestToPromise(
     seriesStore.put(

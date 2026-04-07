@@ -2,6 +2,7 @@ import {
   getBackgroundSeriesState,
   getPopupFeedSnapshot,
   getReaderSeriesState,
+  getSeriesCover,
   listSubscriptionKeys,
 } from "./queries";
 import {
@@ -272,6 +273,38 @@ describe("library queries", () => {
 
     expect(seriesStore.get).not.toHaveBeenCalled();
     expect(chaptersStore.index).not.toHaveBeenCalled();
+  });
+
+  it("loads series cover without hydrating chapter or read state", async () => {
+    const seriesStore = {
+      get: jest.fn(() => ({
+        seriesKey: "dm5:m123",
+        site: "dm5",
+        comicsID: "m123",
+        title: "Demo",
+        cover: "cover.jpg",
+        url: "https://www.dm5.com/m123/",
+        lastRead: "m1",
+        lastReadTitle: "Ch 1",
+        lastReadHref: "https://www.dm5.com/m123/1.html",
+        latestChapterID: "m2",
+        latestChapterTitle: "Ch 2",
+        latestChapterHref: "https://www.dm5.com/m123/2.html",
+      })),
+    };
+    const transaction = {
+      objectStore: jest.fn(() => seriesStore),
+    };
+    const db = {
+      transaction: jest.fn(() => transaction),
+    };
+    shared.openLibraryDb.mockResolvedValue(db);
+
+    await expect(getSeriesCover("dm5:m123")).resolves.toBe("cover.jpg");
+
+    expect(db.transaction).toHaveBeenCalledWith([SERIES_STORE], "readonly");
+    expect(seriesStore.get).toHaveBeenCalledWith("dm5:m123");
+    expect(shared.loadReadChapterIDsInTransaction).not.toHaveBeenCalled();
   });
 
   it("loads reader series state and subscription in a single query", async () => {

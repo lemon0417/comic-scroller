@@ -1,6 +1,6 @@
 import { FETCH_IMAGE_SRC } from "@domain/actions/reader";
 import { loadImgSrc } from "@domain/reducers/comics";
-import { getSeriesSnapshot } from "@infra/services/library/reader";
+import { getSeriesCover } from "@infra/services/library/reader";
 import { buildSeriesKey } from "@infra/services/library/schema";
 import {
   parseDm5ChapterPage,
@@ -174,9 +174,9 @@ export const fetchChapterEpic = createFetchChapterEpic({
     });
   },
   resolveFetchMetaOptions$: (payload) =>
-    from(getSeriesSnapshot(buildSeriesKey("dm5", payload.seriesID))).pipe(
-      rxMap((series) => {
-        const shouldFetchCover = !series?.cover;
+    from(getSeriesCover(buildSeriesKey("dm5", payload.seriesID))).pipe(
+      rxMap((cover) => {
+        const shouldFetchCover = !cover;
         return {
           includeCover: shouldFetchCover,
           deferCover: shouldFetchCover,

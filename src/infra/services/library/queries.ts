@@ -269,6 +269,19 @@ export async function getSeriesSnapshot(siteOrSeriesKey: string, comicsID?: stri
   return readSeriesSnapshotByKey(resolveSeriesKeyInput(siteOrSeriesKey, comicsID));
 }
 
+export async function getSeriesCover(siteOrSeriesKey: string, comicsID?: string) {
+  await ensureLibraryReady();
+  const db = await openLibraryDb();
+  const transaction = db.transaction([SERIES_STORE], "readonly");
+  const done = transactionDone(transaction);
+  const seriesStore = transaction.objectStore(SERIES_STORE);
+  const row = await requestToPromise<SeriesRow | undefined>(
+    seriesStore.get(resolveSeriesKeyInput(siteOrSeriesKey, comicsID)),
+  );
+  await done;
+  return row?.cover || "";
+}
+
 export async function getReaderSeriesState(
   seriesKey: string,
 ): Promise<ReaderSeriesState> {

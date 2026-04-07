@@ -3,6 +3,9 @@ import type {
   ChapterRecord,
   ChapterRow,
   HistoryRow,
+  LibraryDbRows,
+  LibraryDumpRowsV1,
+  LibraryDumpSeriesRow,
   LibraryDumpV1,
   LibrarySignal,
   LibrarySnapshotV2,
@@ -207,32 +210,22 @@ async function readMeta(key: string) {
   return row;
 }
 
-export function snapshotToRows(snapshot: LibrarySnapshotV2) {
+export function snapshotToDbRows(snapshot: LibrarySnapshotV2): LibraryDbRows {
   const series: SeriesRow[] = [];
   const chapters: ChapterRow[] = [];
+  const reads: ReadRow[] = [];
 
   Object.entries(snapshot.seriesByKey || {}).forEach(([seriesKey, record]) => {
     const normalized = normalizeSeriesRecord(record.site, record.comicsID, record);
-    series.push({
-      ...createSeriesRow(seriesKey, normalized),
-      read: uniqueStrings(normalized.read),
-    });
-    normalized.chapterList.forEach((chapterID, orderIndex) => {
-      if (!chapterID) return;
-      const chapter = normalized.chapters[chapterID];
-      chapters.push({
-        seriesKey,
-        chapterID,
-        title: chapter?.title || "",
-        href: chapter?.href || "",
-        orderIndex,
-      });
-    });
+    series.push(createSeriesRow(seriesKey, normalized));
+    chapters.push(...createChapterRows(seriesKey, normalized));
+    reads.push(...createReadRows(seriesKey, normalized));
   });
 
   return {
     series,
     chapters,
+    reads,
     subscriptions: uniqueStrings(snapshot.subscriptions).map((seriesKey, position) => ({
       seriesKey,
       position,
@@ -252,6 +245,27 @@ export function snapshotToRows(snapshot: LibrarySnapshotV2) {
   };
 }
 
+export function snapshotToRows(snapshot: LibrarySnapshotV2): LibraryDumpRowsV1 {
+  const rows = snapshotToDbRows(snapshot);
+  const readsBySeriesKey = groupReadRowsBySeriesKey(rows.reads);
+
+  return {
+    series: rows.series.map((row) => {
+      const read = uniqueStrings(readsBySeriesKey[row.seriesKey]);
+      return read.length > 0
+        ? {
+            ...row,
+            read,
+          }
+        : row;
+    }),
+    chapters: rows.chapters,
+    subscriptions: rows.subscriptions,
+    history: rows.history,
+    updates: rows.updates,
+  };
+}
+
 function groupReadRowsBySeriesKey(reads: ReadRow[]) {
   return reads.reduce<Record<string, string[]>>((acc, row) => {
     if (!row.seriesKey || !row.chapterID) {
@@ -263,7 +277,7 @@ function groupReadRowsBySeriesKey(reads: ReadRow[]) {
 }
 
 export function rowsToSnapshot(input: {
-  series: SeriesRow[];
+  series: Array<SeriesRow | LibraryDumpSeriesRow>;
   chapters: ChapterRow[];
   reads?: ReadRow[];
   subscriptions: SubscriptionRow[];
@@ -274,17 +288,18 @@ export function rowsToSnapshot(input: {
   const readsBySeriesKey = groupReadRowsBySeriesKey(input.reads || []);
 
   for (const row of input.series) {
-    const key = buildSeriesKey(row.site, row.comicsID);
+    const seriesRow = row as LibraryDumpSeriesRow;
+    const key = buildSeriesKey(seriesRow.site, seriesRow.comicsID);
     snapshot.seriesByKey[key] = {
-      site: row.site,
-      comicsID: row.comicsID,
-      title: row.title || "",
-      cover: row.cover || "",
-      url: row.url || "",
+      site: seriesRow.site,
+      comicsID: seriesRow.comicsID,
+      title: seriesRow.title || "",
+      cover: seriesRow.cover || "",
+      url: seriesRow.url || "",
       chapterList: [],
       chapters: {},
-      lastRead: row.lastRead || "",
-      read: uniqueStrings(readsBySeriesKey[key] || row.read),
+      lastRead: seriesRow.lastRead || "",
+      read: uniqueStrings(readsBySeriesKey[key] || seriesRow.read),
     };
   }
 
@@ -325,7 +340,7 @@ export function rowsToSnapshot(input: {
 }
 
 async function writeRowsToDb(
-  rows: ReturnType<typeof snapshotToRows>,
+  rows: LibraryDbRows,
   version = getExtensionVersion(),
 ) {
   const db = await openLibraryDb();
@@ -362,19 +377,13 @@ async function writeRowsToDb(
   ]);
 
   for (const row of rows.series) {
-    const { read = [], ...seriesRow } = row;
-    await requestToPromise(seriesStore.put(seriesRow));
-    for (const chapterID of uniqueStrings(read)) {
-      await requestToPromise(
-        readsStore.put({
-          seriesKey: row.seriesKey,
-          chapterID,
-        }),
-      );
-    }
+    await requestToPromise(seriesStore.put(row));
   }
   for (const row of rows.chapters) {
     await requestToPromise(chaptersStore.put(row));
+  }
+  for (const row of rows.reads) {
+    await requestToPromise(readsStore.put(row));
   }
   for (const row of rows.subscriptions) {
     await requestToPromise(subscriptionsStore.put(row));
@@ -415,8 +424,8 @@ export async function readRowsFromDb() {
   const historyStore = transaction.objectStore(HISTORY_STORE);
   const updatesStore = transaction.objectStore(UPDATES_STORE);
 
-  const [seriesRows, chapters, reads, subscriptions, history, updates] = await Promise.all([
-    requestToPromise<Array<SeriesRow & { read?: string[] }>>(seriesStore.getAll()),
+  const [series, chapters, reads, subscriptions, history, updates] = await Promise.all([
+    requestToPromise<SeriesRow[]>(seriesStore.getAll()),
     requestToPromise<ChapterRow[]>(chaptersStore.getAll()),
     requestToPromise<ReadRow[]>(readsStore.getAll()),
     requestToPromise<SubscriptionRow[]>(subscriptionsStore.getAll()),
@@ -424,12 +433,6 @@ export async function readRowsFromDb() {
     requestToPromise<UpdateRow[]>(updatesStore.getAll()),
   ]);
   await done;
-
-  const readsBySeriesKey = groupReadRowsBySeriesKey(reads);
-  const series = seriesRows.map((row) => ({
-    ...row,
-    read: uniqueStrings(readsBySeriesKey[row.seriesKey] || row.read),
-  }));
 
   return { series, chapters, reads, subscriptions, history, updates };
 }
@@ -469,7 +472,7 @@ export async function persistSnapshot(
   } = {},
 ) {
   const normalized = migrateV2(snapshot as LegacyStore);
-  await writeRowsToDb(snapshotToRows(normalized), normalized.version);
+  await writeRowsToDb(snapshotToDbRows(normalized), normalized.version);
   if (options.cleanupLegacy) {
     await cleanupLegacyStorage();
   }
@@ -492,7 +495,7 @@ export async function ensureLibraryReady() {
         if (Number(meta?.value?.dbSchemaVersion || 0) < LIBRARY_DB_VERSION) {
           const rows = await readRowsFromDb();
           await writeRowsToDb(
-            snapshotToRows(rowsToSnapshot(rows)),
+            snapshotToDbRows(rowsToSnapshot(rows)),
             meta?.value?.version || getExtensionVersion(),
           );
         }
@@ -741,7 +744,7 @@ export function composeSeriesRecord(
     ...row,
     chapterList: sortedChapters.map((chapterRow) => chapterRow.chapterID),
     chapters,
-    read: readChapterIDs.length > 0 ? readChapterIDs : row.read,
+    read: readChapterIDs,
   });
 }
 
@@ -827,6 +830,34 @@ function createChapterRows(seriesKey: string, record: SeriesRecord): ChapterRow[
     });
 }
 
+function sortChapterRowsByOrderIndex(rows: ChapterRow[]) {
+  return [...rows].sort((a, b) => a.orderIndex - b.orderIndex);
+}
+
+function haveSameChapterRows(left: ChapterRow[], right: ChapterRow[]) {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  const sortedLeft = sortChapterRowsByOrderIndex(left);
+  const sortedRight = sortChapterRowsByOrderIndex(right);
+  for (let index = 0; index < sortedLeft.length; index += 1) {
+    const leftRow = sortedLeft[index];
+    const rightRow = sortedRight[index];
+    if (
+      leftRow.seriesKey !== rightRow.seriesKey ||
+      leftRow.chapterID !== rightRow.chapterID ||
+      leftRow.title !== rightRow.title ||
+      leftRow.href !== rightRow.href ||
+      leftRow.orderIndex !== rightRow.orderIndex
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function createReadRows(seriesKey: string, record: SeriesRecord): ReadRow[] {
   return uniqueStrings(record.read)
     .filter(Boolean)
@@ -842,15 +873,20 @@ export async function replaceSeriesChaptersInTransaction(
   record: SeriesRecord,
 ) {
   const chapterIndex = chaptersStore.index("seriesKey");
-  const existingKeys = await requestToPromise<IDBValidKey[]>(
-    chapterIndex.getAllKeys(seriesKey),
+  const existingRows = await requestToPromise<ChapterRow[]>(
+    chapterIndex.getAll(seriesKey),
   );
-  for (const key of existingKeys) {
-    await requestToPromise(chaptersStore.delete(key));
+  const nextRows = createChapterRows(seriesKey, record);
+  if (haveSameChapterRows(existingRows, nextRows)) {
+    return false;
   }
-  for (const row of createChapterRows(seriesKey, record)) {
+  for (const row of existingRows) {
+    await requestToPromise(chaptersStore.delete([row.seriesKey, row.chapterID]));
+  }
+  for (const row of nextRows) {
     await requestToPromise(chaptersStore.put(row));
   }
+  return true;
 }
 
 export async function loadReadChapterIDsInTransaction(

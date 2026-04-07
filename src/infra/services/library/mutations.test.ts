@@ -457,6 +457,11 @@ describe("library mutations", () => {
       ["m3", "m2"],
     );
 
+    expect(shared.loadReadChapterIDsInTransaction).toHaveBeenCalledWith(
+      readsStore,
+      "dm5:m123",
+    );
+    expect(chaptersStore.index).not.toHaveBeenCalled();
     expect(shared.replaceSeriesChaptersInTransaction).toHaveBeenCalled();
     expect(updatesStore.delete).toHaveBeenNthCalledWith(1, ["dm5:m123", "m3"]);
     expect(updatesStore.delete).toHaveBeenNthCalledWith(2, ["dm5:m123", "m2"]);

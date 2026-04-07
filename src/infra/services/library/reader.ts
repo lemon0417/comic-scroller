@@ -9,6 +9,7 @@ export {
 } from "./mutations";
 export {
   getReaderSeriesState,
+  getSeriesCover,
   getSeriesSnapshot,
   isSeriesSubscribedByKey,
 } from "./queries";

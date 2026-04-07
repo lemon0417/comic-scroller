@@ -71,7 +71,6 @@ export type SeriesRow = {
   cover: string;
   url: string;
   lastRead: string;
-  read?: string[];
   lastReadTitle: string;
   lastReadHref: string;
   latestChapterID: string;
@@ -107,6 +106,27 @@ export type UpdateRow = LibraryUpdateRecord & {
   position: number;
 };
 
+export type LibraryDbRows = {
+  series: SeriesRow[];
+  chapters: ChapterRow[];
+  reads: ReadRow[];
+  subscriptions: SubscriptionRow[];
+  history: HistoryRow[];
+  updates: UpdateRow[];
+};
+
+export type LibraryDumpSeriesRow = SeriesRow & {
+  read?: string[];
+};
+
+export type LibraryDumpRowsV1 = {
+  series: LibraryDumpSeriesRow[];
+  chapters: ChapterRow[];
+  subscriptions: SubscriptionRow[];
+  history: HistoryRow[];
+  updates: UpdateRow[];
+};
+
 export type LibrarySignal = {
   revision: string;
   changedAt: number;
@@ -121,13 +141,7 @@ export type LibraryDumpV1 = {
   formatVersion: 1;
   exportedAt: number;
   dbSchemaVersion: number;
-  data: {
-    series: SeriesRow[];
-    chapters: ChapterRow[];
-    subscriptions: SubscriptionRow[];
-    history: HistoryRow[];
-    updates: UpdateRow[];
-  };
+  data: LibraryDumpRowsV1;
 };
 
 function toRecord(input: unknown): Record<string, unknown> {

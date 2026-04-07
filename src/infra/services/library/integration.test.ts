@@ -325,6 +325,31 @@ describe("library integration", () => {
       },
     });
 
+    const db = await shared.openLibraryDb();
+    const rawTransaction = db.transaction(
+      [SERIES_STORE, READS_STORE],
+      "readonly",
+    );
+    const rawSeriesRow = await shared.requestToPromise(
+      rawTransaction.objectStore(SERIES_STORE).get("dm5:m123"),
+    );
+    const rawReadRows = await shared.requestToPromise(
+      rawTransaction.objectStore(READS_STORE).index("seriesKey").getAll("dm5:m123"),
+    );
+    await shared.transactionDone(rawTransaction);
+
+    expect(rawSeriesRow).toEqual(
+      expect.not.objectContaining({
+        read: expect.anything(),
+      }),
+    );
+    expect(rawReadRows).toEqual([
+      {
+        seriesKey: "dm5:m123",
+        chapterID: "m1",
+      },
+    ]);
+
     const readerState = await queries.getReaderSeriesState("dm5:m123");
     const feed = await queries.getPopupFeedSnapshot();
 
