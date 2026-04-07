@@ -38,6 +38,11 @@ export type ReaderSeriesState = {
   subscribed: boolean;
 };
 
+export type ReaderSeriesSyncState = {
+  exists: boolean;
+  subscribed: boolean;
+};
+
 export type BackgroundSeriesState = {
   url: string;
   cover: string;

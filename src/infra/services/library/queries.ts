@@ -5,6 +5,7 @@ import {
   type PopupFeedEntry,
   type PopupFeedSnapshot,
   type ReaderSeriesState,
+  type ReaderSeriesSyncState,
 } from "./models";
 import {
   type ChapterRow,
@@ -315,6 +316,30 @@ export async function getReaderSeriesState(
 
   return {
     series: composeSeriesRecord(row, chapterRows, readChapterIDs),
+    subscribed: Boolean(subscriptionRow),
+  };
+}
+
+export async function getReaderSeriesSyncState(
+  seriesKey: string,
+): Promise<ReaderSeriesSyncState> {
+  await ensureLibraryReady();
+  const db = await openLibraryDb();
+  const transaction = db.transaction(
+    [SERIES_STORE, SUBSCRIPTIONS_STORE],
+    "readonly",
+  );
+  const done = transactionDone(transaction);
+  const seriesStore = transaction.objectStore(SERIES_STORE);
+  const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
+  const [row, subscriptionRow] = await Promise.all([
+    requestToPromise<SeriesRow | undefined>(seriesStore.get(seriesKey)),
+    requestToPromise(subscriptionsStore.get(seriesKey)),
+  ]);
+  await done;
+
+  return {
+    exists: Boolean(row),
     subscribed: Boolean(subscriptionRow),
   };
 }

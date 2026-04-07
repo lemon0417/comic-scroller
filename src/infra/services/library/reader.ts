@@ -1,5 +1,6 @@
 export type {
   ReaderSeriesState,
+  ReaderSeriesSyncState,
 } from "./models";
 export {
   applyReaderSeriesState,
@@ -9,6 +10,7 @@ export {
 } from "./mutations";
 export {
   getReaderSeriesState,
+  getReaderSeriesSyncState,
   getSeriesCover,
   getSeriesSnapshot,
   isSeriesSubscribedByKey,

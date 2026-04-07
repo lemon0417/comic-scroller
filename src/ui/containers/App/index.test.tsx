@@ -8,18 +8,8 @@ jest.mock("react-redux", () => ({
 import App from "./index";
 
 jest.mock("@infra/services/library/reader", () => ({
-  getReaderSeriesState: jest.fn(async () => ({
-    series: {
-      site: "dm5",
-      comicsID: "123",
-      title: "One Piece",
-      cover: "",
-      url: "https://dm5.com/one-piece",
-      chapterList: [],
-      chapters: {},
-      lastRead: "",
-      read: [],
-    },
+  getReaderSeriesSyncState: jest.fn(async () => ({
+    exists: true,
     subscribed: true,
   })),
   subscribeToLibrarySignal: jest.fn(() => () => undefined),

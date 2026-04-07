@@ -13,7 +13,7 @@ import NextIcon from "@imgs/circle-right.svg?react";
 import MenuIcon from "@imgs/menu.svg?react";
 import TagIcon from "@imgs/tag.svg?react";
 import {
-  getReaderSeriesState,
+  getReaderSeriesSyncState,
   subscribeToLibrarySignal,
 } from "@infra/services/library/reader";
 import { devLog } from "@utils/devLog";
@@ -84,8 +84,8 @@ function App(props: AppProps) {
 
   const syncLibraryState = useCallback(async () => {
     if (!seriesKey) return;
-    const { series, subscribed } = await getReaderSeriesState(seriesKey);
-    if (!series) {
+    const { exists, subscribed } = await getReaderSeriesSyncState(seriesKey);
+    if (!exists) {
       chrome.tabs.getCurrent((tab) => {
         if (tab?.id) {
           chrome.tabs.remove(tab.id);
