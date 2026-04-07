@@ -82,6 +82,8 @@ export default function SeriesRow({
             alt=""
             width={48}
             height={48}
+            loading="lazy"
+            decoding="async"
             className="series-row__cover"
           />
         ) : (

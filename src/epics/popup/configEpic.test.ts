@@ -1,4 +1,5 @@
 import {
+  POPUP_UPDATE_LIMIT,
   requestExportConfig,
   requestImportConfig,
   requestPopupData,
@@ -96,6 +97,31 @@ describe("popupConfigEpic", () => {
     );
 
     expect(actions).toEqual([hydratePopupFeed(emptyFeed, "load")]);
+    expect(getPopupFeedSnapshot).toHaveBeenCalledWith({});
+  });
+
+  it("loads a limited update feed for the popup view", async () => {
+    getPopupFeedSnapshot.mockResolvedValue(emptyFeed);
+
+    const actions = await lastValueFrom(
+      popupConfigEpic(of(requestPopupData("popup"))).pipe(toArray()),
+    );
+
+    expect(actions).toEqual([hydratePopupFeed(emptyFeed, "load")]);
+    expect(getPopupFeedSnapshot).toHaveBeenCalledWith({
+      updateLimit: POPUP_UPDATE_LIMIT,
+    });
+  });
+
+  it("loads the full feed for the manage view", async () => {
+    getPopupFeedSnapshot.mockResolvedValue(emptyFeed);
+
+    const actions = await lastValueFrom(
+      popupConfigEpic(of(requestPopupData("manage"))).pipe(toArray()),
+    );
+
+    expect(actions).toEqual([hydratePopupFeed(emptyFeed, "load")]);
+    expect(getPopupFeedSnapshot).toHaveBeenCalledWith({});
   });
 
   it("imports config and updates badge", async () => {
@@ -154,12 +180,15 @@ describe("popupConfigEpic", () => {
     getPopupFeedSnapshot.mockRejectedValue(new Error("boom"));
 
     const actions = await lastValueFrom(
-      popupConfigEpic(of(requestPopupData())).pipe(toArray()),
+      popupConfigEpic(of(requestPopupData("popup"))).pipe(toArray()),
     );
 
     expect(actions).toEqual([
       setPopupNotice("目前無法載入書庫資料，請稍後再試。"),
     ]);
+    expect(getPopupFeedSnapshot).toHaveBeenCalledWith({
+      updateLimit: POPUP_UPDATE_LIMIT,
+    });
   });
 
   it("surfaces a notice when export fails", async () => {

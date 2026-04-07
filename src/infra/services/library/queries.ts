@@ -161,6 +161,7 @@ function buildPopupFeedSnapshot(input: {
   subscriptions: SubscriptionRow[];
   history: HistoryRow[];
   updates: UpdateRow[];
+  updatesTruncated?: boolean;
 }): PopupFeedSnapshot {
   const subscriptionKeys = input.subscriptions.map((row) => row.seriesKey);
   const historyKeys = input.history.map((row) => row.seriesKey);
@@ -202,6 +203,7 @@ function buildPopupFeedSnapshot(input: {
     subscribe,
     history,
     continueReading,
+    ...(input.updatesTruncated ? { updatesTruncated: true } : {}),
   };
 }
 
@@ -408,7 +410,11 @@ export async function listSubscriptionKeys(limit = Number.POSITIVE_INFINITY) {
   return seriesKeys;
 }
 
-export async function getPopupFeedSnapshot() {
+export async function getPopupFeedSnapshot(
+  options: {
+    updateLimit?: number;
+  } = {},
+) {
   await ensureLibraryReady();
   const db = await openLibraryDb();
   const transaction = db.transaction(
@@ -421,12 +427,23 @@ export async function getPopupFeedSnapshot() {
   const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
   const historyStore = transaction.objectStore(HISTORY_STORE);
   const updatesStore = transaction.objectStore(UPDATES_STORE);
+  const updateLimit = Number.isFinite(options.updateLimit)
+    ? Math.max(0, Number(options.updateLimit))
+    : Number.POSITIVE_INFINITY;
+  const updatesReadLimit = Number.isFinite(updateLimit)
+    ? updateLimit + 1
+    : Number.POSITIVE_INFINITY;
 
-  const [subscriptions, history, updates] = await Promise.all([
+  const [subscriptions, history, loadedUpdates] = await Promise.all([
     loadRowsByPositionInTransaction<SubscriptionRow>(subscriptionsStore),
     loadRowsByPositionInTransaction<HistoryRow>(historyStore),
-    loadUpdatesInTransaction(updatesStore),
+    loadUpdatesInTransaction(updatesStore, updatesReadLimit),
   ]);
+  const updatesTruncated =
+    Number.isFinite(updateLimit) && loadedUpdates.length > updateLimit;
+  const updates = updatesTruncated
+    ? loadedUpdates.slice(0, updateLimit)
+    : loadedUpdates;
 
   const referencedKeys = Array.from(
     new Set([
@@ -449,5 +466,6 @@ export async function getPopupFeedSnapshot() {
     subscriptions,
     history,
     updates,
+    updatesTruncated,
   });
 }

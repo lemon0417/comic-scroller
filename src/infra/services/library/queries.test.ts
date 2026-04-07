@@ -276,6 +276,87 @@ describe("library queries", () => {
     expect(chaptersStore.index).not.toHaveBeenCalled();
   });
 
+  it("limits popup updates for the popup view and flags truncated results", async () => {
+    const seriesRows = {
+      "dm5:m123": {
+        seriesKey: "dm5:m123",
+        site: "dm5",
+        comicsID: "m123",
+        title: "Demo",
+        cover: "cover.jpg",
+        url: "https://www.dm5.com/m123/",
+        lastRead: "m1",
+        lastReadTitle: "Ch 1",
+        lastReadHref: "https://www.dm5.com/m123/1.html",
+        latestChapterID: "m3",
+        latestChapterTitle: "Ch 3",
+        latestChapterHref: "https://www.dm5.com/m123/3.html",
+      },
+    };
+    const stores = {
+      [SERIES_STORE]: {
+        get: jest.fn(() => seriesRows["dm5:m123"]),
+      },
+      [CHAPTERS_STORE]: {
+        get: jest.fn((key: [string, string]) => ({
+          seriesKey: key[0],
+          chapterID: key[1],
+          title: `Ch ${key[1].slice(1)}`,
+          href: `https://www.dm5.com/m123/${key[1].slice(1)}.html`,
+          orderIndex: Number(key[1].slice(1)) - 1,
+        })),
+      },
+      [SUBSCRIPTIONS_STORE]: {
+        getAll: jest.fn(() => []),
+      },
+      [HISTORY_STORE]: {
+        getAll: jest.fn(() => []),
+      },
+      [UPDATES_STORE]: {
+        getAll: jest.fn(() => []),
+      },
+    };
+    const transaction = {
+      objectStore: jest.fn(
+        (storeName: keyof typeof stores) => stores[storeName],
+      ),
+    };
+    const db = {
+      transaction: jest.fn(() => transaction),
+    };
+    shared.openLibraryDb.mockResolvedValue(db);
+    shared.loadRowsByPositionInTransaction
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+    shared.loadUpdatesInTransaction.mockResolvedValue([
+      { seriesKey: "dm5:m123", chapterID: "m3", position: 0 },
+      { seriesKey: "dm5:m123", chapterID: "m2", position: 1 },
+      { seriesKey: "dm5:m123", chapterID: "m1", position: 2 },
+    ]);
+
+    const result = await getPopupFeedSnapshot({ updateLimit: 2 });
+
+    expect(shared.loadUpdatesInTransaction).toHaveBeenCalledWith(
+      stores[UPDATES_STORE],
+      3,
+    );
+    expect(result.updatesTruncated).toBe(true);
+    expect(result.update).toHaveLength(2);
+    expect(result.update.map((entry) => entry.chapterID)).toEqual([
+      "m3",
+      "m2",
+    ]);
+    expect(stores[CHAPTERS_STORE].get).toHaveBeenNthCalledWith(1, [
+      "dm5:m123",
+      "m3",
+    ]);
+    expect(stores[CHAPTERS_STORE].get).toHaveBeenNthCalledWith(2, [
+      "dm5:m123",
+      "m2",
+    ]);
+    expect(stores[CHAPTERS_STORE].get).toHaveBeenCalledTimes(2);
+  });
+
   it("loads series cover without hydrating chapter or read state", async () => {
     const seriesStore = {
       get: jest.fn(() => ({

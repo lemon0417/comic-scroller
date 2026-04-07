@@ -31,6 +31,7 @@ export type PopupFeedSnapshot = {
   subscribe: PopupFeedEntry[];
   history: PopupFeedEntry[];
   continueReading: PopupFeedEntry | null;
+  updatesTruncated?: boolean;
 };
 
 export type ReaderSeriesState = {

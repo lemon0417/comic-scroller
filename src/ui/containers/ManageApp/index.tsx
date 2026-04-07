@@ -243,7 +243,7 @@ function ManageAppComponent(props: ManageAppProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    requestPopupDataProp();
+    requestPopupDataProp("manage");
   }, [requestPopupDataProp]);
 
   useEffect(() => {

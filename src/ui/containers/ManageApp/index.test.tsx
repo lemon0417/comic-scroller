@@ -64,6 +64,7 @@ describe("ManageApp", () => {
 
   it("opens a modal and removes only the history entry after confirmation", () => {
     const requestRemoveCard = jest.fn();
+    const requestPopupData = jest.fn();
 
     render(
       <TestManageApp
@@ -89,7 +90,7 @@ describe("ManageApp", () => {
           }),
         ]}
         continueReading={null}
-        requestPopupData={jest.fn()}
+        requestPopupData={requestPopupData}
         requestExportConfig={jest.fn()}
         requestImportConfig={jest.fn()}
         requestResetConfig={jest.fn()}
@@ -99,6 +100,7 @@ describe("ManageApp", () => {
       />,
     );
 
+    expect(requestPopupData).toHaveBeenCalledWith("manage");
     fireEvent.click(screen.getByRole("button", { name: "移除" }));
 
     expect(
@@ -120,6 +122,7 @@ describe("ManageApp", () => {
 
   it("runs export from the options tab", () => {
     const requestExportConfig = jest.fn();
+    const requestPopupData = jest.fn();
 
     render(
       <TestManageApp
@@ -132,7 +135,7 @@ describe("ManageApp", () => {
         subscribe={[]}
         history={[]}
         continueReading={null}
-        requestPopupData={jest.fn()}
+        requestPopupData={requestPopupData}
         requestExportConfig={requestExportConfig}
         requestImportConfig={jest.fn()}
         requestResetConfig={jest.fn()}
@@ -142,6 +145,7 @@ describe("ManageApp", () => {
       />,
     );
 
+    expect(requestPopupData).toHaveBeenCalledWith("manage");
     fireEvent.click(screen.getByRole("tab", { name: "選項" }));
     fireEvent.click(screen.getByRole("button", { name: "匯出設定" }));
 

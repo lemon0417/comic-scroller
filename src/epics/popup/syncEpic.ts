@@ -1,4 +1,8 @@
-import { REQUEST_POPUP_DATA } from "@domain/actions/popup";
+import {
+  POPUP_UPDATE_LIMIT,
+  type PopupDataView,
+  REQUEST_POPUP_DATA,
+} from "@domain/actions/popup";
 import { hydratePopupFeed } from "@domain/reducers/popupState";
 import {
   getPopupFeedSnapshot,
@@ -10,10 +14,12 @@ import { exhaustMap } from "rxjs/operators";
 
 import type { PopupEpic } from "../types";
 
-function observeLibraryChanges() {
+function observeLibraryChanges(view?: PopupDataView) {
   return new Observable<ReturnType<typeof hydratePopupFeed>>((subscriber) => {
     const unsubscribe = subscribeToLibrarySignal(() => {
-      getPopupFeedSnapshot().then((feed) => {
+      getPopupFeedSnapshot(
+        view === "popup" ? { updateLimit: POPUP_UPDATE_LIMIT } : {},
+      ).then((feed) => {
         subscriber.next(hydratePopupFeed(feed, "load"));
       });
     });
@@ -21,10 +27,20 @@ function observeLibraryChanges() {
   });
 }
 
+function resolvePopupView(action: { payload?: unknown }): PopupDataView | undefined {
+  if (!action.payload || typeof action.payload !== "object") {
+    return undefined;
+  }
+  const view = (action.payload as { view?: PopupDataView }).view;
+  return view === "popup" || view === "manage" ? view : undefined;
+}
+
 const popupSyncEpic: PopupEpic = (action$) =>
   action$.pipe(
     ofType(REQUEST_POPUP_DATA),
-    exhaustMap(() => observeLibraryChanges()),
+    exhaustMap((action) =>
+      observeLibraryChanges(resolvePopupView(action as { payload?: unknown })),
+    ),
   );
 
 export default popupSyncEpic;

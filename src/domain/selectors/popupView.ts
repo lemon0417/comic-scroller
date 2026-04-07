@@ -24,6 +24,7 @@ export function selectPopupView(state: PopupState) {
     exportUrl: popupState.exportUrl,
     exportFilename: popupState.exportFilename,
     update: popupState.feed.update,
+    updatesTruncated: popupState.feed.updatesTruncated === true,
     subscribe: popupState.feed.subscribe,
     history: popupState.feed.history,
     continueReading: popupState.feed.continueReading,

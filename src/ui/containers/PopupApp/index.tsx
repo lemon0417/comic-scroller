@@ -4,7 +4,10 @@ import List from "@components/List";
 import LoadingRows from "@components/LoadingRows";
 import Panel from "@components/Panel";
 import SeriesRow from "@components/SeriesRow";
-import { requestPopupData } from "@domain/actions/popup";
+import {
+  POPUP_UPDATE_LIMIT,
+  requestPopupData,
+} from "@domain/actions/popup";
 import {
   type PopupViewProps,
   selectPopupView,
@@ -25,7 +28,7 @@ function SectionTitle({ title }: { title: string }) {
 
 type PopupAppProps = Pick<
   PopupViewProps,
-  "continueReading" | "hydrationStatus" | "update"
+  "continueReading" | "hydrationStatus" | "update" | "updatesTruncated"
 > & {
   requestPopupData: typeof requestPopupData;
 };
@@ -34,12 +37,13 @@ function PopupAppComponent(props: PopupAppProps) {
   const {
     hydrationStatus,
     update,
+    updatesTruncated,
     continueReading,
     requestPopupData: requestPopupDataProp,
   } = props;
 
   useEffect(() => {
-    requestPopupDataProp();
+    requestPopupDataProp("popup");
   }, [requestPopupDataProp]);
 
   const isLoading = hydrationStatus !== "ready";
@@ -98,6 +102,11 @@ function PopupAppComponent(props: PopupAppProps) {
               {update.length > 0 ? (
                 <section className="popup-section">
                   <SectionTitle title="最新更新" />
+                  {updatesTruncated ? (
+                    <p className="mb-2 px-1 text-[11px] text-comic-ink/45">
+                      僅顯示最新 {POPUP_UPDATE_LIMIT} 筆，請前往管理頁查看全部。
+                    </p>
+                  ) : null}
                   <div className="popup-feed-list">
                     {update.map((item: PopupFeedEntry) => (
                       <SeriesRow

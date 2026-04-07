@@ -1,4 +1,6 @@
 import {
+  POPUP_UPDATE_LIMIT,
+  type PopupDataView,
   REQUEST_EXPORT_CONFIG,
   REQUEST_IMPORT_CONFIG,
   REQUEST_POPUP_DATA,
@@ -31,6 +33,17 @@ type PopupConfigAction = {
   payload?: unknown;
 };
 
+function resolvePopupView(action: PopupConfigAction): PopupDataView | undefined {
+  if (action.type !== REQUEST_POPUP_DATA) {
+    return undefined;
+  }
+  if (!action.payload || typeof action.payload !== "object") {
+    return undefined;
+  }
+  const view = (action.payload as { view?: PopupDataView }).view;
+  return view === "popup" || view === "manage" ? view : undefined;
+}
+
 function updateBadge(update: PopupFeedEntry[] | undefined) {
   const count = Array.isArray(update) ? update.length : 0;
   chrome.action.setBadgeText({ text: `${count === 0 ? "" : count}` });
@@ -59,7 +72,12 @@ const popupConfigEpic: PopupEpic = (action$) =>
     ),
     mergeMap((action) => {
       if (action.type === REQUEST_POPUP_DATA) {
-        return from(getPopupFeedSnapshot()).pipe(
+        const view = resolvePopupView(action);
+        return from(
+          getPopupFeedSnapshot(
+            view === "popup" ? { updateLimit: POPUP_UPDATE_LIMIT } : {},
+          ),
+        ).pipe(
           mergeMap((feed) => [hydratePopupFeed(feed, "load")]),
           catchError(() =>
             of(setPopupNotice(getPopupConfigErrorMessage(action.type))),

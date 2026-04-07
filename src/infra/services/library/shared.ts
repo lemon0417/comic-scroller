@@ -824,12 +824,16 @@ async function readRowsFromCursor<T>(
 
 export async function loadRowsByPositionInTransaction<T extends { position: number }>(
   store: IDBObjectStore,
+  limit = Number.POSITIVE_INFINITY,
 ) {
   if (hasIndex(store, "position")) {
-    return readRowsFromCursor<T>(store.index("position"));
+    return readRowsFromCursor<T>(store.index("position"), { limit });
   }
   const rows = await requestToPromise<T[]>(store.getAll());
-  return sortRowsByPosition(rows);
+  return sortRowsByPosition(rows).slice(
+    0,
+    Number.isFinite(limit) ? Math.max(0, limit) : rows.length,
+  );
 }
 
 export async function loadSubscriptionKeysByCheckedAtInTransaction(
@@ -1096,8 +1100,11 @@ export async function writeOrderedSeriesKeysInTransaction(
   }
 }
 
-export async function loadUpdatesInTransaction(store: IDBObjectStore) {
-  return loadRowsByPositionInTransaction<UpdateRow>(store);
+export async function loadUpdatesInTransaction(
+  store: IDBObjectStore,
+  limit = Number.POSITIVE_INFINITY,
+) {
+  return loadRowsByPositionInTransaction<UpdateRow>(store, limit);
 }
 
 export async function readSeriesSnapshotByKey(seriesKey: string) {
