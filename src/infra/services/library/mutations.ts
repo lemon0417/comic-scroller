@@ -310,7 +310,6 @@ async function prependSeriesUpdatesInTransaction(
     0,
   );
   const firstPosition = minPosition - nextChapterIDs.length;
-  const createdAt = Date.now();
 
   for (let index = 0; index < nextChapterIDs.length; index += 1) {
     const chapterID = nextChapterIDs[index];
@@ -319,7 +318,6 @@ async function prependSeriesUpdatesInTransaction(
       updatesStore.put({
         seriesKey,
         chapterID,
-        createdAt,
         position: firstPosition + index,
       }),
     );
@@ -339,7 +337,6 @@ async function rebalanceUpdatesInTransaction(updatesStore: IDBObjectStore) {
       updatesStore.put({
         seriesKey: row.seriesKey,
         chapterID: row.chapterID,
-        createdAt: row.createdAt,
         position,
       }),
     );

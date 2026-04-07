@@ -327,7 +327,7 @@ describe("library integration", () => {
 
     const db = await shared.openLibraryDb();
     const rawTransaction = db.transaction(
-      [SERIES_STORE, READS_STORE],
+      [SERIES_STORE, READS_STORE, UPDATES_STORE],
       "readonly",
     );
     const rawSeriesRow = await shared.requestToPromise(
@@ -335,6 +335,9 @@ describe("library integration", () => {
     );
     const rawReadRows = await shared.requestToPromise(
       rawTransaction.objectStore(READS_STORE).index("seriesKey").getAll("dm5:m123"),
+    );
+    const rawUpdateRows = await shared.requestToPromise(
+      rawTransaction.objectStore(UPDATES_STORE).getAll(),
     );
     await shared.transactionDone(rawTransaction);
 
@@ -347,6 +350,13 @@ describe("library integration", () => {
       {
         seriesKey: "dm5:m123",
         chapterID: "m1",
+      },
+    ]);
+    expect(rawUpdateRows).toEqual([
+      {
+        seriesKey: "dm5:m123",
+        chapterID: "m2",
+        position: 0,
       },
     ]);
 
@@ -880,9 +890,10 @@ describe("library integration", () => {
     const historyStore = transaction.objectStore(HISTORY_STORE);
     const updatesStore = transaction.objectStore(UPDATES_STORE);
 
-    const [seriesRows, chapterRows, metaRow] = await Promise.all([
+    const [seriesRows, chapterRows, updateRows, metaRow] = await Promise.all([
       shared.requestToPromise<any[]>(seriesStore.getAll()),
       shared.requestToPromise<any[]>(chaptersStore.getAll()),
+      shared.requestToPromise<any[]>(updatesStore.getAll()),
       shared.requestToPromise<any>(db.transaction([META_STORE], "readonly").objectStore(META_STORE).get(LIBRARY_META_KEY)),
     ]);
 
@@ -900,6 +911,9 @@ describe("library integration", () => {
     expect(seriesRows[0]).not.toHaveProperty("updatedAt");
     expect(chapterRows).toEqual([
       expect.not.objectContaining({ chapter: expect.anything() }),
+    ]);
+    expect(updateRows).toEqual([
+      expect.not.objectContaining({ createdAt: expect.anything() }),
     ]);
     expect(readsStore.indexNames.contains("seriesKey")).toBe(true);
     expect(subscriptionsStore.indexNames.contains("position")).toBe(true);

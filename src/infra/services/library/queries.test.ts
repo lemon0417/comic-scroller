@@ -101,7 +101,7 @@ describe("library queries", () => {
       },
       [UPDATES_STORE]: {
         getAll: jest.fn(() => [
-          { seriesKey: "dm5:m123", chapterID: "m2", createdAt: 2, position: 0 },
+          { seriesKey: "dm5:m123", chapterID: "m2", position: 0 },
         ]),
       },
     };
@@ -118,7 +118,7 @@ describe("library queries", () => {
       .mockResolvedValueOnce([{ seriesKey: "dm5:m123", position: 0 }])
       .mockResolvedValueOnce([{ seriesKey: "dm5:m123", position: 0 }]);
     shared.loadUpdatesInTransaction.mockResolvedValue([
-      { seriesKey: "dm5:m123", chapterID: "m2", createdAt: 2, position: 0 },
+      { seriesKey: "dm5:m123", chapterID: "m2", position: 0 },
     ]);
 
     const result = await getPopupFeedSnapshot();

@@ -104,8 +104,8 @@ describe("library mutations", () => {
     };
     shared.openLibraryDb.mockResolvedValue(db);
     shared.loadUpdatesInTransaction.mockResolvedValue([
-      { seriesKey: "dm5:m123", chapterID: "m2", createdAt: 1, position: 0 },
-      { seriesKey: "sf:77", chapterID: "c7", createdAt: 2, position: 1 },
+      { seriesKey: "dm5:m123", chapterID: "m2", position: 0 },
+      { seriesKey: "sf:77", chapterID: "c7", position: 1 },
     ]);
 
     const result = await removeSeriesCascade("dm5", "m123");
@@ -427,8 +427,8 @@ describe("library mutations", () => {
 
     shared.openLibraryDb.mockResolvedValue(db);
     shared.loadUpdatesInTransaction.mockResolvedValue([
-      { seriesKey: "sf:77", chapterID: "c9", createdAt: 8, position: 0 },
-      { seriesKey: "dm5:m123", chapterID: "m2", createdAt: 7, position: 1 },
+      { seriesKey: "sf:77", chapterID: "c9", position: 0 },
+      { seriesKey: "dm5:m123", chapterID: "m2", position: 1 },
     ]);
 
     const result = await applyBackgroundSeriesRefresh(
@@ -550,13 +550,13 @@ describe("library mutations", () => {
     shared.openLibraryDb.mockResolvedValue(db);
     shared.loadUpdatesInTransaction
       .mockResolvedValueOnce([
-        { seriesKey: "sf:77", chapterID: "c9", createdAt: 8, position: -1023 },
-        { seriesKey: "dm5:m123", chapterID: "m1", createdAt: 7, position: -1022 },
+        { seriesKey: "sf:77", chapterID: "c9", position: -1023 },
+        { seriesKey: "dm5:m123", chapterID: "m1", position: -1022 },
       ])
       .mockResolvedValueOnce([
-        { seriesKey: "dm5:m123", chapterID: "m2", createdAt: 10, position: -1024 },
-        { seriesKey: "sf:77", chapterID: "c9", createdAt: 8, position: -1023 },
-        { seriesKey: "dm5:m123", chapterID: "m1", createdAt: 7, position: -1022 },
+        { seriesKey: "dm5:m123", chapterID: "m2", position: -1024 },
+        { seriesKey: "sf:77", chapterID: "c9", position: -1023 },
+        { seriesKey: "dm5:m123", chapterID: "m1", position: -1022 },
       ]);
 
     await applyBackgroundSeriesRefresh(

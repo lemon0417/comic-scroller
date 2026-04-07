@@ -1,5 +1,5 @@
 export const LIBRARY_SCHEMA_VERSION = 2;
-export const LIBRARY_DB_VERSION = 5;
+export const LIBRARY_DB_VERSION = 6;
 export const HISTORY_LIMIT = 50;
 export const SITE_KEYS = ["dm5", "sf", "comicbus"] as const;
 export const LIBRARY_SIGNAL_KEY = "librarySignal";
@@ -51,7 +51,6 @@ export type SeriesRecord = {
 export type LibraryUpdateRecord = {
   seriesKey: SeriesKey;
   chapterID: string;
-  createdAt: number;
 };
 
 export type LibrarySnapshotV2 = {
@@ -124,7 +123,7 @@ export type LibraryDumpRowsV1 = {
   chapters: ChapterRow[];
   subscriptions: SubscriptionRow[];
   history: HistoryRow[];
-  updates: UpdateRow[];
+  updates: Array<UpdateRow & { createdAt?: number }>;
 };
 
 export type LibraryDumpChapterV2 = {

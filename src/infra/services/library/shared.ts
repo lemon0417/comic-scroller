@@ -241,8 +241,6 @@ export function snapshotToDbRows(snapshot: LibrarySnapshotV2): LibraryDbRows {
     updates: (Array.isArray(snapshot.updates) ? snapshot.updates : []).map((item, position) => ({
       seriesKey: String(item?.seriesKey || ""),
       chapterID: String(item?.chapterID || ""),
-      createdAt:
-        typeof item?.createdAt === "number" ? item.createdAt : Date.now(),
       position,
     })),
   };
@@ -304,8 +302,6 @@ export function snapshotToCompactDumpRows(
       .map((item) => ({
         seriesKey: String(item?.seriesKey || ""),
         chapterID: String(item?.chapterID || ""),
-        createdAt:
-          typeof item?.createdAt === "number" ? item.createdAt : Date.now(),
       }))
       .filter((item) => !!item.seriesKey && !!item.chapterID),
   };
@@ -372,7 +368,6 @@ export function rowsToSnapshot(input: {
     .map((item) => ({
       seriesKey: item.seriesKey,
       chapterID: item.chapterID,
-      createdAt: item.createdAt,
     }))
     .filter(
       (item) =>
@@ -441,8 +436,6 @@ export function compactDumpRowsToSnapshot(data: LibraryDumpRowsV2) {
     .map((item) => ({
       seriesKey: String(item?.seriesKey || ""),
       chapterID: String(item?.chapterID || ""),
-      createdAt:
-        typeof item?.createdAt === "number" ? item.createdAt : Date.now(),
     }))
     .filter(
       (item) =>
@@ -656,8 +649,6 @@ function migrateV2(raw: LegacyStore): LibrarySnapshotV2 {
     .map((item) => ({
       seriesKey: String(item?.seriesKey || ""),
       chapterID: String(item?.chapterID || ""),
-      createdAt:
-        typeof item?.createdAt === "number" ? item.createdAt : Date.now(),
     }))
     .filter(
       (item) =>
@@ -697,13 +688,12 @@ function migrateLegacy(raw: LegacyStore): LibrarySnapshotV2 {
   ).filter((seriesKey) => !!seriesByKey[seriesKey]);
 
   const updates = (Array.isArray(raw.update) ? raw.update : [])
-    .map((item, index) => ({
+    .map((item) => ({
       seriesKey: buildSeriesKey(
         String(item?.site || ""),
         String(item?.comicsID || ""),
       ),
       chapterID: String(item?.chapterID || ""),
-      createdAt: Date.now() - index,
     }))
     .filter(
       (item) =>
