@@ -37,7 +37,9 @@
 - runtime IndexedDB rows、dump v1/v2、legacy 匯入相容性是不同層次，細節見 `docs/03-features/library.md`
 - popup / manage 走 `getPopupFeedSnapshot()`，store 內只保存 popup feed 與 UI 狀態
 - `getPopupFeedSnapshot()` 直接從 IndexedDB rows 組出 feed，不再先還原成完整 library snapshot
-- reader 保存 canonical `seriesKey`，並以 `getReaderSeriesState()` 一次取回 series + subscription state
+- reader 保存 canonical `seriesKey`
+- reader mount / signal sync 優先走 `getReaderSeriesSyncState()`，避免為了同步 subscribe 狀態去 hydrate 全量章節資料
+- `getReaderSeriesState()` 保留給需要完整 chapter list / read state 的 reader 查詢
 - reader 與 background 走系列級 mutation，不再每次全量重寫整包 snapshot
 - `src/background.ts` 已收斂成 listener wiring，背景更新檢查與通知邏輯在 `src/infra/services/background.ts`
 - reducer 不負責 DOM / URL side effects，這類行為放在 epics

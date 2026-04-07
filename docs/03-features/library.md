@@ -89,6 +89,17 @@
   - `chapters`
   - `reads`
 
+## Reader UI State
+- reader 頁面的 Redux `comics` state 不是 repository row 的鏡像
+- `chapterList` 仍保存目前閱讀流程需要的章節順序
+- `chapters` 只保留 title-only metadata，供：
+  - `ChapterList`
+  - `readerLocationEpic`
+  - reader header 顯示
+- `currentChapterTitle` 是 reducer 維護的衍生欄位，避免 header 與 location sync 每次都回頭查 `chapters` map
+- mount / `librarySignal` sync 若只需要確認作品存在與追蹤狀態，應使用 `getReaderSeriesSyncState()`
+- 只有需要完整 chapter list / read state 的 reader 查詢，才使用 `getReaderSeriesState()`
+
 ## 維護準則
 - 新功能不要再把 dump row 當成 runtime row 使用
 - 新功能若只需要 popup / manage 摘要，優先查 `series` summary，不要 hydrate 全量章節快取

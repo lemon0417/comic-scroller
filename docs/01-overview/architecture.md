@@ -95,9 +95,12 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - `getPopupFeedSnapshot()` 直接回傳 UI 所需的 feed model，不再把 `LibrarySnapshotV2` 放進 popup store
 - Reader view state：
   - `comics` state 保存 canonical `seriesKey`
+  - `comics.currentChapterTitle` 是 reducer 維護的衍生欄位，供 header 與 location sync 使用
+  - `comics.chapters` 只保留 reader UI 真的會用到的 title-only 章節 metadata，不重複保存 repository 內的完整 chapter cache
   - 圖片閱讀列表使用 `react-window` 虛擬化；`ImageContainer` 透過 `onRowsRendered` 回報目前可視 row 範圍，再由 `scrollEpic` 觸發圖片載入、已讀更新與前章預載
   - 是否允許向前預載章節，由 `canPreloadPreviousChapter` 顯式控制，不使用 sentinel index 表示流程狀態
-  - reader UI 同步 library 狀態時，優先使用單一 query `getReaderSeriesState()`，不要拆成多次查詢再自行拼裝
+  - reader mount / `librarySignal` sync 只需確認作品是否存在與是否已追蹤時，優先使用 `getReaderSeriesSyncState()`
+  - 只有真的需要完整 chapter list / read state 時，才使用 `getReaderSeriesState()`
   - `applyReadProgress()` 只更新閱讀進度與 updates，不應重寫章節快取；章節快取刷新由 metadata/background 流程負責
 - Background：
   - `src/background.ts` 只保留 MV3 listener wiring
