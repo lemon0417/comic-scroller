@@ -4,6 +4,10 @@
 - `yarn install`：安裝依賴
 - `yarn start`：dev build（watch），輸出至 `dist/`
 - `yarn build`：production build
+- `yarn site:dev`：啟動 `site/` 的 Astro 開發伺服器
+- `yarn site:build`：建置 GitHub Pages 網站
+- `yarn site:preview`：預覽 `site/` build 結果
+- `yarn site:check`：執行 Astro 檢查
 
 ## 品質檢查
 - `yarn lint` / `yarn lint:fix`
@@ -29,3 +33,4 @@
   - `corepack prepare yarn@4.0.2 --activate`
 - 產出 CRX 前需設定 `CHROME_EXTENSION_PRIVATE_KEY_B64`
 - 若 `build / release` 時有提供 `CHROME_EXTENSION_PRIVATE_KEY_B64` 或 `CHROME_EXTENSION_PUBLIC_KEY`，輸出的 `dist/manifest.json` 會自動注入 `key`，讓 unpacked 版本也能維持固定 extension ID
+- GitHub Pages 網站原始碼位於 `site/`，與 extension 分開建置

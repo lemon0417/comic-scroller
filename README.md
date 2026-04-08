@@ -60,6 +60,7 @@ For general users, the recommended installation path is loading the unpacked ext
 - `src/popup.tsx`: popup entry
 - `src/manage.tsx`: manage page entry
 - `src/background.ts`: MV3 service worker entry
+- `site/`: Astro + Starlight GitHub Pages site
 - `src/ui/`: UI components and containers
 - `src/domain/`: actions, reducers, selectors, stores
 - `src/epics/`: side effects and async flows
@@ -91,6 +92,18 @@ This writes watch builds into `dist/`. Load `dist/` from `chrome://extensions` d
 
 ```bash
 yarn build
+```
+
+### Website Dev
+
+```bash
+yarn site:dev
+```
+
+### Website Build
+
+```bash
+yarn site:build
 ```
 
 ### Quality Checks
@@ -151,6 +164,7 @@ Key docs:
 - [Architecture](docs/01-overview/architecture.md)
 - [Extension Rules](docs/01-overview/extension-rules.md)
 - [Commands](docs/02-dev/commands.md)
+- [Site and Pages](docs/02-dev/site.md)
 - [Release Guide](docs/02-dev/release.md)
 - [Library Data Model](docs/03-features/library.md)
 - [DM5 Parsing Flow](docs/04-sites/dm5.md)

@@ -9,6 +9,7 @@
 
 ## 02 開發與工具
 - `docs/02-dev/commands.md`: 常用指令與開發流程
+- `docs/02-dev/site.md`: GitHub Pages 網站與 workspace 結構
 - `docs/02-dev/testing.md`: 測試框架與重點範圍
 - `docs/02-dev/toolchain.md`: 目前工具鏈與版本基準
 - `docs/02-dev/release.md`: 版本更新與 Release 流程

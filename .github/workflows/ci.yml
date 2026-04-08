@@ -36,3 +36,6 @@ jobs:
 
       - name: Build
         run: corepack yarn build
+
+      - name: Build Site
+        run: corepack yarn site:build

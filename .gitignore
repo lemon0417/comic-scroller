@@ -145,6 +145,7 @@ dist
 
 # SvelteKit build / generate output
 .svelte-kit
+.astro/
 
 ### react ###
 .DS_*

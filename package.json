@@ -3,6 +3,9 @@
   "version": "4.1.0",
   "private": true,
   "packageManager": "yarn@4.13.0",
+  "workspaces": [
+    "site"
+  ],
   "engines": {
     "node": ">=22.22.0",
     "yarn": ">=4.0.0"
@@ -18,6 +21,10 @@
     "crx": "node scripts/crx-release.mjs",
     "zip": "node scripts/zip-release.mjs",
     "release": "yarn verify:release && yarn lint && yarn test && yarn build && yarn zip && yarn crx",
+    "site:dev": "yarn workspace @comic-scroller/site dev",
+    "site:build": "yarn workspace @comic-scroller/site build",
+    "site:preview": "yarn workspace @comic-scroller/site preview",
+    "site:check": "yarn workspace @comic-scroller/site astro check",
     "format": "prettier --trailing-comma=all --write 'src/**/*.{js,jsx,ts,tsx}'",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{js,jsx,ts,tsx}\" --fix",
