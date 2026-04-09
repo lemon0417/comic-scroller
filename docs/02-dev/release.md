@@ -70,9 +70,13 @@ yarn build
 ## GitHub Actions
 - `Release` workflow 會：
   - 執行 `yarn release`
+  - 執行 `yarn release:metadata`
   - 以 `CHROME_EXTENSION_PRIVATE_KEY_B64` 簽出 CRX
   - 產生 Release Notes（Conventional Commits / Angular preset）
-  - 上傳 zip / crx 並建立 GitHub Release
+  - 上傳 zip / crx / `latest-release.json` 並建立 GitHub Release
+- extension 端版本通知固定讀取：
+  - `https://github.com/lemon0417/comic-scroller/releases/latest/download/latest-release.json`
+- `Pages` workflow 只負責 docs site，本身不再同步 release metadata
 
 ## Tag 規範
 - 支援 `v4.0.52` 或 `4.0.52`

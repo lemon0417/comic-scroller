@@ -5,6 +5,7 @@ import {
   handleNotificationClick,
   handlePingBackgroundMessage,
   resolveReaderRedirect,
+  runBackgroundReleaseCheck,
   runBackgroundUpdateSummary,
 } from "./background";
 
@@ -50,6 +51,8 @@ describe("background service", () => {
       markSubscriptionCheckedByKey,
       openTab: jest.fn(),
       parseSeriesKey: jest.fn(() => ({ site: "dm5", comicsID: "m123" })),
+      reconcileExtensionReleaseState: jest.fn(),
+      refreshExtensionReleaseState: jest.fn(),
       resetLibrary: jest.fn(),
       setBadge,
       setLibraryVersion: jest.fn(),
@@ -142,6 +145,8 @@ describe("background service", () => {
           site: "dm5",
           comicsID: seriesKey.split(":")[1],
         })),
+        reconcileExtensionReleaseState: jest.fn(),
+        refreshExtensionReleaseState: jest.fn(),
         resetLibrary: jest.fn(),
         setBadge: jest.fn(),
         setLibraryVersion: jest.fn(),
@@ -183,6 +188,7 @@ describe("background service", () => {
   it("handles install and update lifecycle actions", async () => {
     const resetLibrary = jest.fn();
     const setLibraryVersion = jest.fn();
+    const reconcileExtensionReleaseState = jest.fn();
     const createNotification = jest.fn();
     const deps = {
       applyBackgroundSeriesRefresh: jest.fn(),
@@ -197,6 +203,8 @@ describe("background service", () => {
       markSubscriptionCheckedByKey: jest.fn(),
       openTab: jest.fn(),
       parseSeriesKey: jest.fn(),
+      reconcileExtensionReleaseState,
+      refreshExtensionReleaseState: jest.fn(),
       resetLibrary,
       setBadge: jest.fn(),
       setLibraryVersion,
@@ -207,10 +215,67 @@ describe("background service", () => {
 
     expect(resetLibrary).toHaveBeenCalledTimes(1);
     expect(setLibraryVersion).toHaveBeenCalledWith("4.0.99");
+    expect(reconcileExtensionReleaseState).toHaveBeenCalledWith("4.0.99");
     expect(createNotification).toHaveBeenCalledWith(
       UPDATE_NOTIFICATION_ID,
       expect.objectContaining({
         title: UPDATE_NOTIFICATION_ID,
+      }),
+    );
+  });
+
+  it("notifies once when a newer extension release is available", async () => {
+    const createNotification = jest.fn();
+
+    const summary = await runBackgroundReleaseCheck(
+      {
+        applyBackgroundSeriesRefresh: jest.fn(),
+        clearNotification: jest.fn(),
+        createNotification,
+        getFetchChapterPage: jest.fn(),
+        getManifestVersion: jest.fn(() => "4.1.0"),
+        getRuntimeUrl: jest.fn((path: string) => `chrome-extension:///${path}`),
+        getBackgroundSeriesState: jest.fn(),
+        getUpdateCount: jest.fn(),
+        listSubscriptionKeys: jest.fn(),
+        markSubscriptionCheckedByKey: jest.fn(),
+        openTab: jest.fn(),
+        parseSeriesKey: jest.fn(),
+        reconcileExtensionReleaseState: jest.fn(),
+        refreshExtensionReleaseState: jest.fn().mockResolvedValue({
+          checkedAt: 123,
+          latest: {
+            version: "4.2.0",
+            publishedAt: "2026-04-09T12:00:00.000Z",
+            releaseUrl:
+              "https://github.com/lemon0417/comic-scroller/releases/tag/v4.2.0",
+          },
+          notice: {
+            latestVersion: "4.2.0",
+            releaseUrl:
+              "https://github.com/lemon0417/comic-scroller/releases/tag/v4.2.0",
+            instructionsUrl:
+              "https://lemon0417.github.io/comic-scroller/install/",
+            publishedAt: "2026-04-09T12:00:00.000Z",
+          },
+          shouldNotify: true,
+        }),
+        resetLibrary: jest.fn(),
+        setBadge: jest.fn(),
+        setLibraryVersion: jest.fn(),
+      },
+      { now: () => 123 },
+    );
+
+    expect(summary).toEqual({
+      updateAvailable: true,
+      latestVersion: "4.2.0",
+      notified: true,
+    });
+    expect(createNotification).toHaveBeenCalledWith(
+      "https://github.com/lemon0417/comic-scroller/releases/tag/v4.2.0",
+      expect.objectContaining({
+        title: "Comics Scroller 有新版本",
       }),
     );
   });

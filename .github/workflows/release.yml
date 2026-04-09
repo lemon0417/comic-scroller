@@ -36,6 +36,9 @@ jobs:
           CHROME_EXTENSION_PRIVATE_KEY_B64: ${{ secrets.CHROME_EXTENSION_PRIVATE_KEY_B64 }}
         run: corepack yarn release
 
+      - name: Generate Release Metadata
+        run: corepack yarn release:metadata
+
       - name: Detect Tag Prefix
         run: |
           TAG="${GITHUB_REF_NAME}"
@@ -70,6 +73,7 @@ jobs:
           files: |
             comic-scroller-*.zip
             comic-scroller-*.crx
+            latest-release.json
 
       - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
@@ -78,3 +82,4 @@ jobs:
           path: |
             comic-scroller-*.zip
             comic-scroller-*.crx
+            latest-release.json

@@ -7,8 +7,10 @@ description: Build and deploy flow for the extension and the site.
 
 - `comic-scroller-<version>.zip`
 - `comic-scroller-<version>.crx`
+- `latest-release.json`
 
 These files are published on GitHub Releases.
+The extension's release notice checks the latest release metadata asset directly from GitHub Releases.
 
 ## Site deployment
 

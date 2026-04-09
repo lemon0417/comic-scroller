@@ -8,6 +8,7 @@
 - `yarn site:build`：建置 GitHub Pages 網站
 - `yarn site:preview`：預覽 `site/` build 結果
 - `yarn site:check`：執行 Astro 檢查
+- `yarn release:metadata`：生成 `latest-release.json` release metadata asset
 
 ## 品質檢查
 - `yarn lint` / `yarn lint:fix`

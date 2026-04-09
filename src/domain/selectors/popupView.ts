@@ -1,8 +1,10 @@
+import type { ExtensionReleaseNotice } from "@infra/services/extensionRelease";
 import type { PopupFeedSnapshot } from "@infra/services/library/models";
 
 type PopupState = {
   popup: {
     feed: PopupFeedSnapshot;
+    extensionReleaseNotice: ExtensionReleaseNotice | null;
     hydrationStatus: "idle" | "loading" | "ready";
     activeAction: "import" | "export" | "remove" | "reset" | null;
     notice: {
@@ -21,6 +23,7 @@ export function selectPopupView(state: PopupState) {
     hydrationStatus: popupState.hydrationStatus,
     activeAction: popupState.activeAction,
     notice: popupState.notice,
+    extensionReleaseNotice: popupState.extensionReleaseNotice,
     exportUrl: popupState.exportUrl,
     exportFilename: popupState.exportFilename,
     update: popupState.feed.update,

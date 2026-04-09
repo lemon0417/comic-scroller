@@ -8,8 +8,10 @@ import {
 import {
   hydratePopupFeed,
   setExportConfig,
+  setExtensionReleaseNotice,
   setPopupNotice,
 } from "@domain/reducers/popupState";
+import type { ExtensionReleaseNotice } from "@infra/services/extensionRelease";
 import type {
   PopupFeedEntry,
   PopupFeedSnapshot,
@@ -23,9 +25,15 @@ jest.mock("@infra/services/library/popup", () => ({
   importLibraryDump: jest.fn(),
   resetLibrary: jest.fn(),
 }));
+jest.mock("@infra/services/extensionRelease", () => ({
+  getExtensionReleaseNotice: jest.fn(),
+}));
 
 const { exportLibraryArchive, getPopupFeedSnapshot, importLibraryDump, resetLibrary } = jest.requireMock(
   "@infra/services/library/popup",
+);
+const { getExtensionReleaseNotice } = jest.requireMock(
+  "@infra/services/extensionRelease",
 );
 
 const emptyFeed: PopupFeedSnapshot = {
@@ -66,9 +74,17 @@ function buildFeedEntry(
 
 describe("popupConfigEpic", () => {
   let popupConfigEpic: any;
+  const releaseNotice: ExtensionReleaseNotice = {
+    latestVersion: "4.2.0",
+    releaseUrl:
+      "https://github.com/lemon0417/comic-scroller/releases/tag/v4.2.0",
+    instructionsUrl: "https://lemon0417.github.io/comic-scroller/install/",
+    publishedAt: "2026-04-09T12:00:00.000Z",
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    getExtensionReleaseNotice.mockResolvedValue(null);
     (global as any).chrome = {
       action: { setBadgeText: jest.fn() },
     };
@@ -96,18 +112,25 @@ describe("popupConfigEpic", () => {
       popupConfigEpic(of(requestPopupData())).pipe(toArray()),
     );
 
-    expect(actions).toEqual([hydratePopupFeed(emptyFeed, "load")]);
+    expect(actions).toEqual([
+      hydratePopupFeed(emptyFeed, "load"),
+      setExtensionReleaseNotice(null),
+    ]);
     expect(getPopupFeedSnapshot).toHaveBeenCalledWith({});
   });
 
   it("loads a limited update feed for the popup view", async () => {
     getPopupFeedSnapshot.mockResolvedValue(emptyFeed);
+    getExtensionReleaseNotice.mockResolvedValue(releaseNotice);
 
     const actions = await lastValueFrom(
       popupConfigEpic(of(requestPopupData("popup"))).pipe(toArray()),
     );
 
-    expect(actions).toEqual([hydratePopupFeed(emptyFeed, "load")]);
+    expect(actions).toEqual([
+      hydratePopupFeed(emptyFeed, "load"),
+      setExtensionReleaseNotice(releaseNotice),
+    ]);
     expect(getPopupFeedSnapshot).toHaveBeenCalledWith({
       updateLimit: POPUP_UPDATE_LIMIT,
     });
@@ -120,7 +143,10 @@ describe("popupConfigEpic", () => {
       popupConfigEpic(of(requestPopupData("manage"))).pipe(toArray()),
     );
 
-    expect(actions).toEqual([hydratePopupFeed(emptyFeed, "load")]);
+    expect(actions).toEqual([
+      hydratePopupFeed(emptyFeed, "load"),
+      setExtensionReleaseNotice(null),
+    ]);
     expect(getPopupFeedSnapshot).toHaveBeenCalledWith({});
   });
 
@@ -146,7 +172,10 @@ describe("popupConfigEpic", () => {
       popupConfigEpic(of(requestImportConfig({}))).pipe(toArray()),
     );
 
-    expect(actions).toEqual([hydratePopupFeed(data, "import")]);
+    expect(actions).toEqual([
+      hydratePopupFeed(data, "import"),
+      setExtensionReleaseNotice(null),
+    ]);
     expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "61" });
   });
 
@@ -158,7 +187,10 @@ describe("popupConfigEpic", () => {
       popupConfigEpic(of(requestResetConfig())).pipe(toArray()),
     );
 
-    expect(actions).toEqual([hydratePopupFeed(emptyFeed, "reset")]);
+    expect(actions).toEqual([
+      hydratePopupFeed(emptyFeed, "reset"),
+      setExtensionReleaseNotice(null),
+    ]);
     expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "" });
   });
 

@@ -34,7 +34,11 @@
     "http://*.sfacg.com/*",
     "https://*.dm5.com/*",
     "https://*.cdndm5.com/*",
-    "https://*.cdnmanhua.net/*"
+    "https://*.cdnmanhua.net/*",
+    "https://github.com/*",
+    "https://objects.githubusercontent.com/*",
+    "https://release-assets.githubusercontent.com/*",
+    "https://github-releases.githubusercontent.com/*"
   ],
   "declarative_net_request": {
     "rule_resources": [

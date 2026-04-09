@@ -1,4 +1,4 @@
-function openUrl(url: string) {
+export function openExternalUrl(url: string) {
   if (!url) return;
   chrome.tabs.create({ url });
 }
@@ -16,7 +16,7 @@ export function openReaderPage(
     return;
   }
 
-  openUrl(fallbackUrl);
+  openExternalUrl(fallbackUrl);
 }
 
 export function openManagePage(tab = "following") {

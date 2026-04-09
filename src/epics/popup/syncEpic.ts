@@ -3,13 +3,20 @@ import {
   type PopupDataView,
   REQUEST_POPUP_DATA,
 } from "@domain/actions/popup";
-import { hydratePopupFeed } from "@domain/reducers/popupState";
+import {
+  hydratePopupFeed,
+  setExtensionReleaseNotice,
+} from "@domain/reducers/popupState";
+import {
+  getExtensionReleaseNotice,
+  subscribeToExtensionReleaseState,
+} from "@infra/services/extensionRelease";
 import {
   getPopupFeedSnapshot,
   subscribeToLibrarySignal,
 } from "@infra/services/library/popup";
 import { ofType } from "redux-observable";
-import { Observable } from "rxjs";
+import { merge, Observable } from "rxjs";
 import { exhaustMap } from "rxjs/operators";
 
 import type { PopupEpic } from "../types";
@@ -27,6 +34,23 @@ function observeLibraryChanges(view?: PopupDataView) {
   });
 }
 
+function observeExtensionReleaseChanges() {
+  return new Observable<ReturnType<typeof setExtensionReleaseNotice>>(
+    (subscriber) => {
+      const unsubscribe = subscribeToExtensionReleaseState(() => {
+        getExtensionReleaseNotice()
+          .then((notice) => {
+            subscriber.next(setExtensionReleaseNotice(notice));
+          })
+          .catch(() => {
+            subscriber.next(setExtensionReleaseNotice(null));
+          });
+      });
+      return unsubscribe;
+    },
+  );
+}
+
 function resolvePopupView(action: { payload?: unknown }): PopupDataView | undefined {
   if (!action.payload || typeof action.payload !== "object") {
     return undefined;
@@ -39,7 +63,10 @@ const popupSyncEpic: PopupEpic = (action$) =>
   action$.pipe(
     ofType(REQUEST_POPUP_DATA),
     exhaustMap((action) =>
-      observeLibraryChanges(resolvePopupView(action as { payload?: unknown })),
+      merge(
+        observeLibraryChanges(resolvePopupView(action as { payload?: unknown })),
+        observeExtensionReleaseChanges(),
+      ),
     ),
   );
 

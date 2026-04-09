@@ -6,6 +6,7 @@ import Panel from "@components/Panel";
 import SeriesRow from "@components/SeriesRow";
 import {
   POPUP_UPDATE_LIMIT,
+  requestDismissExtensionReleaseNotice,
   requestPopupData,
 } from "@domain/actions/popup";
 import {
@@ -16,7 +17,11 @@ import {
   getPopupUpdateCount,
   type PopupFeedEntry,
 } from "@infra/services/library/models";
-import { openManagePage, openReaderPage } from "@utils/navigation";
+import {
+  openExternalUrl,
+  openManagePage,
+  openReaderPage,
+} from "@utils/navigation";
 import { useEffect } from "react";
 import { connect } from "react-redux";
 
@@ -31,9 +36,14 @@ function SectionTitle({ title }: { title: string }) {
 
 type PopupAppProps = Pick<
   PopupViewProps,
-  "continueReading" | "hydrationStatus" | "update" | "updatesTruncated"
+  | "continueReading"
+  | "extensionReleaseNotice"
+  | "hydrationStatus"
+  | "update"
+  | "updatesTruncated"
 > & {
   updateCount?: number;
+  requestDismissExtensionReleaseNotice: typeof requestDismissExtensionReleaseNotice;
   requestPopupData: typeof requestPopupData;
 };
 
@@ -44,6 +54,8 @@ function PopupAppComponent(props: PopupAppProps) {
     updateCount,
     updatesTruncated,
     continueReading,
+    extensionReleaseNotice,
+    requestDismissExtensionReleaseNotice: requestDismissExtensionReleaseNoticeProp,
     requestPopupData: requestPopupDataProp,
   } = props;
   const displayUpdateCount =
@@ -75,6 +87,38 @@ function PopupAppComponent(props: PopupAppProps) {
             管理
           </button>
         </div>
+        {extensionReleaseNotice ? (
+          <div className="mb-3 rounded-[14px] border border-comic-accent/15 bg-white/90 px-3 py-3 shadow-sm">
+            <p className="text-[12px] font-medium leading-5 text-comic-ink">
+              Comics Scroller {extensionReleaseNotice.latestVersion} 已發布，請手動更新擴充套件。
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className="ds-btn-secondary"
+                onClick={() =>
+                  openExternalUrl(
+                    extensionReleaseNotice.instructionsUrl ||
+                      extensionReleaseNotice.releaseUrl,
+                  )
+                }
+              >
+                更新說明
+              </button>
+              <button
+                type="button"
+                className="ds-link-button"
+                onClick={() =>
+                  requestDismissExtensionReleaseNoticeProp(
+                    extensionReleaseNotice.latestVersion,
+                  )
+                }
+              >
+                稍後
+              </button>
+            </div>
+          </div>
+        ) : null}
         <Content variant="popup" className="popup-content">
           {isLoading ? (
             <LoadingRows />
@@ -173,5 +217,6 @@ function selectPopupAppView(state: Parameters<typeof selectPopupView>[0]) {
 }
 
 export default connect(selectPopupAppView, {
+  requestDismissExtensionReleaseNotice,
   requestPopupData,
 })(PopupAppComponent);

@@ -1,10 +1,12 @@
 import {
+  REQUEST_DISMISS_EXTENSION_RELEASE_NOTICE,
   REQUEST_EXPORT_CONFIG,
   REQUEST_IMPORT_CONFIG,
   REQUEST_POPUP_DATA,
   REQUEST_REMOVE_CARD,
   REQUEST_RESET_CONFIG,
 } from "@domain/actions/popup";
+import type { ExtensionReleaseNotice } from "@infra/services/extensionRelease";
 import type { PopupFeedSnapshot } from "@infra/services/library/models";
 import { createEmptyPopupFeedSnapshot } from "@infra/services/library/models";
 
@@ -18,6 +20,7 @@ type Notice = {
 
 export type PopupState = {
   feed: PopupFeedSnapshot;
+  extensionReleaseNotice: ExtensionReleaseNotice | null;
   hydrationStatus: "idle" | "loading" | "ready";
   activeAction: ActiveAction;
   notice: Notice | null;
@@ -32,17 +35,20 @@ type Action = {
   url?: string;
   filename?: string;
   message?: string;
+  notice?: ExtensionReleaseNotice | null;
   tone?: Notice["tone"];
 };
 
 const HYDRATE_POPUP_FEED = "HYDRATE_POPUP_FEED";
 const SET_EXPORT_CONFIG = "SET_EXPORT_CONFIG";
 const SET_POPUP_NOTICE = "SET_POPUP_NOTICE";
+const SET_EXTENSION_RELEASE_NOTICE = "SET_EXTENSION_RELEASE_NOTICE";
 const CLEAR_EXPORT_CONFIG = "CLEAR_EXPORT_CONFIG";
 const CLEAR_POPUP_NOTICE = "CLEAR_POPUP_NOTICE";
 
 const initialState: PopupState = {
   feed: createEmptyPopupFeedSnapshot(),
+  extensionReleaseNotice: null,
   hydrationStatus: "idle",
   activeAction: null,
   notice: null,
@@ -95,9 +101,11 @@ export default function popupState(
         notice: null,
       };
     case REQUEST_REMOVE_CARD:
+    case REQUEST_DISMISS_EXTENSION_RELEASE_NOTICE:
       return {
         ...state,
-        activeAction: "remove",
+        activeAction:
+          action.type === REQUEST_REMOVE_CARD ? "remove" : state.activeAction,
         notice: null,
       };
     case HYDRATE_POPUP_FEED:
@@ -107,6 +115,11 @@ export default function popupState(
         hydrationStatus: "ready",
         activeAction: null,
         notice: resolveSuccessNotice(action.source) || state.notice,
+      };
+    case SET_EXTENSION_RELEASE_NOTICE:
+      return {
+        ...state,
+        extensionReleaseNotice: (action.notice as ExtensionReleaseNotice) || null,
       };
     case SET_EXPORT_CONFIG:
       return {
@@ -163,6 +176,12 @@ export function setPopupNotice(
   tone: Notice["tone"] = "error",
 ) {
   return { type: SET_POPUP_NOTICE, message, tone };
+}
+
+export function setExtensionReleaseNotice(
+  notice: ExtensionReleaseNotice | null,
+) {
+  return { type: SET_EXTENSION_RELEASE_NOTICE, notice };
 }
 
 export function clearExportConfig() {

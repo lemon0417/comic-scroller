@@ -83,6 +83,8 @@ describe("PopupApp", () => {
           lastChapterTitle: "Ch 1124",
           continueHref: "https://dm5.com/op-1123",
         })}
+        extensionReleaseNotice={null}
+        requestDismissExtensionReleaseNotice={jest.fn()}
         requestPopupData={requestPopupData}
       />,
     );
@@ -132,6 +134,8 @@ describe("PopupApp", () => {
           continueChapterID: "m1123",
           continueHref: "https://www.dm5.com/m1123/",
         })}
+        extensionReleaseNotice={null}
+        requestDismissExtensionReleaseNotice={jest.fn()}
         requestPopupData={requestPopupData}
       />,
     );
@@ -152,6 +156,8 @@ describe("PopupApp", () => {
         updateCount={1}
         updatesTruncated={false}
         continueReading={null}
+        extensionReleaseNotice={null}
+        requestDismissExtensionReleaseNotice={jest.fn()}
         requestPopupData={jest.fn()}
       />,
     );
@@ -159,5 +165,39 @@ describe("PopupApp", () => {
     expect(
       screen.queryByText("僅顯示最新 50 筆，請前往管理頁查看全部。"),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows the extension release notice and can dismiss it", () => {
+    const requestDismissExtensionReleaseNotice = jest.fn();
+
+    render(
+      <TestPopupApp
+        hydrationStatus="ready"
+        update={[]}
+        updateCount={0}
+        updatesTruncated={false}
+        continueReading={null}
+        extensionReleaseNotice={{
+          latestVersion: "4.2.0",
+          releaseUrl:
+            "https://github.com/lemon0417/comic-scroller/releases/tag/v4.2.0",
+          instructionsUrl:
+            "https://lemon0417.github.io/comic-scroller/install/",
+          publishedAt: "2026-04-09T12:00:00.000Z",
+        }}
+        requestDismissExtensionReleaseNotice={
+          requestDismissExtensionReleaseNotice
+        }
+        requestPopupData={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText("Comics Scroller 4.2.0 已發布，請手動更新擴充套件。"),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "稍後" }));
+
+    expect(requestDismissExtensionReleaseNotice).toHaveBeenCalledWith("4.2.0");
   });
 });

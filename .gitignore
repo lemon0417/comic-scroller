@@ -201,6 +201,8 @@ dist/
 *.zip
 # Extension CRX file (from package.json crx/release scripts)
 *.crx
+# Release metadata asset generated for manual upload / CI release
+latest-release.json
 # TypeScript build output (if used)
 build/
 # macOS system files

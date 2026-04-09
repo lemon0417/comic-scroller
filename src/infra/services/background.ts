@@ -1,4 +1,8 @@
 import {
+  reconcileStoredExtensionReleaseState,
+  refreshStoredExtensionReleaseState,
+} from "@infra/services/extensionRelease";
+import {
   applyBackgroundSeriesRefresh,
   getBackgroundSeriesState,
   getUpdateCount,
@@ -20,6 +24,7 @@ const UPDATE_NOTIFICATION_ID = "Comics Scroller Update";
 const BACKGROUND_UPDATE_BATCH_SIZE = 20;
 const BACKGROUND_UPDATE_CONCURRENCY = 4;
 const BACKGROUND_FETCH_TIMEOUT_MS = 15000;
+const RELEASE_AVAILABLE_NOTIFICATION_TITLE = "Comics Scroller 有新版本";
 
 type BackgroundServiceDeps = {
   applyBackgroundSeriesRefresh: typeof applyBackgroundSeriesRefresh;
@@ -37,6 +42,8 @@ type BackgroundServiceDeps = {
   markSubscriptionCheckedByKey: typeof markSubscriptionCheckedByKey;
   openTab: (options: { url: string }) => void;
   parseSeriesKey: typeof parseSeriesKey;
+  reconcileExtensionReleaseState: typeof reconcileStoredExtensionReleaseState;
+  refreshExtensionReleaseState: typeof refreshStoredExtensionReleaseState;
   resetLibrary: typeof resetLibrary;
   setBadge: (count: number) => void;
   setLibraryVersion: typeof setLibraryVersion;
@@ -60,6 +67,12 @@ type BackgroundUpdateOptions = {
   now?: () => number;
 };
 
+type BackgroundReleaseSummary = {
+  updateAvailable: boolean;
+  latestVersion: string;
+  notified: boolean;
+};
+
 function getDefaultDeps(): BackgroundServiceDeps {
   return {
     applyBackgroundSeriesRefresh,
@@ -74,6 +87,8 @@ function getDefaultDeps(): BackgroundServiceDeps {
     markSubscriptionCheckedByKey,
     openTab: (options) => chrome.tabs.create(options),
     parseSeriesKey,
+    reconcileExtensionReleaseState: reconcileStoredExtensionReleaseState,
+    refreshExtensionReleaseState: refreshStoredExtensionReleaseState,
     resetLibrary,
     setBadge: setExtensionBadge,
     setLibraryVersion,
@@ -239,6 +254,7 @@ export async function handleExtensionInstalled(
   if (details.reason === "update") {
     const version = deps.getManifestVersion();
     await deps.setLibraryVersion(version);
+    await deps.reconcileExtensionReleaseState(version);
     deps.createNotification(UPDATE_NOTIFICATION_ID, {
       type: "basic",
       iconUrl: deps.getRuntimeUrl("imgs/comics-128.png"),
@@ -250,6 +266,39 @@ export async function handleExtensionInstalled(
 
   if (details.reason === "install") {
     await deps.resetLibrary();
+  }
+}
+
+export async function runBackgroundReleaseCheck(
+  deps: BackgroundServiceDeps = getDefaultDeps(),
+  options: Pick<BackgroundUpdateOptions, "now"> = {},
+): Promise<BackgroundReleaseSummary> {
+  try {
+    const result = await deps.refreshExtensionReleaseState({
+      currentVersion: deps.getManifestVersion(),
+      ...(options.now ? { now: options.now } : {}),
+    });
+
+    if (result.shouldNotify && result.notice) {
+      deps.createNotification(result.notice.releaseUrl, {
+        type: "basic",
+        iconUrl: deps.getRuntimeUrl("imgs/comics-128.png"),
+        title: RELEASE_AVAILABLE_NOTIFICATION_TITLE,
+        message: `已發布 ${result.notice.latestVersion} 版，請手動更新。`,
+      });
+    }
+
+    return {
+      updateAvailable: Boolean(result.notice),
+      latestVersion: result.latest?.version || "",
+      notified: result.shouldNotify,
+    };
+  } catch {
+    return {
+      updateAvailable: false,
+      latestVersion: "",
+      notified: false,
+    };
   }
 }
 

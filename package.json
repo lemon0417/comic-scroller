@@ -25,6 +25,7 @@
     "site:build": "yarn workspace @comic-scroller/site build",
     "site:preview": "yarn workspace @comic-scroller/site preview",
     "site:check": "yarn workspace @comic-scroller/site astro check",
+    "release:metadata": "node scripts/generate-release-metadata.mjs",
     "format": "prettier --trailing-comma=all --write 'src/**/*.{js,jsx,ts,tsx}'",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{js,jsx,ts,tsx}\" --fix",

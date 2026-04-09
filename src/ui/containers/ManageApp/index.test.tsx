@@ -152,6 +152,50 @@ describe("ManageApp", () => {
     expect(requestExportConfig).toHaveBeenCalled();
   });
 
+  it("renders the extension release notice and supports dismissing it", () => {
+    const requestDismissExtensionReleaseNotice = jest.fn();
+
+    render(
+      <TestManageApp
+        hydrationStatus="ready"
+        activeAction={null}
+        notice={null}
+        extensionReleaseNotice={{
+          latestVersion: "4.2.0",
+          releaseUrl:
+            "https://github.com/lemon0417/comic-scroller/releases/tag/v4.2.0",
+          instructionsUrl:
+            "https://lemon0417.github.io/comic-scroller/install/",
+          publishedAt: "2026-04-09T12:00:00.000Z",
+        }}
+        exportUrl=""
+        exportFilename=""
+        update={[]}
+        subscribe={[]}
+        history={[]}
+        continueReading={null}
+        requestPopupData={jest.fn()}
+        requestExportConfig={jest.fn()}
+        requestImportConfig={jest.fn()}
+        requestResetConfig={jest.fn()}
+        requestRemoveCard={jest.fn()}
+        requestDismissExtensionReleaseNotice={
+          requestDismissExtensionReleaseNotice
+        }
+        clearExportConfig={jest.fn()}
+        clearPopupNotice={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText("Comics Scroller 4.2.0 已發布"),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "稍後提醒" }));
+
+    expect(requestDismissExtensionReleaseNotice).toHaveBeenCalledWith("4.2.0");
+  });
+
   it("opens an abandon modal and unsubscribes without cascade delete by default", () => {
     const requestRemoveCard = jest.fn();
 

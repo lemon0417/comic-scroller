@@ -3,10 +3,25 @@ import {
   handleNotificationClick,
   handlePingBackgroundMessage,
   resolveReaderRedirect,
+  runBackgroundReleaseCheck,
   runBackgroundUpdateSummary,
 } from "@infra/services/background";
+import { EXTENSION_RELEASE_CHECK_INTERVAL_MINUTES } from "@infra/services/extensionRelease";
 
 const isDev = import.meta.env.MODE !== "production";
+const LIBRARY_REFRESH_ALARM_NAME = "comcisScroller";
+const EXTENSION_RELEASE_ALARM_NAME = "comicScrollerReleaseCheck";
+
+function ensureBackgroundAlarms() {
+  chrome.alarms.create(LIBRARY_REFRESH_ALARM_NAME, {
+    when: Date.now(),
+    periodInMinutes: 10,
+  });
+  chrome.alarms.create(EXTENSION_RELEASE_ALARM_NAME, {
+    when: Date.now(),
+    periodInMinutes: EXTENSION_RELEASE_CHECK_INTERVAL_MINUTES,
+  });
+}
 
 chrome.action.setBadgeBackgroundColor({ color: "#F00" });
 
@@ -16,6 +31,11 @@ chrome.notifications.onClicked.addListener((id: string) => {
 
 chrome.runtime.onInstalled.addListener(async (details: { reason?: string }) => {
   await handleExtensionInstalled(details);
+  ensureBackgroundAlarms();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  ensureBackgroundAlarms();
 });
 
 chrome.runtime.onMessage.addListener(
@@ -47,13 +67,15 @@ chrome.webNavigation.onBeforeNavigate.addListener(
   },
 );
 
-chrome.alarms.create("comcisScroller", {
-  when: Date.now(),
-  periodInMinutes: 10,
-});
+ensureBackgroundAlarms();
 
 chrome.alarms.onAlarm.addListener((alarm: { name?: string }) => {
-  if (alarm.name === "comcisScroller") {
+  if (alarm.name === LIBRARY_REFRESH_ALARM_NAME) {
     void runBackgroundUpdateSummary();
+    return;
+  }
+
+  if (alarm.name === EXTENSION_RELEASE_ALARM_NAME) {
+    void runBackgroundReleaseCheck();
   }
 });

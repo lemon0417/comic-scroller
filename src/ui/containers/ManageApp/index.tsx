@@ -6,6 +6,7 @@ import NoticeBanner from "@components/NoticeBanner";
 import SeriesRow from "@components/SeriesRow";
 import Tabs from "@components/Tabs";
 import {
+  requestDismissExtensionReleaseNotice,
   requestExportConfig,
   requestImportConfig,
   requestPopupData,
@@ -22,7 +23,7 @@ import {
 } from "@domain/selectors/popupView";
 import type { PopupFeedEntry } from "@infra/services/library/models";
 import { isDevLogEnabled, setDevLogEnabled } from "@utils/devLog";
-import { openReaderPage } from "@utils/navigation";
+import { openExternalUrl, openReaderPage } from "@utils/navigation";
 import type { ChangeEventHandler } from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { connect } from "react-redux";
@@ -55,6 +56,7 @@ const MANAGE_LIST_OVERSCAN_COUNT = 6;
 type ManageAppProps = PopupViewProps & {
   clearExportConfig: typeof clearExportConfig;
   clearPopupNotice: typeof clearPopupNotice;
+  requestDismissExtensionReleaseNotice: typeof requestDismissExtensionReleaseNotice;
   requestExportConfig: typeof requestExportConfig;
   requestImportConfig: typeof requestImportConfig;
   requestPopupData: typeof requestPopupData;
@@ -213,11 +215,14 @@ function ManageAppComponent(props: ManageAppProps) {
     hydrationStatus,
     activeAction,
     notice,
+    extensionReleaseNotice,
     exportUrl,
     exportFilename,
     update,
     subscribe,
     history,
+    requestDismissExtensionReleaseNotice:
+      requestDismissExtensionReleaseNoticeProp,
     requestPopupData: requestPopupDataProp,
     requestExportConfig: requestExportConfigProp,
     requestImportConfig: requestImportConfigProp,
@@ -568,6 +573,54 @@ function ManageAppComponent(props: ManageAppProps) {
             selectedTab === "data" ? "overflow-y-auto" : "overflow-hidden"
           }`}
         >
+            {extensionReleaseNotice ? (
+              <div className="mb-4 rounded-xl border border-comic-accent/15 bg-white px-4 py-3 shadow-sm">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-medium text-comic-ink">
+                      Comics Scroller {extensionReleaseNotice.latestVersion} 已發布
+                    </p>
+                    <p className="mt-1 text-[12px] leading-5 text-comic-ink/60">
+                      目前需手動更新，請前往更新說明或 GitHub Release 重新安裝最新版。
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      className="ds-btn-secondary"
+                      onClick={() =>
+                        openExternalUrl(
+                          extensionReleaseNotice.instructionsUrl ||
+                            extensionReleaseNotice.releaseUrl,
+                        )
+                      }
+                    >
+                      更新說明
+                    </button>
+                    <button
+                      type="button"
+                      className="ds-link-button"
+                      onClick={() =>
+                        openExternalUrl(extensionReleaseNotice.releaseUrl)
+                      }
+                    >
+                      GitHub Release
+                    </button>
+                    <button
+                      type="button"
+                      className="ds-link-button"
+                      onClick={() =>
+                        requestDismissExtensionReleaseNoticeProp(
+                          extensionReleaseNotice.latestVersion,
+                        )
+                      }
+                    >
+                      稍後提醒
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
             {localError ? (
               <div className="mb-4">
                 <NoticeBanner
@@ -689,6 +742,7 @@ function ManageAppComponent(props: ManageAppProps) {
 export default connect(selectPopupView, {
   clearExportConfig,
   clearPopupNotice,
+  requestDismissExtensionReleaseNotice,
   requestExportConfig,
   requestImportConfig,
   requestPopupData,

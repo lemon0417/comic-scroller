@@ -16,6 +16,11 @@ jest.mock("@infra/services/library/popup", () => ({
   resetLibrary: jest.fn(),
   subscribeToLibrarySignal: jest.fn(() => () => undefined),
 }));
+jest.mock("@infra/services/extensionRelease", () => ({
+  getExtensionReleaseNotice: jest.fn(() => Promise.resolve(null)),
+  dismissExtensionReleaseNotice: jest.fn(() => Promise.resolve()),
+  subscribeToExtensionReleaseState: jest.fn(() => () => undefined),
+}));
 
 const { getPopupFeedSnapshot, removeSeriesFromHistory } = jest.requireMock(
   "@infra/services/library/popup",
@@ -143,6 +148,7 @@ describe("popup state integration", () => {
     expect(store.getState()).toEqual({
       popup: {
         feed: data,
+        extensionReleaseNotice: null,
         hydrationStatus: "ready",
         activeAction: null,
         notice: null,
@@ -177,6 +183,7 @@ describe("popup state integration", () => {
           history: [],
           continueReading: null,
         },
+        extensionReleaseNotice: null,
         hydrationStatus: "ready",
         activeAction: null,
         notice: {
@@ -221,6 +228,7 @@ describe("popup state integration", () => {
           history: [],
           continueReading: null,
         },
+        extensionReleaseNotice: null,
         hydrationStatus: "ready",
         activeAction: null,
         notice: {

@@ -16,6 +16,7 @@ description: Install Comic Scroller from GitHub Releases.
 
 - Use the unpacked `dist/` folder for manual install.
 - `.crx` files are included, but they are not the recommended path.
+- Extension updates are currently manual. When a newer release is published, the popup/manage UI will show a notice and link back to these instructions.
 
 ## Links
 

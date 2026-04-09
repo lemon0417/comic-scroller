@@ -9,8 +9,10 @@ import {
 import {
   hydratePopupFeed,
   setExportConfig,
+  setExtensionReleaseNotice,
   setPopupNotice,
 } from "@domain/reducers/popupState";
+import { getExtensionReleaseNotice } from "@infra/services/extensionRelease";
 import {
   getPopupUpdateCount,
   type PopupFeedSnapshot,
@@ -65,6 +67,20 @@ function getPopupConfigErrorMessage(actionType: PopupConfigAction["type"]) {
   return "目前無法載入書庫資料，請稍後再試。";
 }
 
+async function loadPopupViewData(view?: PopupDataView) {
+  const [feed, extensionReleaseNotice] = await Promise.all([
+    getPopupFeedSnapshot(
+      view === "popup" ? { updateLimit: POPUP_UPDATE_LIMIT } : {},
+    ),
+    getExtensionReleaseNotice().catch(() => null),
+  ]);
+
+  return {
+    feed,
+    extensionReleaseNotice,
+  };
+}
+
 const popupConfigEpic: PopupEpic = (action$) =>
   (action$ as Observable<PopupConfigAction>).pipe(
     ofType(
@@ -76,12 +92,11 @@ const popupConfigEpic: PopupEpic = (action$) =>
     mergeMap((action) => {
       if (action.type === REQUEST_POPUP_DATA) {
         const view = resolvePopupView(action);
-        return from(
-          getPopupFeedSnapshot(
-            view === "popup" ? { updateLimit: POPUP_UPDATE_LIMIT } : {},
-          ),
-        ).pipe(
-          mergeMap((feed) => [hydratePopupFeed(feed, "load")]),
+        return from(loadPopupViewData(view)).pipe(
+          mergeMap(({ feed, extensionReleaseNotice }) => [
+            hydratePopupFeed(feed, "load"),
+            setExtensionReleaseNotice(extensionReleaseNotice),
+          ]),
           catchError(() =>
             of(setPopupNotice(getPopupConfigErrorMessage(action.type))),
           ),
@@ -91,10 +106,13 @@ const popupConfigEpic: PopupEpic = (action$) =>
       if (action.type === REQUEST_IMPORT_CONFIG) {
         return from(importLibraryDump(action.payload || {})).pipe(
           mergeMap(() =>
-            from(getPopupFeedSnapshot()).pipe(
-              mergeMap((feed) => {
+            from(loadPopupViewData()).pipe(
+              mergeMap(({ feed, extensionReleaseNotice }) => {
                 updateBadge(feed);
-                return [hydratePopupFeed(feed, "import")];
+                return [
+                  hydratePopupFeed(feed, "import"),
+                  setExtensionReleaseNotice(extensionReleaseNotice),
+                ];
               }),
             ),
           ),
@@ -107,10 +125,13 @@ const popupConfigEpic: PopupEpic = (action$) =>
       if (action.type === REQUEST_RESET_CONFIG) {
         return from(resetLibrary()).pipe(
           mergeMap(() =>
-            from(getPopupFeedSnapshot()).pipe(
-              mergeMap((feed) => {
+            from(loadPopupViewData()).pipe(
+              mergeMap(({ feed, extensionReleaseNotice }) => {
                 updateBadge(feed);
-                return [hydratePopupFeed(feed, "reset")];
+                return [
+                  hydratePopupFeed(feed, "reset"),
+                  setExtensionReleaseNotice(extensionReleaseNotice),
+                ];
               }),
             ),
           ),
