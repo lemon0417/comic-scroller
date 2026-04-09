@@ -6,6 +6,7 @@ import {
   hydratePopupFeed,
   setPopupNotice,
 } from "@domain/reducers/popupState";
+import { getPopupUpdateCount } from "@infra/services/library/models";
 import {
   dismissSeriesUpdate,
   getPopupFeedSnapshot,
@@ -72,8 +73,9 @@ const removeCardEpic: PopupEpic = (action$) =>
         mergeMap(() =>
           from(getPopupFeedSnapshot()).pipe(
             mergeMap((feed) => {
+              const count = getPopupUpdateCount(feed);
               chrome.action.setBadgeText({
-                text: `${feed.update.length === 0 ? "" : feed.update.length}`,
+                text: `${count === 0 ? "" : count}`,
               });
               return [hydratePopupFeed(feed, "load")];
             }),

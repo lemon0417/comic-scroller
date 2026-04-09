@@ -161,6 +161,7 @@ function buildPopupFeedSnapshot(input: {
   subscriptions: SubscriptionRow[];
   history: HistoryRow[];
   updates: UpdateRow[];
+  updateCount?: number;
   updatesTruncated?: boolean;
 }): PopupFeedSnapshot {
   const subscriptionKeys = input.subscriptions.map((row) => row.seriesKey);
@@ -203,6 +204,9 @@ function buildPopupFeedSnapshot(input: {
     subscribe,
     history,
     continueReading,
+    ...(typeof input.updateCount === "number"
+      ? { updateCount: input.updateCount }
+      : {}),
     ...(input.updatesTruncated ? { updatesTruncated: true } : {}),
   };
 }
@@ -444,6 +448,13 @@ export async function getPopupFeedSnapshot(
   const updates = updatesTruncated
     ? loadedUpdates.slice(0, updateLimit)
     : loadedUpdates;
+  const updateCount = updatesTruncated
+    ? Number(
+        (
+          await requestToPromise<number>(updatesStore.count())
+        ) || 0,
+      )
+    : updates.length;
 
   const referencedKeys = Array.from(
     new Set([
@@ -466,6 +477,7 @@ export async function getPopupFeedSnapshot(
     subscriptions,
     history,
     updates,
+    updateCount,
     updatesTruncated,
   });
 }

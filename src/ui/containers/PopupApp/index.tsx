@@ -12,7 +12,10 @@ import {
   type PopupViewProps,
   selectPopupView,
 } from "@domain/selectors/popupView";
-import type { PopupFeedEntry } from "@infra/services/library/models";
+import {
+  getPopupUpdateCount,
+  type PopupFeedEntry,
+} from "@infra/services/library/models";
 import { openManagePage, openReaderPage } from "@utils/navigation";
 import { useEffect } from "react";
 import { connect } from "react-redux";
@@ -30,6 +33,7 @@ type PopupAppProps = Pick<
   PopupViewProps,
   "continueReading" | "hydrationStatus" | "update" | "updatesTruncated"
 > & {
+  updateCount?: number;
   requestPopupData: typeof requestPopupData;
 };
 
@@ -37,10 +41,15 @@ function PopupAppComponent(props: PopupAppProps) {
   const {
     hydrationStatus,
     update,
+    updateCount,
     updatesTruncated,
     continueReading,
     requestPopupData: requestPopupDataProp,
   } = props;
+  const displayUpdateCount =
+    typeof updateCount === "number"
+      ? updateCount
+      : getPopupUpdateCount({ update });
 
   useEffect(() => {
     requestPopupDataProp("popup");
@@ -56,7 +65,7 @@ function PopupAppComponent(props: PopupAppProps) {
             <h1 className="text-[17px] font-semibold tracking-[-0.02em] text-comic-ink">
               更新
             </h1>
-            <span className="ds-count-badge">{update.length}</span>
+            <span className="ds-count-badge">{displayUpdateCount}</span>
           </div>
           <button
             type="button"
@@ -156,6 +165,13 @@ function PopupAppComponent(props: PopupAppProps) {
   );
 }
 
-export default connect(selectPopupView, {
+function selectPopupAppView(state: Parameters<typeof selectPopupView>[0]) {
+  return {
+    ...selectPopupView(state),
+    updateCount: getPopupUpdateCount(state.popup.feed),
+  };
+}
+
+export default connect(selectPopupAppView, {
   requestPopupData,
 })(PopupAppComponent);

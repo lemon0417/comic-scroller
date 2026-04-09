@@ -54,7 +54,7 @@ describe("PopupApp", () => {
   it("renders updates-first content and opens the manage page", () => {
     const requestPopupData = jest.fn();
 
-    render(
+    const { container } = render(
       <TestPopupApp
         hydrationStatus="ready"
         update={[
@@ -71,6 +71,7 @@ describe("PopupApp", () => {
             url: "https://dm5.com/series",
           }),
         ]}
+        updateCount={78}
         updatesTruncated
         continueReading={createFeedEntry({
           category: "history",
@@ -101,6 +102,7 @@ describe("PopupApp", () => {
     expect(
       screen.queryByRole("button", { name: "開啟作品" }),
     ).not.toBeInTheDocument();
+    expect(container.querySelector(".ds-count-badge")).toHaveTextContent("78");
 
     fireEvent.click(screen.getByRole("button", { name: "管理" }));
 
@@ -116,6 +118,7 @@ describe("PopupApp", () => {
       <TestPopupApp
         hydrationStatus="ready"
         update={[]}
+        updateCount={0}
         updatesTruncated={false}
         continueReading={createFeedEntry({
           category: "history",
@@ -146,6 +149,7 @@ describe("PopupApp", () => {
       <TestPopupApp
         hydrationStatus="ready"
         update={[createFeedEntry()]}
+        updateCount={1}
         updatesTruncated={false}
         continueReading={null}
         requestPopupData={jest.fn()}

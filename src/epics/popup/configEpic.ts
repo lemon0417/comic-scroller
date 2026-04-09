@@ -11,7 +11,10 @@ import {
   setExportConfig,
   setPopupNotice,
 } from "@domain/reducers/popupState";
-import type { PopupFeedEntry } from "@infra/services/library/models";
+import {
+  getPopupUpdateCount,
+  type PopupFeedSnapshot,
+} from "@infra/services/library/models";
 import {
   exportLibraryArchive,
   getPopupFeedSnapshot,
@@ -44,8 +47,8 @@ function resolvePopupView(action: PopupConfigAction): PopupDataView | undefined 
   return view === "popup" || view === "manage" ? view : undefined;
 }
 
-function updateBadge(update: PopupFeedEntry[] | undefined) {
-  const count = Array.isArray(update) ? update.length : 0;
+function updateBadge(feed: PopupFeedSnapshot | undefined) {
+  const count = getPopupUpdateCount(feed);
   chrome.action.setBadgeText({ text: `${count === 0 ? "" : count}` });
 }
 
@@ -90,7 +93,7 @@ const popupConfigEpic: PopupEpic = (action$) =>
           mergeMap(() =>
             from(getPopupFeedSnapshot()).pipe(
               mergeMap((feed) => {
-                updateBadge(feed.update);
+                updateBadge(feed);
                 return [hydratePopupFeed(feed, "import")];
               }),
             ),
@@ -106,7 +109,7 @@ const popupConfigEpic: PopupEpic = (action$) =>
           mergeMap(() =>
             from(getPopupFeedSnapshot()).pipe(
               mergeMap((feed) => {
-                updateBadge(feed.update);
+                updateBadge(feed);
                 return [hydratePopupFeed(feed, "reset")];
               }),
             ),

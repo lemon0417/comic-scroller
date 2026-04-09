@@ -387,6 +387,7 @@ describe("library integration", () => {
       subscribed: true,
     });
     expect(feed.update).toHaveLength(1);
+    expect(feed.updateCount).toBe(1);
     expect(feed.update[0].updateChapterID).toBe("m2");
     expect(feed.continueReading?.continueChapterID).toBe("m1");
 
@@ -642,6 +643,7 @@ describe("library integration", () => {
     expect(feed.history).toEqual([]);
     expect(feed.subscribe).toHaveLength(1);
     expect(feed.update).toHaveLength(1);
+    expect(feed.updateCount).toBe(1);
     expect(feed.continueReading?.category).toBe("subscribe");
   });
 
@@ -684,6 +686,7 @@ describe("library integration", () => {
     await expect(queries.getSeriesSnapshot("dm5:m123")).resolves.toBeNull();
     await expect(queries.getPopupFeedSnapshot()).resolves.toEqual({
       update: [],
+      updateCount: 0,
       subscribe: [],
       history: [],
       continueReading: null,
@@ -776,6 +779,7 @@ describe("library integration", () => {
     await expect(queries.getSeriesSnapshot("dm5:m123")).resolves.toBeNull();
     await expect(queries.getPopupFeedSnapshot()).resolves.toEqual({
       update: [],
+      updateCount: 0,
       subscribe: [],
       history: [],
       continueReading: null,
@@ -866,6 +870,7 @@ describe("library integration", () => {
     expect(feed.subscribe).toHaveLength(1);
     expect(feed.history).toHaveLength(1);
     expect(feed.update).toHaveLength(1);
+    expect(feed.updateCount).toBe(1);
     expect(readerState.series?.title).toBe("Legacy Demo");
     expect(readerState.subscribed).toBe(true);
     expect(chromeEnv.getStorageState()).toEqual({});

@@ -31,6 +31,7 @@ export type PopupFeedSnapshot = {
   subscribe: PopupFeedEntry[];
   history: PopupFeedEntry[];
   continueReading: PopupFeedEntry | null;
+  updateCount?: number;
   updatesTruncated?: boolean;
 };
 
@@ -57,4 +58,13 @@ export function createEmptyPopupFeedSnapshot(): PopupFeedSnapshot {
     history: [],
     continueReading: null,
   };
+}
+
+export function getPopupUpdateCount(
+  feed: Pick<PopupFeedSnapshot, "update" | "updateCount"> | null | undefined,
+) {
+  if (typeof feed?.updateCount === "number" && Number.isFinite(feed.updateCount)) {
+    return Math.max(0, feed.updateCount);
+  }
+  return Array.isArray(feed?.update) ? feed.update.length : 0;
 }

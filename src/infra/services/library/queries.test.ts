@@ -150,6 +150,7 @@ describe("library queries", () => {
           continueHref: "https://www.dm5.com/m123/1.html",
         },
       ],
+      updateCount: 1,
       subscribe: [
         {
           category: "subscribe",
@@ -267,6 +268,7 @@ describe("library queries", () => {
 
     await expect(getPopupFeedSnapshot()).resolves.toEqual({
       update: [],
+      updateCount: 0,
       subscribe: [],
       history: [],
       continueReading: null,
@@ -313,6 +315,7 @@ describe("library queries", () => {
         getAll: jest.fn(() => []),
       },
       [UPDATES_STORE]: {
+        count: jest.fn(() => 3),
         getAll: jest.fn(() => []),
       },
     };
@@ -341,11 +344,13 @@ describe("library queries", () => {
       3,
     );
     expect(result.updatesTruncated).toBe(true);
+    expect(result.updateCount).toBe(3);
     expect(result.update).toHaveLength(2);
     expect(result.update.map((entry) => entry.chapterID)).toEqual([
       "m3",
       "m2",
     ]);
+    expect(stores[UPDATES_STORE].count).toHaveBeenCalled();
     expect(stores[CHAPTERS_STORE].get).toHaveBeenNthCalledWith(1, [
       "dm5:m123",
       "m3",

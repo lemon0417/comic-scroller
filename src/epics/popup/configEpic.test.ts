@@ -137,6 +137,7 @@ describe("popupConfigEpic", () => {
           updateChapterID: "m2",
         }),
       ],
+      updateCount: 61,
     };
     importLibraryDump.mockResolvedValue(data);
     getPopupFeedSnapshot.mockResolvedValue(data);
@@ -146,7 +147,7 @@ describe("popupConfigEpic", () => {
     );
 
     expect(actions).toEqual([hydratePopupFeed(data, "import")]);
-    expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "2" });
+    expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "61" });
   });
 
   it("resets config and updates badge", async () => {
