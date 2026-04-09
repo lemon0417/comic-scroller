@@ -26,7 +26,10 @@ import {
   applyReaderSeriesState,
   applyReadProgress,
 } from "@infra/services/library/reader";
-import type { SiteKey } from "@infra/services/library/schema";
+import {
+  type SiteKey,
+  uniqueStrings,
+} from "@infra/services/library/schema";
 import type {
   FetchMetaOptions,
   SiteMeta,
@@ -34,9 +37,10 @@ import type {
 } from "@sites/types";
 import findIndex from "lodash/findIndex";
 import { ofType } from "redux-observable";
-import { from, merge, type Observable,of } from "rxjs";
+import { EMPTY, from, merge, type Observable, of } from "rxjs";
 import {
   filter as rxFilter,
+  finalize,
   map as rxMap,
   mergeMap,
 } from "rxjs/operators";
@@ -76,6 +80,34 @@ type ReaderFlowConfig = {
     payload: ReaderChapterPayload,
   ) => Observable<FetchMetaOptions>;
 };
+
+export function normalizeReaderSiteMeta(meta: SiteMeta): SiteMeta {
+  const chapterList = uniqueStrings(meta.chapterList);
+  if (chapterList.length === meta.chapterList.length) {
+    return meta;
+  }
+  return {
+    ...meta,
+    chapterList,
+  };
+}
+
+function hasLoadedChapter(input: {
+  imageList: {
+    result: number[];
+    entity: Record<number, { chapter?: string }>;
+  };
+  chapterID: string;
+}) {
+  const { imageList, chapterID } = input;
+  if (!chapterID) {
+    return false;
+  }
+
+  return imageList.result.some(
+    (imageIndex) => imageList.entity[imageIndex]?.chapter === chapterID,
+  );
+}
 
 function getCanPreloadPreviousChapter(payload: ReaderChapterPayload) {
   return payload.canPreloadPreviousChapter !== false;
@@ -168,15 +200,38 @@ export function createDirectFetchImgSrcEpic(): AppEpic {
 export function createFetchImgListEpic(
   fetchChapterImages$: ReaderFlowConfig["fetchChapterImages$"],
 ): AppEpic {
+  const inFlightChapterRequests = new Set<string>();
+
   return (action$, state$) =>
     action$.pipe(
       ofType(FETCH_IMG_LIST),
       mergeMap((action) => {
         const { index } = action as ReaderIndexAction;
-        const { chapterList } = state$.value.comics;
-        return fetchChapterImages$(chapterList[index]).pipe(
+        const { chapterList, imageList } = state$.value.comics;
+        const chapterID = String(chapterList[index] || "");
+
+        if (
+          !chapterID ||
+          inFlightChapterRequests.has(chapterID) ||
+          hasLoadedChapter({ imageList, chapterID })
+        ) {
+          return EMPTY;
+        }
+
+        inFlightChapterRequests.add(chapterID);
+        return fetchChapterImages$(chapterID).pipe(
           mergeMap((payload) => {
-            const hasExistingImages = state$.value.comics.imageList.result.length > 0;
+            const latestImageList = state$.value.comics.imageList;
+            if (
+              hasLoadedChapter({
+                imageList: latestImageList,
+                chapterID: payload.chapterID,
+              })
+            ) {
+              return [];
+            }
+
+            const hasExistingImages = latestImageList.result.length > 0;
             const actions: EpicAction[] = [
               concatImageList(payload.imgList),
               updateCanPreloadPreviousChapter(
@@ -187,6 +242,9 @@ export function createFetchImgListEpic(
               return actions;
             }
             return [...actions, fetchImgSrc(0, 6)];
+          }),
+          finalize(() => {
+            inFlightChapterRequests.delete(chapterID);
           }),
         );
       }),
@@ -210,10 +268,10 @@ export function createFetchChapterEpic(config: ReaderFlowConfig): AppEpic {
                 mergeMap((fetchMetaOptions) =>
                   config.fetchMeta$(payload.comicUrl, fetchMetaOptions),
                 ),
-                mergeMap((meta) =>
-                  {
-                    config.onMetaLoaded?.(payload, meta);
-                    return from(
+                mergeMap((rawMeta) => {
+                  const meta = normalizeReaderSiteMeta(rawMeta);
+                  config.onMetaLoaded?.(payload, meta);
+                  return from(
                     applyReaderSeriesState(
                       config.site,
                       payload.seriesID,
@@ -241,8 +299,7 @@ export function createFetchChapterEpic(config: ReaderFlowConfig): AppEpic {
                       });
                     }),
                   );
-                  },
-                ),
+                }),
               ),
             ),
           ),
