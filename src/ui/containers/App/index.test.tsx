@@ -135,4 +135,55 @@ describe("App", () => {
 
     expect(requestFullscreen).toHaveBeenCalledTimes(1);
   });
+
+  it("only fetches the initial chapter once across rerenders", () => {
+    const fetchChapter = jest.fn();
+
+    window.history.replaceState({}, "", "/app.html?site=dm5&chapter=chapter-1123");
+
+    const { rerender } = render(
+      <TestApp
+        startResize={jest.fn()}
+        fetchChapter={fetchChapter}
+        updateSubscribe={jest.fn()}
+        toggleSubscribe={jest.fn()}
+        navigateChapter={jest.fn()}
+        prevable={true}
+        nextable={false}
+        chapterTitle="Ch 1123"
+        chapterList={["chapter-1123"]}
+        title="One Piece"
+        subscribe={true}
+        url="https://dm5.com/one-piece"
+        chapterNowIndex={0}
+        site="dm5"
+        comicsID=""
+        seriesKey=""
+      />,
+    );
+
+    rerender(
+      <TestApp
+        startResize={jest.fn()}
+        fetchChapter={fetchChapter}
+        updateSubscribe={jest.fn()}
+        toggleSubscribe={jest.fn()}
+        navigateChapter={jest.fn()}
+        prevable={true}
+        nextable={false}
+        chapterTitle="Ch 1123"
+        chapterList={["chapter-1123"]}
+        title="One Piece"
+        subscribe={true}
+        url="https://dm5.com/one-piece"
+        chapterNowIndex={0}
+        site="dm5"
+        comicsID="123"
+        seriesKey="dm5:m123"
+      />,
+    );
+
+    expect(fetchChapter).toHaveBeenCalledTimes(1);
+    expect(fetchChapter).toHaveBeenCalledWith("chapter-1123");
+  });
 });

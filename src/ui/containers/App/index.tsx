@@ -19,7 +19,7 @@ import {
   subscribeToLibrarySignal,
 } from "@infra/services/library/reader";
 import { devLog } from "@utils/devLog";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { connect } from "react-redux";
 
 type AppStateProps = {
@@ -71,6 +71,7 @@ function getFullscreenIconClass(isFullscreen: boolean) {
 }
 
 function App(props: AppProps) {
+  const hasFetchedInitialChapterRef = useRef(false);
   const [isFullscreen, setIsFullscreen] = useState(() =>
     Boolean(document.fullscreenElement),
   );
@@ -132,6 +133,11 @@ function App(props: AppProps) {
   }, [seriesKey, syncLibraryState]);
 
   useEffect(() => {
+    if (hasFetchedInitialChapterRef.current) {
+      return;
+    }
+    hasFetchedInitialChapterRef.current = true;
+
     const params = new URLSearchParams(window.location.search);
     const chapter = params.get("chapter") || "";
     devLog("reader:mount", {
