@@ -217,8 +217,8 @@ function buildMetadataActions(input: {
 
   if (chapterIndex > 0 && canPreloadPreviousChapter) {
     actions.push(
+      updateChapterLatestIndex(chapterIndex),
       fetchImgList(chapterIndex - 1),
-      updateChapterLatestIndex(chapterIndex - 1),
     );
     return actions;
   }
@@ -294,18 +294,27 @@ export function createFetchImgListEpic(
             if (getReaderGeneration(state$) !== readerGeneration) {
               return EMPTY;
             }
-            if (!payload) {
+            if (!payload || payload.imgList.length === 0) {
               return pendingGate ? [clearPendingChapterGate()] : [];
             }
             const latestComics = state$.value.comics;
             const latestImageList = latestComics.imageList;
+            const resolvedChapterIndex = latestComics.chapterList.indexOf(
+              chapterID,
+            );
+            if (resolvedChapterIndex < 0) {
+              return pendingGate ? [clearPendingChapterGate()] : [];
+            }
             if (
               hasLoadedChapter({
                 imageList: latestImageList,
-                chapterID: payload.chapterID,
+                chapterID,
               })
             ) {
-              return pendingGate ? [clearPendingChapterGate()] : [];
+              return [
+                ...(pendingGate ? [clearPendingChapterGate()] : []),
+                updateChapterLatestIndex(resolvedChapterIndex),
+              ];
             }
 
             if (!pendingGate) {
@@ -316,19 +325,24 @@ export function createFetchImgListEpic(
                 ),
               ];
               if (latestImageList.result.length === 0) {
-                return [...actions, fetchImgSrc(0, 6)];
+                actions.push(fetchImgSrc(0, 6));
               }
-              return actions;
+              return [
+                ...actions,
+                updateChapterLatestIndex(resolvedChapterIndex),
+              ];
             }
 
             return [
               receivePendingChapterGate({
                 ...pendingGate,
+                chapterIndex: resolvedChapterIndex,
                 canPreloadPreviousChapter:
                   getCanPreloadPreviousChapter(payload),
                 imgList: payload.imgList,
                 status: "queued",
               }),
+              updateChapterLatestIndex(resolvedChapterIndex),
             ];
           }),
           catchError(() =>

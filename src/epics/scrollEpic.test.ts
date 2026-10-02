@@ -152,7 +152,6 @@ describe("scrollEpic", () => {
       READER_CHAPTER_STABILIZE_MS,
       fetchImgList,
       scrollEpic,
-      updateChapterLatestIndex,
       updateVisibleImageRange,
     } = setup();
 
@@ -193,7 +192,10 @@ describe("scrollEpic", () => {
     jest.advanceTimersByTime(READER_CHAPTER_STABILIZE_MS);
 
     expect(actions).toContainEqual(fetchImgList(0));
-    expect(actions).toContainEqual(updateChapterLatestIndex(0));
+    expect(actions).not.toContainEqual({
+      type: "UPDATE_CHAPTER_LATEST_INDEX",
+      data: 0,
+    });
 
     subscription.unsubscribe();
   });

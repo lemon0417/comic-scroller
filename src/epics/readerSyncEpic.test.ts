@@ -1,6 +1,5 @@
 import { fetchImgList } from "@domain/actions/reader";
 import {
-  updateChapterLatestIndex,
   updateSubscribe,
 } from "@domain/reducers/comics";
 import { Subject } from "rxjs";
@@ -153,7 +152,6 @@ describe("readerSyncEpic", () => {
         },
       },
       fetchImgList(0),
-      updateChapterLatestIndex(0),
     ]);
 
     subscription.unsubscribe();
@@ -200,13 +198,12 @@ describe("readerSyncEpic", () => {
     subscription.unsubscribe();
   });
 
-  it("does not let a subscription signal cancel an in-flight chapter sync", async () => {
-    const chapterSync = createDeferred<any>();
-    getReaderSeriesState.mockImplementationOnce(() => chapterSync.promise);
-    getReaderSeriesSyncState.mockResolvedValue({
-      exists: true,
-      subscribed: false,
-    });
+  it("keeps chapter hydration sticky across newer subscription signals", async () => {
+    const firstChapterSync = createDeferred<any>();
+    const secondChapterSync = createDeferred<any>();
+    getReaderSeriesState
+      .mockImplementationOnce(() => firstChapterSync.promise)
+      .mockImplementationOnce(() => secondChapterSync.promise);
     const actions: any[] = [];
     const subscription = readerSyncEpic(new Subject(), {
       value: {
@@ -224,10 +221,62 @@ describe("readerSyncEpic", () => {
 
     listener?.(createSignal(["dm5:m123"], ["chapters"]));
     listener?.(createSignal(["dm5:m123"], ["subscriptions"]));
-    await flushPromises();
-    expect(actions).toEqual([updateSubscribe(false)]);
+    expect(getReaderSeriesState).toHaveBeenCalledTimes(2);
+    expect(getReaderSeriesSyncState).not.toHaveBeenCalled();
 
-    chapterSync.resolve({
+    secondChapterSync.resolve({
+      series: {
+        site: "dm5",
+        comicsID: "m123",
+        title: "Series",
+        cover: "",
+        url: "https://www.dm5.com/manhua-series/",
+        chapterList: ["c5", "c3"],
+        chapters: {
+          c5: { title: "Chapter 5", href: "https://example.com/c5" },
+          c3: { title: "Chapter 3", href: "https://example.com/c3" },
+        },
+        lastRead: "c3",
+        read: [],
+      },
+      subscribed: false,
+    });
+    await flushPromises();
+
+    firstChapterSync.resolve({
+      series: {
+        site: "dm5",
+        comicsID: "m123",
+        title: "Stale Series",
+        cover: "",
+        url: "https://www.dm5.com/manhua-series/",
+        chapterList: ["c4", "c3"],
+        chapters: {
+          c4: { title: "Chapter 4", href: "https://example.com/c4" },
+          c3: { title: "Chapter 3", href: "https://example.com/c3" },
+        },
+        lastRead: "c3",
+        read: ["c3"],
+      },
+      subscribed: true,
+    });
+    await flushPromises();
+
+    expect(actions).toEqual([
+      expect.objectContaining({
+        type: "SYNC_READER_SERIES_STATE",
+        readerSeries: expect.objectContaining({
+          chapterList: ["c5", "c3"],
+          read: [],
+          subscribed: false,
+        }),
+      }),
+    ]);
+    subscription.unsubscribe();
+  });
+
+  it("does not start a background preload while navigation has an empty image window", async () => {
+    getReaderSeriesState.mockResolvedValue({
       series: {
         site: "dm5",
         comicsID: "m123",
@@ -244,12 +293,27 @@ describe("readerSyncEpic", () => {
       },
       subscribed: true,
     });
+    const actions: any[] = [];
+    const subscription = readerSyncEpic(new Subject(), {
+      value: {
+        comics: {
+          canPreloadPreviousChapter: true,
+          chapterLatestIndex: 1,
+          chapterList: ["c3"],
+          chapterNowIndex: 0,
+          imageList: { result: [], entity: {} },
+          pendingChapterGate: null,
+          seriesKey: "dm5:m123",
+        },
+      } as never,
+    }).subscribe((action) => actions.push(action));
+
+    listener?.(createSignal(["dm5:m123"], ["chapters"]));
     await flushPromises();
 
-    expect(actions).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ type: "SYNC_READER_SERIES_STATE" }),
-      ]),
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toEqual(
+      expect.objectContaining({ type: "SYNC_READER_SERIES_STATE" }),
     );
     subscription.unsubscribe();
   });

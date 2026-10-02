@@ -1,9 +1,8 @@
 import { fetchImgList } from "@domain/actions/reader";
-import { uniqueStrings } from "@domain/library";
 import type { RootState } from "@domain/reducers";
 import {
+  projectReaderSeriesState,
   syncReaderSeriesState,
-  updateChapterLatestIndex,
   updateSubscribe,
 } from "@domain/reducers/comics";
 import {
@@ -13,12 +12,11 @@ import {
 } from "@infra/services/library/reader";
 import { devLog } from "@utils/devLog";
 import { closeCurrentTab } from "@utils/navigation";
-import { EMPTY, from, merge, of } from "rxjs";
+import { defer, EMPTY, from, of } from "rxjs";
 import {
   catchError,
   filter,
   map,
-  share,
   switchMap,
 } from "rxjs/operators";
 
@@ -55,43 +53,15 @@ function closeMissingSeries() {
   );
 }
 
-function getLiveChapterList(
-  comics: RootState["comics"],
-  incomingChapterList: string[],
-) {
-  const currentChapterID = comics.chapterList[comics.chapterNowIndex] || "";
-  const loadedChapterIDs = new Set(
-    comics.imageList.result
-      .map((imageID) => comics.imageList.entity[imageID]?.chapter || "")
-      .filter(Boolean),
-  );
-  if (currentChapterID) {
-    loadedChapterIDs.add(currentChapterID);
-  }
-  if (comics.pendingChapterGate?.chapterId) {
-    loadedChapterIDs.add(comics.pendingChapterGate.chapterId);
-  }
-  if (comics.pendingChapterGate?.blockingChapterId) {
-    loadedChapterIDs.add(comics.pendingChapterGate.blockingChapterId);
-  }
-  return uniqueStrings([
-    ...incomingChapterList,
-    ...comics.chapterList.filter(
-      (chapterID) =>
-        loadedChapterIDs.has(chapterID) &&
-        !incomingChapterList.includes(chapterID),
-    ),
-  ]);
-}
-
 function getLiveChapterPreloadActions(
   comics: RootState["comics"],
-  chapterList: string[],
+  projectedComics: RootState["comics"],
 ): EpicAction[] {
   if (
     comics.pendingChapterGate ||
     !comics.canPreloadPreviousChapter ||
-    comics.chapterList.length === 0
+    comics.chapterList.length === 0 ||
+    comics.imageList.result.length === 0
   ) {
     return [];
   }
@@ -99,13 +69,14 @@ function getLiveChapterPreloadActions(
   const previousFrontierIndex =
     comics.chapterLatestIndex >= 0 ? comics.chapterLatestIndex : 0;
   const frontierChapterID = comics.chapterList[previousFrontierIndex] || "";
-  const nextFrontierIndex = chapterList.indexOf(frontierChapterID);
+  const nextFrontierIndex =
+    projectedComics.chapterList.indexOf(frontierChapterID);
   if (nextFrontierIndex <= previousFrontierIndex) {
     return [];
   }
 
   const preloadIndex = nextFrontierIndex - 1;
-  const preloadChapterID = chapterList[preloadIndex] || "";
+  const preloadChapterID = projectedComics.chapterList[preloadIndex] || "";
   const alreadyLoaded = comics.imageList.result.some(
     (imageID) =>
       comics.imageList.entity[imageID]?.chapter === preloadChapterID,
@@ -114,11 +85,13 @@ function getLiveChapterPreloadActions(
     return [];
   }
 
-  return [fetchImgList(preloadIndex), updateChapterLatestIndex(preloadIndex)];
+  return [fetchImgList(preloadIndex)];
 }
 
 const readerSyncEpic: AppEpic = (_action$, state$) => {
-  const relevantSignal$ = observeLibrarySignals(subscribeToLibrarySignal).pipe(
+  let needsFullHydration = false;
+
+  return observeLibrarySignals(subscribeToLibrarySignal).pipe(
     map((signal) => ({
       signal,
       seriesKey: String(state$.value.comics.seriesKey || ""),
@@ -126,70 +99,70 @@ const readerSyncEpic: AppEpic = (_action$, state$) => {
     filter(({ signal, seriesKey }) =>
       isReaderLibrarySignalRelevant(signal, seriesKey),
     ),
-    share(),
-  );
+    map(({ signal, seriesKey }) => {
+      needsFullHydration =
+        needsFullHydration || signal.scopes.includes("chapters");
+      return { needsFullHydration, seriesKey };
+    }),
+    switchMap(({ needsFullHydration: shouldHydrate, seriesKey }) => {
+      if (!shouldHydrate) {
+        return defer(() => from(getReaderSeriesSyncState(seriesKey))).pipe(
+          switchMap(({ exists, subscribed }) => {
+            if (state$.value.comics.seriesKey !== seriesKey) {
+              return EMPTY;
+            }
+            if (exists) {
+              return of(updateSubscribe(subscribed));
+            }
+            return closeMissingSeries();
+          }),
+          catchError((error: unknown) => {
+            devLog("reader:library-sync-failed", error);
+            return EMPTY;
+          }),
+        );
+      }
 
-  const chapterSync$ = relevantSignal$.pipe(
-    filter(({ signal }) => signal.scopes.includes("chapters")),
-    switchMap(({ seriesKey }) =>
-      from(getReaderSeriesState(seriesKey)).pipe(
+      return defer(() => from(getReaderSeriesState(seriesKey))).pipe(
         switchMap(({ series, subscribed }) => {
           if (state$.value.comics.seriesKey !== seriesKey) {
             return EMPTY;
           }
+
+          needsFullHydration = false;
           if (!series) {
             return closeMissingSeries();
           }
 
           const comics = state$.value.comics;
-          const chapterList = getLiveChapterList(comics, series.chapterList);
-          const chapters = Object.fromEntries(
-            Object.entries(series.chapters).map(([chapterID, chapter]) => [
-              chapterID,
-              { title: chapter.title || "" },
-            ]),
+          const readerSeries = {
+            title: series.title || "",
+            chapterList: series.chapterList,
+            chapters: Object.fromEntries(
+              Object.entries(series.chapters).map(([chapterID, chapter]) => [
+                chapterID,
+                { title: chapter.title || "" },
+              ]),
+            ),
+            read: series.read,
+            subscribed,
+          };
+          const projectedComics = projectReaderSeriesState(
+            comics,
+            readerSeries,
           );
           return from([
-            syncReaderSeriesState({
-              title: series.title || "",
-              chapterList: series.chapterList,
-              chapters,
-              read: series.read,
-              subscribed,
-            }),
-            ...getLiveChapterPreloadActions(comics, chapterList),
+            syncReaderSeriesState(readerSeries),
+            ...getLiveChapterPreloadActions(comics, projectedComics),
           ] as EpicAction[]);
         }),
         catchError((error: unknown) => {
           devLog("reader:library-sync-failed", error);
           return EMPTY;
         }),
-      ),
-    ),
+      );
+    }),
   );
-
-  const stateSync$ = relevantSignal$.pipe(
-    filter(({ signal }) => !signal.scopes.includes("chapters")),
-    switchMap(({ seriesKey }) =>
-      from(getReaderSeriesSyncState(seriesKey)).pipe(
-        switchMap(({ exists, subscribed }) => {
-          if (state$.value.comics.seriesKey !== seriesKey) {
-            return EMPTY;
-          }
-          if (exists) {
-            return of(updateSubscribe(subscribed));
-          }
-          return closeMissingSeries();
-        }),
-        catchError((error: unknown) => {
-          devLog("reader:library-sync-failed", error);
-          return EMPTY;
-        }),
-      ),
-    ),
-  );
-
-  return merge(chapterSync$, stateSync$);
 };
 
 export default readerSyncEpic;

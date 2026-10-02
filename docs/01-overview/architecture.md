@@ -136,9 +136,11 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - 初始載入與每次跳章都會遞增 reader generation；scroll timer、章節預載、pending gate 與已讀持久化只允許目前 generation 更新畫面，快速跳章以最後一次選擇為準
   - reader 圖片 record 會追蹤 request source、loading failure 與 retry 狀態；自動 / 手動重試由 epics 驅動，不放在 component 內自行排程
   - 是否允許向前預載章節，由 `canPreloadPreviousChapter` 顯式控制，不使用 sentinel index 表示流程狀態
+  - speculative preload 只有在取得可用章節圖片後，才依最新 `chapterList` 中的 chapter ID 提交 preload frontier；空回應、錯誤、過期 generation 或已移除章節都不得提前推進
   - reader 初始作品資料由 reader flow 的 `applyReaderSeriesState()` hydrate；後續 `librarySignal` 由 `readerSyncEpic` 單一訂閱，UI 不直接 query repository 或監聽 storage
   - `readerSyncEpic` 收到相關 signal、只需確認作品是否存在與是否已追蹤時，使用 `getReaderSeriesSyncState()`；收到 `chapters` invalidation 時改用 `getReaderSeriesState()` 即時 hydrate 章節列表、已讀與追蹤狀態
-  - reader live hydrate 以 chapter ID 重映射目前章節與 preload frontier，不重設圖片窗口或捲動位置；完整章節同步與輕量狀態同步各自以最新一次 query 為準
+  - reader sync 使用單一全域 latest-wins query lane；`chapters` invalidation 在最新完整 hydrate 成功前保持 sticky，後續輕量 signal 也必須重啟完整查詢，避免較舊的章節 / 已讀 / 追蹤快照回寫
+  - reader live hydrate 以單一 domain projection 按 chapter ID 原子重映射目前章節、pending gate 與 preload frontier，不重設圖片窗口或捲動位置；快照暫時省略仍在作用中的章節時，保留其原相對位置
   - `applyReadProgress()` 只更新閱讀進度與 updates，不應重寫章節快取；章節快取刷新由 metadata/background 流程負責
   - reader metadata mutation 只回傳 `seriesKey / readChapterIDs / subscribed / updatesCount`；需要完整作品資料時必須走 query interface
   - read progress mutation 不查 subscription，只回傳 `seriesKey / readChapterIDs / updatesCount`

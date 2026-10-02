@@ -116,7 +116,7 @@ describe("readerFlow", () => {
         updateChapterList(["c3", "c2", "c1"]),
         updateChapterNowIndex(1),
         fetchImgList(0),
-        updateChapterLatestIndex(0),
+        updateChapterLatestIndex(1),
       ]),
     );
   });
@@ -336,6 +336,7 @@ describe("readerFlow", () => {
         canPreloadPreviousChapter: true,
         imgList: [{ chapter: "c1", src: "https://example.com/c1-1.jpg" }],
       }),
+      updateChapterLatestIndex(1),
     ]);
   });
 
@@ -404,6 +405,7 @@ describe("readerFlow", () => {
       ]),
       updateCanPreloadPreviousChapter(true),
       fetchImgSrc(0, 6),
+      updateChapterLatestIndex(0),
     ]);
   });
 
@@ -440,6 +442,41 @@ describe("readerFlow", () => {
       }),
       clearPendingChapterGate(),
     ]);
+  });
+
+  it.each([
+    ["empty images", () => of({ chapterID: "c1", imgList: [] })],
+    ["an error", () => throwError(() => new Error("preload failed"))],
+  ])("does not advance the preload frontier after %s", async (_label, response$) => {
+    const epic = createFetchImgListEpic(response$ as any);
+    const state$ = {
+      value: {
+        comics: {
+          chapterList: ["c2", "c1"],
+          imageList: {
+            result: [0],
+            entity: { 0: { chapter: "c2" } },
+          },
+          pendingChapterGate: null,
+        },
+      },
+    };
+
+    const output = await lastValueFrom(
+      epic(of(fetchImgList(1)), state$ as any).pipe(toArray()),
+    );
+
+    expect(output).toEqual([
+      startPendingChapterGate({
+        blockingChapterId: "c2",
+        chapterId: "c1",
+        chapterIndex: 1,
+        readerGeneration: 0,
+        status: "fetching",
+      }),
+      clearPendingChapterGate(),
+    ]);
+    expect(output).not.toContainEqual(updateChapterLatestIndex(1));
   });
 
   it("ignores preload responses from an older reader generation", () => {
@@ -496,7 +533,58 @@ describe("readerFlow", () => {
       ]),
       updateCanPreloadPreviousChapter(true),
       fetchImgSrc(0, 6),
+      updateChapterLatestIndex(1),
     ]);
     subscription.unsubscribe();
+  });
+
+  it("resolves the preload frontier against the latest chapter list", async () => {
+    const chapterImages$ = new Subject<any>();
+    const fetchChapterImages$ = jest.fn(() => chapterImages$);
+    const epic = createFetchImgListEpic(fetchChapterImages$);
+    const state$ = {
+      value: {
+        comics: {
+          chapterList: ["c2", "c1"],
+          imageList: {
+            result: [0],
+            entity: { 0: { chapter: "c2" } },
+          },
+          pendingChapterGate: null,
+        },
+      },
+    };
+    const outputPromise = lastValueFrom(
+      epic(of(fetchImgList(1)), state$ as any).pipe(toArray()),
+    );
+
+    state$.value.comics.chapterList = ["c3", "c2", "c1"];
+    chapterImages$.next({
+      chapterID: "c1",
+      seriesID: "demo-series",
+      comicUrl: "https://example.com/demo",
+      imgList: [{ chapter: "c1", src: "https://example.com/c1-1.jpg" }],
+    });
+    chapterImages$.complete();
+
+    await expect(outputPromise).resolves.toEqual([
+      startPendingChapterGate({
+        blockingChapterId: "c2",
+        chapterId: "c1",
+        chapterIndex: 1,
+        readerGeneration: 0,
+        status: "fetching",
+      }),
+      receivePendingChapterGate({
+        blockingChapterId: "c2",
+        chapterId: "c1",
+        chapterIndex: 2,
+        readerGeneration: 0,
+        status: "queued",
+        canPreloadPreviousChapter: true,
+        imgList: [{ chapter: "c1", src: "https://example.com/c1-1.jpg" }],
+      }),
+      updateChapterLatestIndex(2),
+    ]);
   });
 });

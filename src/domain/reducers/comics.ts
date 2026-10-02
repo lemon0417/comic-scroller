@@ -220,10 +220,52 @@ function buildChapterIndexMap(chapterList: string[]) {
   }, {});
 }
 
-function syncReaderSeriesStateToState(
+function mergeRetainedChapterIDs(
+  currentChapterList: string[],
+  incomingChapterList: string[],
+  retainedChapterIDs: Set<string>,
+) {
+  const incomingChapterIDs = new Set(incomingChapterList);
+  const retainedBefore = new Map<string, string[]>();
+  const retainedAtEnd: string[] = [];
+  let nextAnchor = "";
+
+  for (let index = currentChapterList.length - 1; index >= 0; index -= 1) {
+    const chapterID = currentChapterList[index];
+    if (incomingChapterIDs.has(chapterID)) {
+      nextAnchor = chapterID;
+      continue;
+    }
+    if (!retainedChapterIDs.has(chapterID)) {
+      continue;
+    }
+
+    if (!nextAnchor) {
+      retainedAtEnd.unshift(chapterID);
+      continue;
+    }
+
+    retainedBefore.set(nextAnchor, [
+      chapterID,
+      ...(retainedBefore.get(nextAnchor) || []),
+    ]);
+  }
+
+  return uniqueStrings([
+    ...incomingChapterList.flatMap((chapterID) => [
+      ...(retainedBefore.get(chapterID) || []),
+      chapterID,
+    ]),
+    ...retainedAtEnd,
+  ]);
+}
+
+export function projectReaderSeriesState(
   state: ComicsState,
   payload: ReaderSeriesSyncPayload,
 ): ComicsState {
+  const incomingChapterList = uniqueStrings(payload.chapterList);
+  const incomingChapterIDs = new Set(incomingChapterList);
   const currentChapterID = state.chapterList[state.chapterNowIndex] || "";
   const frontierChapterID =
     state.chapterList[
@@ -244,15 +286,16 @@ function syncReaderSeriesStateToState(
     loadedChapterIDs.add(state.pendingChapterGate.blockingChapterId);
   }
 
-  const retainedChapterIDs = state.chapterList.filter(
+  const retainedChapterIDs = new Set(state.chapterList.filter(
     (chapterID) =>
       loadedChapterIDs.has(chapterID) &&
-      !payload.chapterList.includes(chapterID),
+      !incomingChapterIDs.has(chapterID),
+  ));
+  const chapterList = mergeRetainedChapterIDs(
+    state.chapterList,
+    incomingChapterList,
+    retainedChapterIDs,
   );
-  const chapterList = uniqueStrings([
-    ...payload.chapterList,
-    ...retainedChapterIDs,
-  ]);
   const chapters = Object.fromEntries(
     chapterList.flatMap((chapterID) => {
       const chapter = payload.chapters[chapterID] || state.chapters[chapterID];
@@ -1058,7 +1101,7 @@ export default function comics(
     }
     case SYNC_READER_SERIES_STATE:
       if (!action.readerSeries) return state;
-      return syncReaderSeriesStateToState(state, action.readerSeries);
+      return projectReaderSeriesState(state, action.readerSeries);
     case UPDATE_COMICS_ID:
       if (typeof action.data !== "string") return state;
       return {

@@ -490,8 +490,8 @@ describe("comics reducer", () => {
       }) as any,
     );
 
-    expect(nextState.chapterList).toEqual(["c4", "c2", "c3"]);
-    expect(nextState.chapterNowIndex).toBe(2);
+    expect(nextState.chapterList).toEqual(["c4", "c3", "c2"]);
+    expect(nextState.chapterNowIndex).toBe(1);
     expect(nextState.currentChapterTitle).toBe("Chapter 3");
   });
 

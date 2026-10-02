@@ -5,10 +5,7 @@ import {
   updateRead,
 } from "@domain/actions/reader";
 import type { RootState } from "@domain/reducers";
-import {
-  evictLeadingImageChapters,
-  updateChapterLatestIndex,
-} from "@domain/reducers/comics";
+import { evictLeadingImageChapters } from "@domain/reducers/comics";
 import findIndex from "lodash/findIndex";
 import { ofType } from "redux-observable";
 import { merge, type Observable, timer } from "rxjs";
@@ -186,9 +183,6 @@ export default function scrollEpic(
             comics.chapterLatestIndex > 0
           ) {
             nextActions.push(fetchImgList(comics.chapterLatestIndex - 1));
-            nextActions.push(
-              updateChapterLatestIndex(comics.chapterLatestIndex - 1),
-            );
           }
 
           const effectiveCommittedChapterIndex =
