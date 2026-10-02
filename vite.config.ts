@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
 import path from "path";
@@ -6,12 +6,25 @@ import fs from "fs";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-const { resolveManifestKeyFromEnv } = require("./scripts/crx-release-utils.cjs");
+const {
+  resolveManifestKeyFromEnv,
+} = require("./scripts/crx-release-utils.cjs");
+const { verifyBuildFeatures } = require("./scripts/verify-build-features.cjs");
 
 const rootDir = process.cwd();
 const srcDir = path.join(rootDir, "src");
 const outDir = path.join(rootDir, "dist");
 const manifestDir = path.join(srcDir, "manifest");
+
+function developerBuildGuard(mode: string): Plugin {
+  return {
+    name: "verify-developer-build-features",
+    apply: "build",
+    generateBundle(_options, bundle) {
+      verifyBuildFeatures(bundle, mode === "development");
+    },
+  };
+}
 
 function copyManifest(mode: string) {
   const manifestKey = resolveManifestKeyFromEnv(process.env);
@@ -40,9 +53,25 @@ export default defineConfig(({ mode }) => ({
   base: "./",
   root: rootDir,
   publicDir: "public",
-  plugins: [react(), svgr({ exportAsDefault: true }), copyManifest(mode)],
+  plugins: [
+    react(),
+    svgr({ exportAsDefault: true }),
+    copyManifest(mode),
+    developerBuildGuard(mode),
+  ],
   resolve: {
     alias: {
+      "@utils/devLog": path.join(
+        srcDir,
+        "utils",
+        mode === "development" ? "devLog.ts" : "devLog.production.ts",
+      ),
+      "@domain/store/debugLogger": path.join(
+        srcDir,
+        "domain",
+        "store",
+        mode === "development" ? "debugLogger.ts" : "debugLogger.production.ts",
+      ),
       "@styles": path.join(srcDir, "styles"),
       "@assets": path.join(srcDir, "assets"),
       "@imgs": path.join(srcDir, "assets", "imgs"),

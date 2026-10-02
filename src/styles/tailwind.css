@@ -127,6 +127,9 @@
   .manage-tab-label {
     @apply inline-flex items-center gap-2;
   }
+  .manage-tabbar {
+    flex-wrap: wrap;
+  }
   .manage-tab-count {
     @apply text-[12px] font-medium tabular-nums text-comic-muted;
   }

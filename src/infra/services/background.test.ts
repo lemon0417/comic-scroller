@@ -503,6 +503,22 @@ describe("background service", () => {
     );
   });
 
+  it("rejects manual checks in non-development builds without scanning", () => {
+    const runSummary = jest.fn();
+    const sendResponse = jest.fn();
+    expect(
+      handlePingBackgroundMessage({ msg: "PING_BACKGROUND" }, sendResponse, {
+        isDev: false,
+        runBackgroundUpdateSummary: runSummary,
+      }),
+    ).toBe(false);
+    expect(sendResponse).toHaveBeenCalledWith({
+      ok: false,
+      reason: "disabled",
+    });
+    expect(runSummary).not.toHaveBeenCalled();
+  });
+
   it("responds to dev ping messages with a background summary", async () => {
     const sendResponse = jest.fn();
     const runSummary = jest.fn().mockResolvedValue({ checked: 1 });

@@ -1,5 +1,6 @@
 import type { RootState } from "@domain/reducers";
-import type { PopupState } from "@domain/reducers/popupState";
+import type { PopupRootState } from "@domain/reducers/popup";
+export type { PopupRootState } from "@domain/reducers/popup";
 import type { Observable } from "rxjs";
 
 export type EpicAction = {
@@ -9,10 +10,6 @@ export type EpicAction = {
 
 type StateStream<State> = {
   value: State;
-};
-
-export type PopupRootState = {
-  popup: PopupState;
 };
 
 type BaseEpic<State> = (

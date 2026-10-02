@@ -1,22 +1,24 @@
 import type { PopupFeedEntry } from "@domain/library";
+import { IS_DEVELOPMENT_BUILD } from "@utils/buildMode";
 
 import type { ManageFeedTab, ManageTab } from "./types";
 
-export const TAB_OPTIONS: ManageTab[] = [
-  "updates",
-  "following",
-  "history",
-  "data",
-];
+export function getManageTabOptions(): ManageTab[] {
+  return [
+    "updates",
+    "following",
+    "history",
+    "data",
+    ...(IS_DEVELOPMENT_BUILD ? ["developer" as const] : []),
+  ];
+}
 
-export const MANAGE_TAB_CONFIG: Record<
-  ManageTab,
-  {
-    label: string;
-    emptyTitle?: string;
-    emptyDescription?: string;
-  }
-> = {
+type TabConfig = {
+  label: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+};
+export const MANAGE_TAB_CONFIG: Record<ManageFeedTab | "data", TabConfig> = {
   updates: {
     label: "更新",
     emptyTitle: "目前沒有更新",
@@ -37,6 +39,11 @@ export const MANAGE_TAB_CONFIG: Record<
   },
 };
 
+export function getManageTabLabel(tab: ManageTab) {
+  if (IS_DEVELOPMENT_BUILD && tab === "developer") return "開發者";
+  return tab === "developer" ? "" : MANAGE_TAB_CONFIG[tab].label;
+}
+
 export function renderTabLabel(label: string, count?: number) {
   return (
     <span className="manage-tab-label">
@@ -51,7 +58,7 @@ export function renderTabLabel(label: string, count?: number) {
 export function getInitialTab(): ManageTab {
   const params = new URLSearchParams(window.location.search);
   const tab = params.get("tab");
-  return TAB_OPTIONS.includes(tab as ManageTab)
+  return getManageTabOptions().includes(tab as ManageTab)
     ? (tab as ManageTab)
     : "following";
 }
@@ -60,5 +67,7 @@ export function getRowsForManageTab(
   selectedTab: ManageTab,
   rows: Record<ManageFeedTab, PopupFeedEntry[]>,
 ) {
-  return selectedTab === "data" ? [] : rows[selectedTab];
+  return selectedTab === "data" || selectedTab === "developer"
+    ? []
+    : rows[selectedTab];
 }

@@ -17,8 +17,10 @@
 - `yarn typecheck`
 
 ## 事件追蹤（Debug Logger）
-- 開啟 `manage.html` → `選項` → `開發者功能` → `除錯記錄`
-- 也可手動設定：
+- 先用 `yarn start` 建置 development 版本，再開啟 `manage.html` → `開發者` → `除錯記錄`
+- `開發者` 頁籤也提供「執行背景檢查」，結果直接顯示於頁籤內。
+- `yarn build` / `yarn release` 不包含開發者面板、除錯 logger 或手動背景檢查入口；建置時會自動驗證隔離。
+- development 版本也可手動設定：
   - `localStorage.setItem("CS_DEBUG", "1")`
   - `localStorage.removeItem("CS_DEBUG")`
 

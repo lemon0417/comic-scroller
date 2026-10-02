@@ -1,7 +1,12 @@
 import type { PopupFeedEntry } from "@domain/library";
 
-export type ManageTab = "updates" | "following" | "history" | "data";
-export type ManageFeedTab = Exclude<ManageTab, "data">;
+export type ManageTab =
+  | "updates"
+  | "following"
+  | "history"
+  | "data"
+  | "developer";
+export type ManageFeedTab = Exclude<ManageTab, "data" | "developer">;
 
 export type ManageDialogState =
   | { kind: "closed" }

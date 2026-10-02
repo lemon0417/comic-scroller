@@ -1,3 +1,5 @@
+import { IS_DEVELOPMENT_BUILD } from "./buildMode";
+
 const DEBUG_KEY = "CS_DEBUG";
 
 function getDebugStorage() {
@@ -10,12 +12,12 @@ function getDebugStorage() {
 }
 
 export function isDevLogEnabled() {
-  if (process.env.NODE_ENV === "production") return false;
+  if (!IS_DEVELOPMENT_BUILD) return false;
   return getDebugStorage()?.getItem(DEBUG_KEY) === "1";
 }
 
 export function setDevLogEnabled(enabled: boolean) {
-  if (process.env.NODE_ENV === "production") return false;
+  if (!IS_DEVELOPMENT_BUILD) return false;
   const storage = getDebugStorage();
   if (!storage) return false;
   if (enabled) {

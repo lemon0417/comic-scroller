@@ -1,3 +1,7 @@
+import type {
+  BackgroundCheckResponse,
+  BackgroundSummary,
+} from "@domain/developerTools";
 import type { BackgroundRefreshCandidate } from "@domain/library";
 import {
   EXTENSION_RELEASE_CHECK_INTERVAL_MINUTES,
@@ -57,17 +61,6 @@ type BackgroundServiceDeps = {
   setBadge: (count: number) => void;
   setLibraryVersion: typeof setLibraryVersion;
   withBatchedLibrarySignals: typeof withBatchedLibrarySignals;
-};
-
-type BackgroundSummary = {
-  checked: number;
-  updated: number;
-  errors: number;
-  diff: {
-    before: number;
-    after: number;
-    added: number;
-  };
 };
 
 type BackgroundUpdateOptions = {
@@ -408,12 +401,7 @@ export function handleNotificationClick(
 
 export function handlePingBackgroundMessage(
   message: { msg?: string } | null | undefined,
-  sendResponse: (value: {
-    ok: boolean;
-    reason?: string;
-    at?: number;
-    summary?: BackgroundSummary;
-  }) => void,
+  sendResponse: (value: BackgroundCheckResponse) => void,
   options: {
     isDev: boolean;
     now?: () => number;

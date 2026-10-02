@@ -25,7 +25,7 @@ import {
   type PopupViewProps,
   selectPopupView,
 } from "@domain/selectors/popupView";
-import { isDevLogEnabled, setDevLogEnabled } from "@utils/devLog";
+import { IS_DEVELOPMENT_BUILD } from "@utils/buildMode";
 import type { ChangeEventHandler } from "react";
 import {
   useCallback,
@@ -39,14 +39,15 @@ import { connect } from "react-redux";
 
 import { ManageConfirmDialog } from "./ManageConfirmDialog";
 import { ManageDataPanel } from "./ManageDataPanel";
+import ManageDeveloperPanel from "./ManageDeveloperPanel";
 import { ManageFeedList } from "./ManageFeedList";
 import { matchesManageSearchQuery, normalizeManageSearchQuery } from "./search";
 import {
   getInitialTab,
+  getManageTabLabel,
+  getManageTabOptions,
   getRowsForManageTab,
-  MANAGE_TAB_CONFIG,
   renderTabLabel,
-  TAB_OPTIONS,
 } from "./tabs";
 import type { ManageDialogState, ManageFeedTab, ManageTab } from "./types";
 
@@ -68,6 +69,7 @@ function ManageAppComponent(props: ManageAppProps) {
   const {
     hydrationStatus,
     activeAction,
+    developerCheckRunning = false,
     notice,
     extensionReleaseNotice,
     exportUrl,
@@ -92,7 +94,6 @@ function ManageAppComponent(props: ManageAppProps) {
   } = props;
 
   const [selectedTab, setSelectedTab] = useState<ManageTab>(getInitialTab);
-  const [debugLogEnabled, setDebugLogEnabled] = useState(isDevLogEnabled);
   const [dialogState, setDialogState] = useState<ManageDialogState>({
     kind: "closed",
   });
@@ -128,9 +129,11 @@ function ManageAppComponent(props: ManageAppProps) {
     clearExportConfigProp();
   }, [clearExportConfigProp, exportFilename, exportUrl]);
 
-  const busy = activeAction !== null;
+  const busy = activeAction !== null || developerCheckRunning;
   const isLoading = hydrationStatus !== "ready";
   const isDataTab = selectedTab === "data";
+  const isDeveloperTab = IS_DEVELOPMENT_BUILD && selectedTab === "developer";
+  const isSettingsTab = isDataTab || isDeveloperTab;
   const tabCounts: Partial<Record<ManageTab, number>> = {
     updates: update.length,
     following: subscribe.length,
@@ -181,16 +184,6 @@ function ManageAppComponent(props: ManageAppProps) {
       .finally(() => {
         input.value = "";
       });
-  };
-
-  const handleDebugLogToggle = () => {
-    const enabled = !debugLogEnabled;
-    if (!setDevLogEnabled(enabled)) {
-      setLocalError("目前無法切換除錯記錄。");
-      return;
-    }
-    setLocalError("");
-    setDebugLogEnabled(enabled);
   };
 
   const closeDialog = useCallback(() => {
@@ -313,14 +306,14 @@ function ManageAppComponent(props: ManageAppProps) {
         onValueChange={(value) => setSelectedTab(value as ManageTab)}
       >
         <Tabs.List variant="manage" className="manage-tabbar">
-          {TAB_OPTIONS.map((tab) => (
+          {getManageTabOptions().map((tab) => (
             <Tabs.Trigger
               key={tab}
               variant="manage"
               className="manage-tab"
               value={tab}
             >
-              {renderTabLabel(MANAGE_TAB_CONFIG[tab].label, tabCounts[tab])}
+              {renderTabLabel(getManageTabLabel(tab), tabCounts[tab])}
             </Tabs.Trigger>
           ))}
         </Tabs.List>
@@ -329,7 +322,7 @@ function ManageAppComponent(props: ManageAppProps) {
       <Content
         variant="manage"
         className={`manage-content ${
-          isDataTab ? "overflow-y-auto" : "overflow-hidden"
+          isSettingsTab ? "overflow-y-auto" : "overflow-hidden"
         }`}
       >
         {extensionReleaseNotice ? (
@@ -357,9 +350,7 @@ function ManageAppComponent(props: ManageAppProps) {
         {isDataTab ? (
           <ManageDataPanel
             busy={busy}
-            debugLogEnabled={debugLogEnabled}
             librarySyncStatus={librarySyncStatus}
-            onDebugLogToggle={handleDebugLogToggle}
             onExportClick={handleExportClick}
             onImportClick={() => fileInputRef.current?.click()}
             onResetClick={openResetDialog}
@@ -367,6 +358,8 @@ function ManageAppComponent(props: ManageAppProps) {
             onSyncNow={handleSyncNow}
             onSyncToggle={handleSyncToggle}
           />
+        ) : isDeveloperTab ? (
+          <ManageDeveloperPanel busy={busy} />
         ) : (
           <div className="manage-list-layout">
             <div className="manage-search-row">

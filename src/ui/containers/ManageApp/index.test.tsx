@@ -6,10 +6,20 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import * as buildMode from "@utils/buildMode";
 import type { ComponentType } from "react";
 
 jest.mock("react-redux", () => ({
   connect: () => (Component: unknown) => Component,
+}));
+
+jest.mock("@utils/buildMode", () => ({
+  __esModule: true,
+  IS_DEVELOPMENT_BUILD: false,
+}));
+jest.mock("./ManageDeveloperPanel", () => ({
+  __esModule: true,
+  default: () => <div>測試開發者面板</div>,
 }));
 
 import ManageApp from "./index";
@@ -66,6 +76,75 @@ describe("ManageApp", () => {
   afterEach(() => {
     jest.restoreAllMocks();
     delete (global as any).ResizeObserver;
+  });
+
+  function renderEmptyManage(extra = {}) {
+    return render(
+      <TestManageApp
+        hydrationStatus="ready"
+        activeAction={null}
+        notice={null}
+        exportUrl=""
+        exportFilename=""
+        update={[]}
+        subscribe={[]}
+        history={[]}
+        requestPopupData={jest.fn()}
+        requestExportConfig={jest.fn()}
+        requestImportConfig={jest.fn()}
+        requestResetConfig={jest.fn()}
+        requestCleanupUnsubscribedSeries={jest.fn()}
+        requestRemoveCard={jest.fn()}
+        clearExportConfig={jest.fn()}
+        clearPopupNotice={jest.fn()}
+        {...extra}
+      />,
+    );
+  }
+
+  it("excludes developer controls and normalizes developer URLs in production", () => {
+    window.history.replaceState({}, "", "/manage.html?tab=developer");
+    renderEmptyManage();
+    expect(screen.getAllByRole("tab")).toHaveLength(4);
+    expect(screen.getByRole("tab", { name: "追蹤 0" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(window.location.search).toBe("?tab=following");
+    fireEvent.click(screen.getByRole("tab", { name: "選項" }));
+    expect(screen.queryByText("開發者功能")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("switch", { name: /除錯/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers the developer tab and deep link only in development", () => {
+    jest.replaceProperty(buildMode, "IS_DEVELOPMENT_BUILD", true);
+    window.history.replaceState({}, "", "/manage.html?tab=developer");
+    renderEmptyManage();
+    expect(screen.getAllByRole("tab")).toHaveLength(5);
+    expect(screen.getByRole("tab", { name: "開發者" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByText("測試開發者面板")).toBeInTheDocument();
+    expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "選項" }));
+    expect(screen.queryByText("測試開發者面板")).not.toBeInTheDocument();
+  });
+
+  it("disables data changes when a developer background check is running", () => {
+    jest.replaceProperty(buildMode, "IS_DEVELOPMENT_BUILD", true);
+    window.history.replaceState({}, "", "/manage.html?tab=data");
+    renderEmptyManage({ developerCheckRunning: true });
+    for (const label of [
+      "匯入設定",
+      "匯出設定",
+      "清理未追蹤作品",
+      "重置資料",
+    ]) {
+      expect(screen.getByRole("button", { name: label })).toBeDisabled();
+    }
   });
 
   it("opens a modal and removes only the history entry after confirmation", () => {

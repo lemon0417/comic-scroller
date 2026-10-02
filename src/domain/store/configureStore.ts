@@ -1,13 +1,14 @@
+import { getDebugLogger } from "@domain/store/debugLogger";
 import type { EpicAction } from "@epics/types";
 import {
   configureStore as configureToolkitStore,
   Tuple,
 } from "@reduxjs/toolkit";
+import { IS_DEVELOPMENT_BUILD } from "@utils/buildMode";
 import { createEpicMiddleware } from "redux-observable";
 
 import rootEpic from "../../epics";
 import rootReducer, { type RootState } from "../reducers";
-import { getDebugLogger } from "./debugLogger";
 
 type AppStore = ReturnType<typeof configureToolkitStore<RootState>>;
 
@@ -31,7 +32,7 @@ export default function configureStore(initialState?: Partial<RootState>) {
     reducer: rootReducer,
     middleware: buildMiddleware,
     preloadedState: initialState,
-    devTools: process.env.NODE_ENV !== "production",
+    devTools: IS_DEVELOPMENT_BUILD,
   });
   epicDependencies.store = store;
   epicMiddleware.run(rootEpic);

@@ -1,13 +1,14 @@
+import { getDebugLogger } from "@domain/store/debugLogger";
 import popupEpic from "@epics/popup";
 import type { EpicAction, PopupRootState } from "@epics/types";
 import {
   configureStore as configureToolkitStore,
   Tuple,
 } from "@reduxjs/toolkit";
+import { IS_DEVELOPMENT_BUILD } from "@utils/buildMode";
 import { createEpicMiddleware } from "redux-observable";
 
 import rootReducer from "../reducers/popup";
-import { getDebugLogger } from "./debugLogger";
 
 const epicMiddleware = createEpicMiddleware<
   EpicAction,
@@ -25,7 +26,7 @@ export default function configureStore(initialState?: Partial<PopupRootState>) {
     reducer: rootReducer,
     middleware: buildMiddleware,
     preloadedState: initialState,
-    devTools: process.env.NODE_ENV !== "production",
+    devTools: IS_DEVELOPMENT_BUILD,
   });
 
   epicMiddleware.run(popupEpic);

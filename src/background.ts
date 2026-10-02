@@ -1,3 +1,4 @@
+import type { BackgroundCheckResponse } from "@domain/developerTools";
 import {
   ensureBackgroundAlarms,
   EXTENSION_RELEASE_ALARM_NAME,
@@ -9,9 +10,8 @@ import {
   runBackgroundReleaseCheck,
   runBackgroundUpdateSummary,
 } from "@infra/services/background";
+import { IS_DEVELOPMENT_BUILD } from "@utils/buildMode";
 import { devLog } from "@utils/devLog";
-
-const isDev = import.meta.env.MODE !== "production";
 
 function runBackgroundTask(scope: string, task: () => Promise<unknown>) {
   void task().catch((error: unknown) => {
@@ -31,14 +31,17 @@ chrome.runtime.onInstalled.addListener((details: { reason?: string }) => {
   });
 });
 
-chrome.runtime.onMessage.addListener(
-  (
-    message: { msg?: string },
-    _sender: unknown,
-    sendResponse: (value: { ok: boolean; reason?: string; at?: number; summary?: unknown }) => void,
-  ) =>
-    handlePingBackgroundMessage(message, sendResponse, { isDev }),
-);
+if (IS_DEVELOPMENT_BUILD)
+  chrome.runtime.onMessage.addListener(
+    (
+      message: { msg?: string },
+      _sender: unknown,
+      sendResponse: (value: BackgroundCheckResponse) => void,
+    ) =>
+      handlePingBackgroundMessage(message, sendResponse, {
+        isDev: IS_DEVELOPMENT_BUILD,
+      }),
+  );
 
 chrome.webNavigation.onBeforeNavigate.addListener(
   (details: { tabId: number; url: string }) => {

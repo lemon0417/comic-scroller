@@ -4,9 +4,7 @@ import type { LibrarySyncStatus } from "@domain/library";
 
 type ManageDataPanelProps = {
   busy: boolean;
-  debugLogEnabled: boolean;
   librarySyncStatus: LibrarySyncStatus;
-  onDebugLogToggle: () => void;
   onExportClick: () => void;
   onImportClick: () => void;
   onResetClick: () => void;
@@ -33,9 +31,7 @@ function formatPayloadSize(bytes?: number) {
 
 export function ManageDataPanel({
   busy,
-  debugLogEnabled,
   librarySyncStatus,
-  onDebugLogToggle,
   onExportClick,
   onImportClick,
   onResetClick,
@@ -108,16 +104,6 @@ export function ManageDataPanel({
             清理未追蹤作品
           </Button>
         </div>
-      </section>
-      <section className="manage-settings-section">
-        <h2 className="manage-section-title">開發者功能</h2>
-        <SwitchField
-          id="manage-debug-log-toggle"
-          label="除錯記錄"
-          description="輸出 Redux action 與解析 trace 到 console。"
-          checked={debugLogEnabled}
-          onToggle={onDebugLogToggle}
-        />
       </section>
       <section className="manage-settings-section">
         <h2 className="manage-section-title">重置資料</h2>
