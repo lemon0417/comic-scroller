@@ -5,7 +5,6 @@ import {
   updateRead,
   updateVisibleImageRange,
 } from "@domain/actions/reader";
-import { READER_IMAGE_GAP } from "@domain/utils/readerLayout";
 
 import comics, {
   adjustReaderImageScale,
@@ -88,7 +87,10 @@ describe("comics reducer", () => {
 
   it("builds a canonical seriesKey when site and comicsID are set", () => {
     const prevState = comics(undefined, { type: "@@INIT" } as any) as any;
-    const withSite = comics(prevState, updateSiteInfo("dm5", "https://www.dm5.com") as any);
+    const withSite = comics(
+      prevState,
+      updateSiteInfo("dm5", "https://www.dm5.com") as any,
+    );
     const nextState = comics(withSite, updateComicsID("123") as any);
 
     expect(nextState.seriesKey).toBe("dm5:m123");
@@ -273,7 +275,10 @@ describe("comics reducer", () => {
       updateImgType(2240, 1, "natural", 1000, 2000) as any,
     ) as any;
     nextState = comics(nextState, updateVisibleImageRange(1, 1) as any) as any;
-    nextState = comics(nextState, setReaderZoomTarget("selected") as any) as any;
+    nextState = comics(
+      nextState,
+      setReaderZoomTarget("selected") as any,
+    ) as any;
     nextState = comics(nextState, adjustReaderImageScale(-0.1) as any) as any;
 
     expect(nextState.selectedImageId).toBe(1);
@@ -293,10 +298,7 @@ describe("comics reducer", () => {
 
   it("does not enter selected zoom mode before an image is selected", () => {
     const prevState = comics(undefined, { type: "@@INIT" } as any) as any;
-    const nextState = comics(
-      prevState,
-      setReaderZoomTarget("selected") as any,
-    );
+    const nextState = comics(prevState, setReaderZoomTarget("selected") as any);
 
     expect(nextState.readerZoomTarget).toBe("all");
   });
@@ -390,10 +392,7 @@ describe("comics reducer", () => {
 
     expect(withChapterList.currentChapterTitle).toBe("Chapter 2");
 
-    const nextState = comics(
-      withChapterList,
-      updateChapterNowIndex(1) as any,
-    );
+    const nextState = comics(withChapterList, updateChapterNowIndex(1) as any);
 
     expect(nextState.currentChapterTitle).toBe("Chapter 1");
   });
@@ -829,7 +828,7 @@ describe("comics reducer", () => {
     expect(nextState.leadingEvictionRestore).toEqual({
       sequence: 1,
       firstRetainedImageId: 12,
-      removedScrollHeight: 180 + READER_IMAGE_GAP * 4,
+      removedScrollHeight: 180,
     });
     expect(nextState.readerZoomTarget).toBe("all");
     expect(nextState.selectedImageId).toBeNull();

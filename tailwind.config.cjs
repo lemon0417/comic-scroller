@@ -23,6 +23,7 @@ module.exports = {
           paper: withOpacity("--cs-color-paper"),
           "paper-soft": withOpacity("--cs-color-paper-soft"),
           "paper-hover": withOpacity("--cs-color-paper-hover"),
+          "paper-hover-strong": withOpacity("--cs-color-paper-hover-strong"),
           "paper-wash": withOpacity("--cs-color-paper-wash"),
           paper2: withOpacity("--cs-color-paper-wash"),
           "tab-wash": withOpacity("--cs-color-tab-wash"),

@@ -1,7 +1,7 @@
 import type { ComicsImageType } from "@domain/reducers/comics";
 
 export const READER_HEADER_HEIGHT = 48;
-export const READER_IMAGE_GAP = 16;
+export const READER_IMAGE_GAP = 0;
 const READER_MAX_WIDTH = 1120;
 export const DEFAULT_IMAGE_HEIGHT = 1400;
 export const READER_IMAGE_SCALE_DEFAULT = 1;
@@ -24,6 +24,12 @@ type ImageRenderMetrics = {
   type: ComicsImageType;
   width: number;
 };
+
+export function getReaderHeaderHeight(innerWidth = 0) {
+  return innerWidth > 0 && innerWidth < 640
+    ? READER_HEADER_HEIGHT * 2
+    : READER_HEADER_HEIGHT;
+}
 
 function getReaderSidePadding(innerWidth = 0) {
   if (innerWidth >= 1280) return 32;
@@ -56,9 +62,9 @@ function getReaderScaledRailWidth(innerWidth = 0, imageScale?: number) {
   return Math.max(120, Math.min(viewportWidth, scaledWidth));
 }
 
-function getWideImageMaxHeight(innerHeight = 0) {
+function getWideImageMaxHeight(innerHeight = 0, innerWidth = 0) {
   const viewportHeight = Math.max(innerHeight, 320);
-  return Math.max(240, viewportHeight - READER_HEADER_HEIGHT - 40);
+  return Math.max(240, viewportHeight - getReaderHeaderHeight(innerWidth) - 40);
 }
 
 export function getImageRenderMetrics({
@@ -83,7 +89,10 @@ export function getImageRenderMetrics({
   if (type === "paywall") {
     return {
       width: getReaderRailWidth(innerWidth),
-      height: Math.max(height || 0, getWideImageMaxHeight(innerHeight)),
+      height: Math.max(
+        height || 0,
+        getWideImageMaxHeight(innerHeight, innerWidth),
+      ),
       type: "paywall",
     };
   }
@@ -104,10 +113,13 @@ export function getImageRenderMetrics({
     naturalWidth > naturalHeight ? "wide" : "natural";
 
   if (naturalWidth > naturalHeight) {
-    const maxHeight = getWideImageMaxHeight(innerHeight);
+    const maxHeight = getWideImageMaxHeight(innerHeight, innerWidth);
     if (renderHeight > maxHeight) {
       renderHeight = maxHeight;
-      renderWidth = Math.min(width, (renderHeight * naturalWidth) / naturalHeight);
+      renderWidth = Math.min(
+        width,
+        (renderHeight * naturalWidth) / naturalHeight,
+      );
     }
   }
 

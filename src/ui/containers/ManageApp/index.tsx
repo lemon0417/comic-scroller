@@ -40,10 +40,7 @@ import { connect } from "react-redux";
 import { ManageConfirmDialog } from "./ManageConfirmDialog";
 import { ManageDataPanel } from "./ManageDataPanel";
 import { ManageFeedList } from "./ManageFeedList";
-import {
-  matchesManageSearchQuery,
-  normalizeManageSearchQuery,
-} from "./search";
+import { matchesManageSearchQuery, normalizeManageSearchQuery } from "./search";
 import {
   getInitialTab,
   getRowsForManageTab,
@@ -84,8 +81,8 @@ function ManageAppComponent(props: ManageAppProps) {
     requestExportConfig: requestExportConfigProp,
     requestImportConfig: requestImportConfigProp,
     requestResetConfig: requestResetConfigProp,
-    requestSetLibrarySyncEnabled:
-      requestSetLibrarySyncEnabledProp = () => undefined,
+    requestSetLibrarySyncEnabled: requestSetLibrarySyncEnabledProp = () =>
+      undefined,
     requestSyncLibraryNow: requestSyncLibraryNowProp = () => undefined,
     requestRemoveCard: requestRemoveCardProp,
     clearExportConfig: clearExportConfigProp,
@@ -207,15 +204,12 @@ function ManageAppComponent(props: ManageAppProps) {
     setDialogState({ kind: "reset" });
   }, []);
 
-  const openHistoryRemovalDialog = useCallback(
-    (item: PopupFeedEntry) => {
-      setDialogState({
-        kind: "history",
-        item,
-      });
-    },
-    [],
-  );
+  const openHistoryRemovalDialog = useCallback((item: PopupFeedEntry) => {
+    setDialogState({
+      kind: "history",
+      item,
+    });
+  }, []);
 
   const openAbandonSeriesDialog = useCallback((item: PopupFeedEntry) => {
     setDialogState({
@@ -301,117 +295,104 @@ function ManageAppComponent(props: ManageAppProps) {
 
   return (
     <div className="manage-shell">
-      <div className="manage-window">
-        <div className="manage-topbar">
-          <div className="min-w-0 flex-1">
-            <div className="manage-title">書庫</div>
-            <p className="manage-subtitle">
-              追蹤、閱讀紀錄與資料管理。
-            </p>
-          </div>
-        </div>
+      <header className="manage-topbar">
+        <h1 className="manage-title">書庫</h1>
+        <p className="manage-subtitle">追蹤、閱讀紀錄與資料管理。</p>
+      </header>
 
-        <Tabs
-          value={selectedTab}
-          onValueChange={(value) => setSelectedTab(value as ManageTab)}
-        >
-          <Tabs.List variant="manage" className="manage-tabbar">
-            {TAB_OPTIONS.map((tab) => (
-              <Tabs.Trigger
-                key={tab}
-                variant="manage"
-                className="manage-tab"
-                value={tab}
-              >
-                {renderTabLabel(MANAGE_TAB_CONFIG[tab].label, tabCounts[tab])}
-              </Tabs.Trigger>
-            ))}
-          </Tabs.List>
-        </Tabs>
+      <Tabs
+        value={selectedTab}
+        onValueChange={(value) => setSelectedTab(value as ManageTab)}
+      >
+        <Tabs.List variant="manage" className="manage-tabbar">
+          {TAB_OPTIONS.map((tab) => (
+            <Tabs.Trigger
+              key={tab}
+              variant="manage"
+              className="manage-tab"
+              value={tab}
+            >
+              {renderTabLabel(MANAGE_TAB_CONFIG[tab].label, tabCounts[tab])}
+            </Tabs.Trigger>
+          ))}
+        </Tabs.List>
+      </Tabs>
 
-        <Content
-          variant="manage"
-          className={`manage-content ${
-            isDataTab ? "overflow-y-auto" : "overflow-hidden"
-          }`}
-        >
-          {extensionReleaseNotice ? (
-            <ReleaseNoticeBanner
-              className="mb-4"
-              density="manage"
-              notice={extensionReleaseNotice}
-              onDismiss={requestDismissExtensionReleaseNoticeProp}
-            />
-          ) : null}
-          {localError ? (
-            <div className="mb-4">
-              <NoticeBanner
-                message={localError}
-                tone="error"
-                onDismiss={() => setLocalError("")}
-              />
-            </div>
-          ) : null}
-          {notice ? (
-            <div className="mb-4">
-              <NoticeBanner
-                message={notice.message}
-                tone={notice.tone}
-                onDismiss={clearPopupNoticeProp}
-              />
-            </div>
-          ) : null}
+      <Content
+        variant="manage"
+        className={`manage-content ${
+          isDataTab ? "overflow-y-auto" : "overflow-hidden"
+        }`}
+      >
+        {extensionReleaseNotice ? (
+          <ReleaseNoticeBanner
+            density="manage"
+            notice={extensionReleaseNotice}
+            onDismiss={requestDismissExtensionReleaseNoticeProp}
+          />
+        ) : null}
+        {localError ? (
+          <NoticeBanner
+            message={localError}
+            tone="error"
+            onDismiss={() => setLocalError("")}
+          />
+        ) : null}
+        {notice ? (
+          <NoticeBanner
+            message={notice.message}
+            tone={notice.tone}
+            onDismiss={clearPopupNoticeProp}
+          />
+        ) : null}
 
-          {isDataTab ? (
-            <ManageDataPanel
-              busy={busy}
-              debugLogEnabled={debugLogEnabled}
-              librarySyncStatus={librarySyncStatus}
-              onDebugLogToggle={handleDebugLogToggle}
-              onExportClick={handleExportClick}
-              onImportClick={() => fileInputRef.current?.click()}
-              onResetClick={openResetDialog}
-              onSyncNow={handleSyncNow}
-              onSyncToggle={handleSyncToggle}
-            />
-          ) : (
-            <div className="manage-list-layout">
-              <div className="manage-search-row">
-                <label className="manage-search-field">
-                  <span className="sr-only">搜尋作品名或 ID</span>
-                  <input
-                    type="search"
-                    className="manage-search-input"
-                    placeholder="搜尋作品名或 ID"
-                    value={searchQuery}
-                    disabled={isLoading}
-                    onChange={handleSearchQueryChange}
-                  />
-                </label>
-                <div className="manage-search-count" aria-live="polite">
-                  {isSearching
-                    ? `${filteredRows.length} / ${currentRows.length}`
-                    : `${currentRows.length} 筆`}
-                </div>
-              </div>
-              <div className="manage-list-body">
-                <ManageFeedList
-                  busy={busy}
-                  currentRows={currentRows}
-                  filteredRows={filteredRows}
-                  isLoading={isLoading}
-                  isSearching={isSearching}
-                  searchKey={normalizedSearchQuery}
-                  selectedTab={selectedTab as ManageFeedTab}
-                  onRemoveCard={requestRemoveCardProp}
-                  onRequestAbandonSeries={openAbandonSeriesDialog}
-                  onRequestHistoryRemoval={openHistoryRemovalDialog}
+        {isDataTab ? (
+          <ManageDataPanel
+            busy={busy}
+            debugLogEnabled={debugLogEnabled}
+            librarySyncStatus={librarySyncStatus}
+            onDebugLogToggle={handleDebugLogToggle}
+            onExportClick={handleExportClick}
+            onImportClick={() => fileInputRef.current?.click()}
+            onResetClick={openResetDialog}
+            onSyncNow={handleSyncNow}
+            onSyncToggle={handleSyncToggle}
+          />
+        ) : (
+          <div className="manage-list-layout">
+            <div className="manage-search-row">
+              <label className="manage-search-field">
+                <span className="sr-only">搜尋作品名或 ID</span>
+                <input
+                  type="search"
+                  className="manage-search-input"
+                  placeholder="搜尋作品名或 ID"
+                  value={searchQuery}
+                  disabled={isLoading}
+                  onChange={handleSearchQueryChange}
                 />
+              </label>
+              <div className="manage-search-count" aria-live="polite">
+                {isSearching
+                  ? `${filteredRows.length} / ${currentRows.length}`
+                  : `${currentRows.length} 筆`}
               </div>
             </div>
-          )}
-        </Content>
-      </div>
+            <ManageFeedList
+              busy={busy}
+              currentRows={currentRows}
+              filteredRows={filteredRows}
+              isLoading={isLoading}
+              isSearching={isSearching}
+              searchKey={normalizedSearchQuery}
+              selectedTab={selectedTab as ManageFeedTab}
+              onRemoveCard={requestRemoveCardProp}
+              onRequestAbandonSeries={openAbandonSeriesDialog}
+              onRequestHistoryRemoval={openHistoryRemovalDialog}
+            />
+          </div>
+        )}
+      </Content>
       <a ref={downloadRef} className="hidden">
         匯出設定
       </a>

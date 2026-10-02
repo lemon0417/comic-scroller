@@ -36,6 +36,7 @@ type ImageContainerProps = {
   imageResult: number[];
   imageRowHeights?: number[];
   innerHeight: number;
+  innerWidth?: number;
   leadingEvictionRestore: {
     sequence: number;
     firstRetainedImageId: number;
@@ -45,9 +46,42 @@ type ImageContainerProps = {
   updateVisibleImageRange: jest.Mock;
 };
 
-const TestImageContainer = ImageContainer as unknown as ComponentType<ImageContainerProps>;
+const TestImageContainer =
+  ImageContainer as unknown as ComponentType<ImageContainerProps>;
 
 describe("ImageContainer", () => {
+  it.each([
+    [390, 96, 504],
+    [640, 48, 552],
+    [1440, 48, 552],
+  ])(
+    "keeps the canvas below the toolbar at width %i",
+    (innerWidth, top, height) => {
+      const { container } = render(
+        <TestImageContainer
+          chapterLoadStatus="ready"
+          clearLeadingEvictionRestore={jest.fn()}
+          fetchChapter={jest.fn()}
+          hasPendingChapterGate={false}
+          imageListKey="reader-list"
+          imageResult={[0, 1]}
+          imageRowHeights={[480, 360]}
+          innerHeight={600}
+          innerWidth={innerWidth}
+          leadingEvictionRestore={null}
+          requestedChapter="m100"
+          updateVisibleImageRange={jest.fn()}
+        />,
+      );
+
+      expect(container.querySelector(".reader-canvas")).toHaveStyle({
+        top: `${top}px`,
+        height: `${height}px`,
+      });
+      expect(screen.getByTestId("comic-image-0")).toBeInTheDocument();
+    },
+  );
+
   it("renders a loading state when no images are available", () => {
     render(
       <TestImageContainer

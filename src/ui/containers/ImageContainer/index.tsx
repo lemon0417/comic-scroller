@@ -10,8 +10,8 @@ import {
 } from "@domain/reducers/comics";
 import {
   DEFAULT_IMAGE_HEIGHT,
+  getReaderHeaderHeight,
   getReaderImageRowHeight,
-  READER_HEADER_HEIGHT,
   READER_IMAGE_GAP,
 } from "@domain/utils/readerLayout";
 import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
@@ -30,6 +30,7 @@ type ImageContainerProps = {
   imageResult: number[];
   imageRowHeights?: number[];
   innerHeight: number;
+  innerWidth?: number;
   leadingEvictionRestore: ComicsState["leadingEvictionRestore"];
   requestedChapter: string;
   clearLeadingEvictionRestore: typeof clearLeadingEvictionRestore;
@@ -163,6 +164,7 @@ function ImageContainer({
   imageResult,
   imageRowHeights,
   innerHeight,
+  innerWidth = 0,
   leadingEvictionRestore,
   requestedChapter,
   updateVisibleImageRange: updateVisibleImageRangeProp,
@@ -172,8 +174,9 @@ function ImageContainer({
   const prevImageResultRef = useRef(imageResult);
   const anchorSnapshotRef = useRef<AnchorSnapshot | null>(null);
   const pendingAnchorRestoreRef = useRef<AnchorSnapshot | null>(null);
-  const pendingAppendRangeSuppressRef =
-    useRef<AppendRangeSuppress | null>(null);
+  const pendingAppendRangeSuppressRef = useRef<AppendRangeSuppress | null>(
+    null,
+  );
   const suppressedAppendLengthRef = useRef<number | null>(null);
   const appliedEvictionRestoreSequenceRef = useRef<number | null>(null);
   const isApplyingEvictionRestoreRef = useRef(false);
@@ -455,12 +458,12 @@ function ImageContainer({
       rowHeight={getRowHeight}
       rowProps={rowProps}
       style={{
-        height: Math.max(320, innerHeight - READER_HEADER_HEIGHT),
+        height: Math.max(0, innerHeight - getReaderHeaderHeight(innerWidth)),
         left: 0,
         overflowAnchor: "none",
         position: "fixed",
         right: 0,
-        top: READER_HEADER_HEIGHT,
+        top: getReaderHeaderHeight(innerWidth),
         width: "100%",
       }}
     />
@@ -513,6 +516,7 @@ function mapStateToProps(state: { comics: ComicsState }) {
     imageRowHeights: selectReaderImageRowHeights(state),
     hasPendingChapterGate: Boolean(comics.pendingChapterGate),
     innerHeight: comics.innerHeight,
+    innerWidth: comics.innerWidth,
     leadingEvictionRestore: comics.leadingEvictionRestore,
     chapterLoadStatus: comics.chapterLoadStatus,
     requestedChapter: comics.requestedChapter,

@@ -15,6 +15,7 @@ import {
   setReaderZoomTarget,
 } from "@domain/reducers/comics";
 import {
+  getReaderHeaderHeight,
   getReaderImageScalePercent,
   READER_IMAGE_SCALE_MAX,
   READER_IMAGE_SCALE_MIN,
@@ -27,10 +28,17 @@ import FullscreenExitIcon from "@imgs/fullscreen-exit.svg?react";
 import MenuIcon from "@imgs/menu.svg?react";
 import TagIcon from "@imgs/tag.svg?react";
 import { devLog } from "@utils/devLog";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { connect } from "react-redux";
 
 type AppStateProps = {
+  innerWidth: number;
   chapterList: string[];
   chapterNowIndex: number;
   chapterTitle: string;
@@ -101,6 +109,7 @@ function App(props: AppProps) {
   const [showChapterList, setShowChapterList] = useState(false);
   const [showReaderZoomTools, setShowReaderZoomTools] = useState(false);
   const {
+    innerWidth = 0,
     chapterList,
     chapterNowIndex,
     chapterTitle,
@@ -228,9 +237,11 @@ function App(props: AppProps) {
       return;
     }
 
-    void document.documentElement.requestFullscreen().catch((error: unknown) => {
-      devLog("reader:fullscreen-enter-failed", error);
-    });
+    void document.documentElement
+      .requestFullscreen()
+      .catch((error: unknown) => {
+        devLog("reader:fullscreen-enter-failed", error);
+      });
   }, []);
 
   const setAllZoomTargetHandler = useCallback(() => {
@@ -258,21 +269,27 @@ function App(props: AppProps) {
   }, []);
 
   return (
-    <div className="reader-shell">
+    <div
+      className="reader-shell"
+      data-compact={innerWidth > 0 && innerWidth < 640}
+      style={
+        {
+          "--cs-reader-header-height": `${getReaderHeaderHeight(innerWidth)}px`,
+        } as CSSProperties
+      }
+    >
       <header className="reader-toolbar">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="reader-info">
           <IconButton
             ariaLabel="開啟章節列表"
             onClickHandler={showChapterListHandler}
           >
             <MenuIcon className="fill-current text-comic-ink/60" />
           </IconButton>
-          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-            <span className="reader-brand">
-              Comic Scroller
-            </span>
+          <div className="reader-title">
+            <span className="reader-brand">Comic Scroller</span>
             <span
-              className="hidden h-4 w-px shrink-0 bg-comic-line sm:inline-block"
+              className="hidden h-4 w-px shrink-0 bg-comic-line lg:inline-block"
               aria-hidden="true"
             />
             <a
@@ -288,118 +305,118 @@ function App(props: AppProps) {
               {chapterList.length > 0 ? chapterTitle : "載入中..."}
             </span>
           </div>
-          <div className="reader-actions">
-            <IconButton
-              ariaLabel="上一章"
-              disabled={!prevable}
-              onClickHandler={prevable ? prevChapterHandler : undefined}
+        </div>
+        <div className="reader-actions">
+          <IconButton
+            ariaLabel="上一章"
+            disabled={!prevable}
+            onClickHandler={prevable ? prevChapterHandler : undefined}
+          >
+            <PrevIcon className={getNavigationIconClass(prevable)} />
+          </IconButton>
+          <IconButton
+            ariaLabel="下一章"
+            disabled={!nextable}
+            onClickHandler={nextable ? nextChapterHandler : undefined}
+          >
+            <NextIcon className={getNavigationIconClass(nextable)} />
+          </IconButton>
+          <button
+            type="button"
+            className="reader-zoom-trigger"
+            ref={readerZoomTriggerRef}
+            aria-controls={READER_ZOOM_TOOLS_ID}
+            aria-expanded={showReaderZoomTools}
+            onClick={toggleReaderZoomToolsHandler}
+          >
+            <span className="reader-zoom-trigger-label">縮放</span>
+            <span className="reader-zoom-trigger-value">
+              {readerZoomPercent}%
+            </span>
+          </button>
+          {showReaderZoomTools ? (
+            <div
+              id={READER_ZOOM_TOOLS_ID}
+              className="reader-zoom-popover"
+              role="toolbar"
+              aria-label="圖片縮放工具"
             >
-              <PrevIcon className={getNavigationIconClass(prevable)} />
-            </IconButton>
-            <IconButton
-              ariaLabel="下一章"
-              disabled={!nextable}
-              onClickHandler={nextable ? nextChapterHandler : undefined}
-            >
-              <NextIcon className={getNavigationIconClass(nextable)} />
-            </IconButton>
-            <button
-              type="button"
-              className="reader-zoom-trigger"
-              ref={readerZoomTriggerRef}
-              aria-controls={READER_ZOOM_TOOLS_ID}
-              aria-expanded={showReaderZoomTools}
-              onClick={toggleReaderZoomToolsHandler}
-            >
-              <span className="reader-zoom-trigger-label">縮放</span>
-              <span className="reader-zoom-trigger-value">
-                {readerZoomPercent}%
-              </span>
-            </button>
-            {showReaderZoomTools ? (
-              <div
-                id={READER_ZOOM_TOOLS_ID}
-                className="reader-zoom-popover"
-                role="toolbar"
-                aria-label="圖片縮放工具"
+              <button
+                type="button"
+                className={getZoomModeButtonClass(readerZoomTarget === "all")}
+                aria-pressed={readerZoomTarget === "all"}
+                onClick={setAllZoomTargetHandler}
               >
-                <button
-                  type="button"
-                  className={getZoomModeButtonClass(readerZoomTarget === "all")}
-                  aria-pressed={readerZoomTarget === "all"}
-                  onClick={setAllZoomTargetHandler}
-                >
-                  全部
-                </button>
-                <button
-                  type="button"
-                  className={getZoomModeButtonClass(
-                    readerZoomTarget === "selected",
-                  )}
-                  aria-pressed={readerZoomTarget === "selected"}
-                  disabled={!canUseSelectedReaderZoom}
-                  onClick={setSelectedZoomTargetHandler}
-                >
-                  本頁
-                </button>
-                <IconButton
-                  ariaLabel="縮小圖片"
-                  className="reader-zoom-step"
-                  disabled={!canDecreaseReaderZoom}
-                  onClickHandler={
-                    canDecreaseReaderZoom ? decreaseZoomHandler : undefined
-                  }
-                >
-                  <span className="reader-zoom-step-label">-</span>
-                </IconButton>
-                <button
-                  type="button"
-                  className="reader-zoom-percent"
-                  aria-label={`重設圖片縮放，目前 ${readerZoomPercent}%`}
-                  onClick={resetZoomHandler}
-                >
-                  {readerZoomPercent}%
-                </button>
-                <IconButton
-                  ariaLabel="放大圖片"
-                  className="reader-zoom-step"
-                  disabled={!canIncreaseReaderZoom}
-                  onClickHandler={
-                    canIncreaseReaderZoom ? increaseZoomHandler : undefined
-                  }
-                >
-                  <span className="reader-zoom-step-label">+</span>
-                </IconButton>
-                <button
-                  type="button"
-                  className="reader-zoom-close-button"
-                  aria-label="關閉縮放工具"
-                  onClick={closeReaderZoomTools}
-                />
-              </div>
-            ) : undefined}
-            <IconButton
-              ariaLabel={subscribe ? "取消追蹤" : "追蹤作品"}
-              disabled={chapterTitle === ""}
-              onClickHandler={chapterTitle !== "" ? subscribeHandler : undefined}
-            >
-              <TagIcon className={getTagIconClass(chapterTitle, subscribe)} />
-            </IconButton>
-            <IconButton
-              ariaLabel={isFullscreen ? "離開全螢幕" : "進入全螢幕"}
-              onClickHandler={fullscreenHandler}
-            >
-              {isFullscreen ? (
-                <FullscreenExitIcon
-                  className={getFullscreenIconClass(isFullscreen)}
-                />
-              ) : (
-                <FullscreenEnterIcon
-                  className={getFullscreenIconClass(isFullscreen)}
-                />
-              )}
-            </IconButton>
-          </div>
+                全部
+              </button>
+              <button
+                type="button"
+                className={getZoomModeButtonClass(
+                  readerZoomTarget === "selected",
+                )}
+                aria-pressed={readerZoomTarget === "selected"}
+                disabled={!canUseSelectedReaderZoom}
+                onClick={setSelectedZoomTargetHandler}
+              >
+                本頁
+              </button>
+              <IconButton
+                ariaLabel="縮小圖片"
+                className="reader-zoom-step"
+                disabled={!canDecreaseReaderZoom}
+                onClickHandler={
+                  canDecreaseReaderZoom ? decreaseZoomHandler : undefined
+                }
+              >
+                <span className="reader-zoom-step-label">-</span>
+              </IconButton>
+              <button
+                type="button"
+                className="reader-zoom-percent"
+                aria-label={`重設圖片縮放，目前 ${readerZoomPercent}%`}
+                onClick={resetZoomHandler}
+              >
+                {readerZoomPercent}%
+              </button>
+              <IconButton
+                ariaLabel="放大圖片"
+                className="reader-zoom-step"
+                disabled={!canIncreaseReaderZoom}
+                onClickHandler={
+                  canIncreaseReaderZoom ? increaseZoomHandler : undefined
+                }
+              >
+                <span className="reader-zoom-step-label">+</span>
+              </IconButton>
+              <button
+                type="button"
+                className="reader-zoom-close-button"
+                aria-label="關閉縮放工具"
+                onClick={closeReaderZoomTools}
+              />
+            </div>
+          ) : undefined}
+          <IconButton
+            ariaLabel={subscribe ? "取消追蹤" : "追蹤作品"}
+            disabled={chapterTitle === ""}
+            onClickHandler={chapterTitle !== "" ? subscribeHandler : undefined}
+          >
+            <TagIcon className={getTagIconClass(chapterTitle, subscribe)} />
+          </IconButton>
+          <IconButton
+            ariaLabel={isFullscreen ? "離開全螢幕" : "進入全螢幕"}
+            onClickHandler={fullscreenHandler}
+          >
+            {isFullscreen ? (
+              <FullscreenExitIcon
+                className={getFullscreenIconClass(isFullscreen)}
+              />
+            ) : (
+              <FullscreenEnterIcon
+                className={getFullscreenIconClass(isFullscreen)}
+              />
+            )}
+          </IconButton>
         </div>
       </header>
       <ImageContainer />
@@ -425,6 +442,7 @@ function mapStateToProps({ comics }: { comics: ComicsState }): AppStateProps {
   } = comics;
   const activeReaderZoomScale = getReaderZoomScaleForTarget(comics);
   return {
+    innerWidth: comics.innerWidth,
     title,
     chapterTitle: currentChapterTitle,
     site,

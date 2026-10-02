@@ -44,7 +44,7 @@ function ManageFeedRow({
 
   if (selectedTab === "updates") {
     return (
-      <div {...ariaAttributes} style={style} className="px-1 py-1.5">
+      <div {...ariaAttributes} style={style}>
         <SeriesRow
           variant="manage"
           title={item.title}
@@ -86,7 +86,7 @@ function ManageFeedRow({
 
   if (selectedTab === "following") {
     return (
-      <div {...ariaAttributes} style={style} className="px-1 py-1.5">
+      <div {...ariaAttributes} style={style}>
         <SeriesRow
           variant="manage"
           title={item.title}
@@ -121,7 +121,7 @@ function ManageFeedRow({
   }
 
   return (
-    <div {...ariaAttributes} style={style} className="px-1 py-1.5">
+    <div {...ariaAttributes} style={style}>
       <SeriesRow
         variant="manage"
         title={item.title}
@@ -136,7 +136,11 @@ function ManageFeedRow({
             label: "繼續",
             variant: "primary",
             onClick: () =>
-              openReaderPage(item.site, item.continueChapterID, item.continueHref),
+              openReaderPage(
+                item.site,
+                item.continueChapterID,
+                item.continueHref,
+              ),
           },
           {
             icon: "trash",
@@ -225,14 +229,13 @@ export function ManageFeedList({
 
   return (
     <List
-      className="popup-scrollbar scrollbar-stable"
+      className="manage-feed-list popup-scrollbar scrollbar-stable"
       overscanCount={MANAGE_LIST_OVERSCAN_COUNT}
       rowComponent={ManageFeedRow}
       rowCount={filteredRows.length}
       rowHeight={rowHeights}
       rowProps={rowProps}
       style={{
-        height: "100%",
         width: "100%",
       }}
     />

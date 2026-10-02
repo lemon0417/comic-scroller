@@ -4,7 +4,6 @@ import CountBadge from "@components/CountBadge";
 import EmptyState from "@components/EmptyState";
 import List from "@components/List";
 import LoadingRows from "@components/LoadingRows";
-import Panel from "@components/Panel";
 import ReleaseNoticeBanner from "@components/ReleaseNoticeBanner";
 import SeriesRow from "@components/SeriesRow";
 import {
@@ -12,10 +11,7 @@ import {
   requestDismissExtensionReleaseNotice,
   requestPopupData,
 } from "@domain/actions/popup";
-import {
-  getPopupUpdateCount,
-  type PopupFeedEntry,
-} from "@domain/library";
+import { getPopupUpdateCount, type PopupFeedEntry } from "@domain/library";
 import {
   type PopupViewProps,
   selectPopupView,
@@ -54,7 +50,8 @@ function PopupAppComponent(props: PopupAppProps) {
     updatesTruncated,
     continueReading,
     extensionReleaseNotice,
-    requestDismissExtensionReleaseNotice: requestDismissExtensionReleaseNoticeProp,
+    requestDismissExtensionReleaseNotice:
+      requestDismissExtensionReleaseNoticeProp,
     requestPopupData: requestPopupDataProp,
   } = props;
   const displayUpdateCount =
@@ -70,116 +67,111 @@ function PopupAppComponent(props: PopupAppProps) {
 
   return (
     <div className="popup-shell">
-      <Panel className="popup-panel rounded-[18px]">
-        <div className="popup-header">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <div className="min-w-0">
-              <h1 className="popup-title">更新</h1>
-              <p className="popup-subtitle">繼續閱讀與新章節</p>
-            </div>
-            <CountBadge aria-label="更新數">{displayUpdateCount}</CountBadge>
+      <header className="popup-header">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="min-w-0">
+            <h1 className="popup-title">更新</h1>
+            <p className="popup-subtitle">繼續閱讀與新章節</p>
           </div>
-          <Button
-            variant="secondary"
-            onClick={() => openManagePage("following")}
-          >
-            管理
-          </Button>
+          <CountBadge aria-label="更新數">{displayUpdateCount}</CountBadge>
         </div>
+        <Button variant="secondary" onClick={() => openManagePage("following")}>
+          管理
+        </Button>
+      </header>
+      <Content variant="popup" className="popup-content">
         {extensionReleaseNotice ? (
           <ReleaseNoticeBanner
-            className="mb-3"
+            className="mb-5"
             density="popup"
             notice={extensionReleaseNotice}
             onDismiss={requestDismissExtensionReleaseNoticeProp}
           />
         ) : null}
-        <Content variant="popup" className="popup-content">
-          {isLoading ? (
-            <LoadingRows />
-          ) : (
-            <List className="popup-list">
-              {continueReading ? (
-                <section className="popup-section">
-                  <SectionTitle title="繼續閱讀" />
-                  <SeriesRow
-                    variant="popup"
-                    title={continueReading.title}
-                    titleHref={continueReading.url}
-                    siteLabel={continueReading.siteLabel}
-                    cover={continueReading.cover}
-                    summary={`上次閱讀：${continueReading.lastReadTitle}`}
-                    detail={`最新章節：${continueReading.lastChapterTitle}`}
-                    actions={[
-                      {
-                        icon: "arrow",
-                        label: "繼續",
-                        variant: "primary",
-                        onClick: () =>
-                          openReaderPage(
-                            continueReading.site,
-                            continueReading.continueChapterID,
-                            continueReading.continueHref,
-                          ),
-                      },
-                    ]}
-                  />
-                </section>
-              ) : null}
+        {isLoading ? (
+          <LoadingRows variant="popup" />
+        ) : (
+          <List className="popup-list">
+            {continueReading ? (
+              <section className="popup-section">
+                <SectionTitle title="繼續閱讀" />
+                <SeriesRow
+                  variant="popup"
+                  title={continueReading.title}
+                  titleHref={continueReading.url}
+                  siteLabel={continueReading.siteLabel}
+                  cover={continueReading.cover}
+                  summary={`上次閱讀：${continueReading.lastReadTitle}`}
+                  detail={`最新章節：${continueReading.lastChapterTitle}`}
+                  actions={[
+                    {
+                      icon: "arrow",
+                      label: "繼續",
+                      variant: "primary",
+                      onClick: () =>
+                        openReaderPage(
+                          continueReading.site,
+                          continueReading.continueChapterID,
+                          continueReading.continueHref,
+                        ),
+                    },
+                  ]}
+                />
+              </section>
+            ) : null}
 
-              {update.length > 0 ? (
-                <section className="popup-section">
-                  <SectionTitle title="最新更新" />
-                  {updatesTruncated ? (
-                    <p className="mb-2 px-1 text-[11px] text-comic-ink/50">
-                      僅顯示最新 {POPUP_UPDATE_LIMIT} 筆，請前往管理頁查看全部。
-                    </p>
-                  ) : null}
-                  <div className="popup-feed-list">
-                    {update.map((item: PopupFeedEntry) => (
-                      <SeriesRow
-                        key={item.key}
-                        variant="popup"
-                        title={item.title}
-                        titleHref={item.url}
-                        siteLabel={item.siteLabel}
-                        cover={item.cover}
-                        summary={`新章節：${item.updateChapterTitle || item.lastChapterTitle}`}
-                        detail={`上次閱讀：${item.lastReadTitle}`}
-                        actions={[
-                          {
-                            icon: "arrow",
-                            label: "閱讀",
-                            variant: "primary",
-                            onClick: () =>
-                              openReaderPage(
-                                item.site,
-                                item.updateChapterID || item.lastChapterID,
-                                item.updateChapterHref ||
-                                  item.lastChapterHref ||
-                                  item.url,
-                              ),
-                          },
-                        ]}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ) : continueReading ? (
-                <EmptyState
-                  title="目前沒有新章節"
-                  description="可繼續上次閱讀，或前往管理頁查看收藏。"
-                />
-              ) : (
-                <EmptyState
-                  title="尚無更新"
-                  description="可先到閱讀頁追蹤作品。"
-                />
-              )}
-            </List>
-          )}
-        </Content>
-      </Panel>
+            {update.length > 0 ? (
+              <section className="popup-section">
+                <SectionTitle title="最新更新" />
+                {updatesTruncated ? (
+                  <p className="mb-2 px-1 text-[11px] text-comic-ink/50">
+                    僅顯示最新 {POPUP_UPDATE_LIMIT} 筆，請前往管理頁查看全部。
+                  </p>
+                ) : null}
+                <div className="popup-feed-list">
+                  {update.map((item: PopupFeedEntry) => (
+                    <SeriesRow
+                      key={item.key}
+                      variant="popup"
+                      title={item.title}
+                      titleHref={item.url}
+                      siteLabel={item.siteLabel}
+                      cover={item.cover}
+                      summary={`新章節：${item.updateChapterTitle || item.lastChapterTitle}`}
+                      detail={`上次閱讀：${item.lastReadTitle}`}
+                      actions={[
+                        {
+                          icon: "arrow",
+                          label: "閱讀",
+                          variant: "primary",
+                          onClick: () =>
+                            openReaderPage(
+                              item.site,
+                              item.updateChapterID || item.lastChapterID,
+                              item.updateChapterHref ||
+                                item.lastChapterHref ||
+                                item.url,
+                            ),
+                        },
+                      ]}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : continueReading ? (
+              <EmptyState
+                title="目前沒有新章節"
+                description="可繼續上次閱讀，或前往管理頁查看收藏。"
+              />
+            ) : (
+              <EmptyState
+                title="尚無更新"
+                description="可先到閱讀頁追蹤作品。"
+              />
+            )}
+          </List>
+        )}
+      </Content>
     </div>
   );
 }

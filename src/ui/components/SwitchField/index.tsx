@@ -26,15 +26,12 @@ export default function SwitchField({
   const descriptionId = `${fieldBaseId}-desc`;
 
   return (
-    <div className="manage-setting-row">
+    <div className="ds-switch-field">
       <span className="flex min-w-0 flex-col gap-1">
         <span id={labelId} className="text-[14px] font-medium text-comic-ink">
           {label}
         </span>
-        <span
-          id={descriptionId}
-          className="text-[12px] leading-5 text-comic-ink/60"
-        >
+        <span id={descriptionId} className="ds-switch-field__description">
           {description}
         </span>
       </span>
@@ -46,18 +43,10 @@ export default function SwitchField({
         aria-labelledby={labelId}
         aria-describedby={descriptionId}
         disabled={disabled}
-        className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-comic-accent focus-visible:ring-offset-2 focus-visible:ring-offset-comic-paper ${
-          checked
-            ? "border-comic-accent bg-comic-accent"
-            : "border-comic-line bg-comic-paper-soft"
-        }`}
+        className="ds-switch"
         onClick={onToggle}
       >
-        <span
-          className={`absolute left-0 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-comic-paper shadow-subtle transition-transform duration-150 ${
-            checked ? "translate-x-[22px]" : "translate-x-[2px]"
-          }`}
-        />
+        <span className="ds-switch__thumb" />
       </button>
     </div>
   );

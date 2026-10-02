@@ -46,16 +46,6 @@ export function ManageDataPanel({
   return (
     <div className="manage-settings-stack">
       <section className="manage-settings-section">
-        <h2 className="manage-section-title">開發者功能</h2>
-        <SwitchField
-          id="manage-debug-log-toggle"
-          label="除錯記錄"
-          description="輸出 Redux action 與解析 trace 到 console。"
-          checked={debugLogEnabled}
-          onToggle={onDebugLogToggle}
-        />
-      </section>
-      <section className="manage-settings-section">
         <h2 className="manage-section-title">Chrome 同步</h2>
         <SwitchField
           id="manage-library-sync-toggle"
@@ -65,37 +55,29 @@ export function ManageDataPanel({
           disabled={syncDisabled}
           onToggle={() => onSyncToggle(!librarySyncStatus.enabled)}
         />
-        <div className="mt-4 grid gap-2 rounded-2xl border border-comic-line/70 bg-comic-paper-soft/70 p-4 text-[12px] leading-5 text-comic-ink/65">
-          <div className="flex items-center justify-between gap-4">
-            <span>上次同步</span>
-            <span className="font-medium text-comic-ink">
-              {formatSyncTime(librarySyncStatus.lastSyncedAt)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between gap-4">
-            <span>遠端更新</span>
-            <span className="font-medium text-comic-ink">
-              {formatSyncTime(librarySyncStatus.remoteUpdatedAt)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between gap-4">
-            <span>同步大小</span>
-            <span className="font-medium text-comic-ink">
-              {formatPayloadSize(librarySyncStatus.payloadBytes)}
-            </span>
-          </div>
-          {librarySyncStatus.lastError ? (
-            <p role="alert" className="text-red-700">
-              {librarySyncStatus.lastError}
-            </p>
-          ) : null}
-          {!librarySyncStatus.available ? (
-            <p role="status">
-              目前無法存取 Chrome Sync，請確認 extension storage 權限與瀏覽器環境。
-            </p>
-          ) : null}
-        </div>
-        <div className="mt-4 flex flex-wrap gap-3">
+        <dl className="manage-sync-details">
+          <dt>上次同步</dt>
+          <dd>{formatSyncTime(librarySyncStatus.lastSyncedAt)}</dd>
+          <dt>遠端更新</dt>
+          <dd>{formatSyncTime(librarySyncStatus.remoteUpdatedAt)}</dd>
+          <dt>同步大小</dt>
+          <dd>{formatPayloadSize(librarySyncStatus.payloadBytes)}</dd>
+        </dl>
+        {librarySyncStatus.lastError ? (
+          <p
+            role="alert"
+            className="manage-sync-message text-comic-danger-text"
+          >
+            {librarySyncStatus.lastError}
+          </p>
+        ) : null}
+        {!librarySyncStatus.available ? (
+          <p role="status" className="manage-sync-message">
+            目前無法存取 Chrome Sync，請確認 extension storage
+            權限與瀏覽器環境。
+          </p>
+        ) : null}
+        <div className="manage-settings-actions">
           <Button
             variant="secondary"
             disabled={syncDisabled || !librarySyncStatus.enabled}
@@ -107,14 +89,32 @@ export function ManageDataPanel({
       </section>
       <section className="manage-settings-section">
         <h2 className="manage-section-title">資料</h2>
-        <p className="manage-section-desc">匯入、匯出或重置資料。</p>
-        <div className="mt-4 flex flex-wrap gap-3">
+        <p className="manage-section-desc">匯入或匯出書庫資料。</p>
+        <div className="manage-settings-actions">
           <Button variant="primary" disabled={busy} onClick={onImportClick}>
             匯入設定
           </Button>
           <Button variant="secondary" disabled={busy} onClick={onExportClick}>
             匯出設定
           </Button>
+        </div>
+      </section>
+      <section className="manage-settings-section">
+        <h2 className="manage-section-title">開發者功能</h2>
+        <SwitchField
+          id="manage-debug-log-toggle"
+          label="除錯記錄"
+          description="輸出 Redux action 與解析 trace 到 console。"
+          checked={debugLogEnabled}
+          onToggle={onDebugLogToggle}
+        />
+      </section>
+      <section className="manage-settings-section">
+        <h2 className="manage-section-title">重置資料</h2>
+        <p className="manage-section-desc">
+          刪除更新、追蹤、閱讀紀錄與作品快取。
+        </p>
+        <div className="manage-settings-actions">
           <Button variant="danger" disabled={busy} onClick={onResetClick}>
             重置資料
           </Button>

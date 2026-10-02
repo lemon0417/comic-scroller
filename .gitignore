@@ -209,6 +209,8 @@ build/
 .DS_Store
 
 ### AI Agents ###
+# Local visual review captures and metrics
+.impeccable/review/
 # OpenCode / Sisyphus
 .agent/
 .agents/

@@ -22,7 +22,6 @@ describe("SwitchField", () => {
       "aria-describedby",
       "manage-debug-log-desc",
     );
-    expect(switchControl).toHaveClass("border-comic-line", "bg-comic-paper-soft");
 
     fireEvent.click(switchControl);
 
@@ -43,7 +42,6 @@ describe("SwitchField", () => {
 
     const switchControl = screen.getByRole("switch", { name: "除錯記錄" });
     expect(switchControl).toHaveAttribute("aria-checked", "true");
-    expect(switchControl).toHaveClass("border-comic-accent", "bg-comic-accent");
     expect(switchControl).toBeDisabled();
   });
 });

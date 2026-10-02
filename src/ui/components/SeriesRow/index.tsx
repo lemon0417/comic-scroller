@@ -49,66 +49,63 @@ export default function SeriesRow({
   detail,
   actions = [],
 }: SeriesRowProps) {
+  const Title = variant === "popup" ? "h3" : "h2";
   return (
     <article className={cn("series-row", `series-row--${variant}`, className)}>
-      <div className="series-row__visual">
-        <span className="series-row__chip">{siteLabel}</span>
-        {cover ? (
-          <img
-            src={cover}
-            alt=""
-            width={48}
-            height={48}
-            loading="lazy"
-            decoding="async"
-            className="series-row__cover"
-          />
-        ) : (
-          <div
-            className="series-row__cover series-row__cover--fallback"
-            aria-hidden="true"
-          >
-            {title.slice(0, 1).toUpperCase()}
-          </div>
-        )}
-      </div>
-      <div className="series-row__body">
-        <div className="series-row__copy">
-          <h2 className="series-row__title">
-            {titleHref ? (
-              <a
-                className="series-row__title-link"
-                href={titleHref}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {title}
-              </a>
-            ) : (
-                title
-              )}
-          </h2>
-          <div className="series-row__summary">{summary}</div>
-          {detail ? <div className="series-row__detail">{detail}</div> : null}
+      {cover ? (
+        <img
+          src={cover}
+          alt=""
+          width={48}
+          height={48}
+          loading="lazy"
+          decoding="async"
+          className="series-row__cover"
+        />
+      ) : (
+        <div
+          className="series-row__cover series-row__cover--fallback"
+          aria-hidden="true"
+        >
+          {title.slice(0, 1).toUpperCase()}
         </div>
-        {actions.length > 0 ? (
-          <div className="series-row__actions">
-            {actions.map((action) => (
-              <Button
-                key={action.label}
-                variant={action.variant}
-                disabled={action.disabled}
-                onClick={action.onClick}
-              >
-                {action.icon ? <ActionIcon icon={action.icon} /> : null}
-                <span className={action.icon ? "ml-1.5" : undefined}>
-                  {action.label}
-                </span>
-              </Button>
-            ))}
-          </div>
-        ) : null}
+      )}
+      <div className="series-row__copy">
+        <span className="series-row__site">{siteLabel}</span>
+        <Title className="series-row__title">
+          {titleHref ? (
+            <a
+              className="series-row__title-link"
+              href={titleHref}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {title}
+            </a>
+          ) : (
+            title
+          )}
+        </Title>
+        <div className="series-row__summary">{summary}</div>
+        {detail ? <div className="series-row__detail">{detail}</div> : null}
       </div>
+      {actions.length > 0 ? (
+        <div className="series-row__actions">
+          {actions.map((action) => (
+            <Button
+              key={action.label}
+              variant={action.variant}
+              disabled={action.disabled}
+              onClick={action.onClick}
+            >
+              {action.icon ? <ActionIcon icon={action.icon} /> : null}
+              <span className={action.icon ? "ml-1.5" : undefined}>
+                {action.label}
+              </span>
+            </Button>
+          ))}
+        </div>
+      ) : null}
     </article>
   );
 }

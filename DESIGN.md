@@ -16,10 +16,10 @@ The physical scene is a manga reader returning to a softly lit reading desk: the
 
 - **Parchment Canvas** (`#ECE6D6`) — Dominant brand color and primary application background. This is the visual field users should associate with Comic Scroller.
 - **Soft Parchment** (`#F8F4E9`) — Loading surfaces, subdued rows, and secondary background layers.
-- **Paper Surface** (`#FFFDF7`) — Panels, dialogs, cards, active tabs, and reader page frames.
+- **Paper Surface** (`#FFFDF7`) — Flat application surfaces, controls, toolbars, dialogs, and popovers.
 - **Parchment Hover** (`#FCF8ED`) — Quiet hover state over Paper Surface.
 - **Pressed Parchment** (`#EFE8D6`) — Stronger hover or pressed state when a surface change must be obvious.
-- **Tab Wash** (`#E0D8C4`) — Inactive tab rails and grouped navigation backgrounds.
+- **Tab Wash** (`#E0D8C4`) — Retained warm neutral token. Current text tabs use transparent backgrounds rather than a filled navigation rail.
 - **Charcoal Ink** (`#131311`) — Primary text, high-emphasis icons, and the darkest brand mark. Never substitute pure black.
 - **Shadow Ink** (`#261F17`) — Brand-mark foreground and warm elevation tint.
 - **Soft Ink** (`#38342D`) — Secondary headings and standard controls.
@@ -31,15 +31,15 @@ The physical scene is a manga reader returning to a softly lit reading desk: the
 - **Success Wash** (`#EBF6E2`) — Successful completion feedback only; do not use green as a routine accent.
 - **Cover Fallback** (`#DCD3BE`) — Missing cover and media placeholder blocks.
 
-Use one warm neutral family throughout; do not mix these parchment and umber values with cool slate grays. Depth comes from the Parchment Canvas → Soft Parchment → Paper Surface stack before shadows are introduced. The brand icon uses parchment, ink, and a Paper Surface separation halo only; Reader Blue stays out of the mark.
+Use one warm neutral family throughout; do not mix these parchment and umber values with cool slate grays. Ordinary surfaces stay flat; spacing, fine dividers, and the Parchment Canvas → Soft Parchment → Paper Surface stack establish grouping. Shadows distinguish temporary dialogs and popovers. The brand icon uses parchment, ink, and a Paper Surface separation halo only; Reader Blue stays out of the mark.
 
 ## 3. Typography Rules
 
-- **Display:** Avenir Next, `ui-sans-serif`, `system-ui`, sans-serif; 24px, weight 600, line-height 1.25, letter-spacing `-0.03em`. Reserve for the manage-page title.
-- **Headline:** Avenir Next with the same fallbacks; 18px, weight 600, line-height 1.3, letter-spacing `-0.02em`. Use for section and reader-state headings.
-- **Title:** Avenir Next with the same fallbacks; 15–17px, weight 600, line-height 1.35, letter-spacing no tighter than `-0.02em`. Use for series, dialogs, and dense panels.
+- **Display:** Avenir Next, `ui-sans-serif`, `system-ui`, sans-serif; 28px, weight 600, 36px line-height, letter-spacing `-0.03em`. Reserve for the manage-page title.
+- **Headline:** Avenir Next with the same fallbacks; 18px, weight 600, 24px line-height, letter-spacing `-0.02em`. Use for settings sections, the popup heading, and reader-state headings.
+- **Title:** Avenir Next with the same fallbacks; 14px for popup series, 15px for manage series, and 16px for dialogs, weight 600. Series titles use 20px line-height; dialog tracking is `-0.02em`.
 - **Body:** Avenir Next with the same fallbacks; 14px, weight 400–500, line-height 1.5–1.7. Keep prose at or below 65 characters per line.
-- **Label:** Avenir Next with the same fallbacks; 11–12px, weight 500–700, line-height 1.4. Use for buttons, chips, badges, and compact metadata.
+- **Label:** Avenir Next with the same fallbacks; 11–14px, weight 500–700. Use 11px for site labels, 12px for buttons and compact metadata, 13px for section labels and counts, and 14px for text tabs (13px below 640px).
 - **Mono:** `ui-monospace`, SFMono-Regular, Consolas, monospace. Use only for code, versions, IDs, or diagnostic values.
 
 Hierarchy comes from weight, ink strength, and spacing rather than oversized type. Software UI uses sans-serif only: no Inter, generic serif, editorial display face, or mono-forward styling. Labels and task-critical text must never rely on low-opacity color to communicate hierarchy.
@@ -50,9 +50,11 @@ Hierarchy comes from weight, ink strength, and spacing rather than oversized typ
 - **Secondary buttons:** Paper Surface fill, Soft Ink text, 1px Parchment Line border, and Parchment Hover feedback. They share the same height, radius, and typography as primary buttons.
 - **Danger buttons:** Delete Wash fill with Delete Red text and border. Copy must state exactly what will be removed and what will remain.
 - **Icon buttons:** Familiar line icons inside 36–44px square targets with 8–12px radius. Always provide an accessible label and visible focus state.
-- **Panels and dialogs:** Paper Surface over Parchment Canvas, 16–24px radius, and a warm shadow no darker than `rgba(38, 31, 23, 0.12)`. Use elevation only for an outer panel, modal, or reader page frame.
-- **Series rows:** Compact horizontal compositions with a 40–44px cover, site label, clamped title, concise status, and right-aligned action. Prefer dividers and whitespace over nested cards.
-- **Tabs:** Tab Wash rail with a Paper Surface active tab. Current state is communicated by surface, ink, and semantics rather than blue decoration.
+- **Ordinary surfaces:** Lists, settings sections, popup content, and reader chrome remain flat, without enclosing rounded cards or shadows. Use spacing and 1px Parchment Line dividers to group content.
+- **Dialogs and popovers:** Paper Surface fill, 12px dialog radius, and 8px popover radius. Their warm shadow is `0 12px 36px rgba(38, 31, 23, 0.14)`. The smaller `0 2px 6px rgba(38, 31, 23, 0.12)` shadow is used for the switch thumb, not ordinary content surfaces.
+- **Series rows:** Flat rows with 16px vertical padding, a 40px square cover in popup or 48px in manage, and 6px cover radius. Site label, two-line-clamped title and status, and grouped actions form the row; a bottom divider and quiet hover wash provide separation and feedback.
+- **Tabs:** Transparent text tabs sit on a 1px divider, with a 48px height. The current tab uses a 2px Reader Blue underline, stronger ink, semibold text, and selected semantics. Tab counts remain plain tabular text rather than pills.
+- **Reader pages:** Centered, unframed images form one continuous rail with zero gap between rows. Page surfaces have no border, corner radius, shadow, or added padding.
 - **Inputs:** Label above, optional helper text below, error below the field. Paper Surface fill, 1px Parchment Line border, 8–12px radius, and Reader Blue focus ring. Never use floating labels.
 - **Loading:** Skeletons match the exact cover, row, or content dimensions. A looping spinner is permitted only for a compact isolated action, never as decorative ambient motion.
 - **Empty states:** Explain what belongs in the space and provide the single most useful next action. Do not stop at “No data.”
@@ -63,9 +65,13 @@ Every interactive component defines default, hover, focus, active, disabled, loa
 
 ## 5. Layout Principles
 
-- Reader content owns the visual hierarchy. Comic pages remain centered and uninterrupted; navigation occupies a compact 48px toolbar.
+- Reader content owns the visual hierarchy. At 640px and above, navigation occupies one 48px toolbar row; below 640px, title and actions occupy two rows totaling 96px. The shared `getReaderHeaderHeight` geometry in `src/domain/utils/readerLayout.ts` keeps the toolbar, canvas offset, image sizing, and scrolling aligned; the zoom popover sits 8px below the toolbar.
+- Comic pages stay centered in a continuous rail, at most 1120px wide at the default scale, with zero vertical image gap. The canvas begins directly below the toolbar; no decorative page frame interrupts the reading flow.
 - Popup and manage views use one primary reading path: resume or inspect updates first, then manage secondary data.
-- Use Flexbox for toolbars and rows, and CSS Grid for true two-dimensional arrangements. Do not simulate grids with percentage calculations.
+- Manage uses a flat full-height shell, at most 1184px wide, with 32px side padding reduced to 16px below 640px. The title and text tabs remain above notices, search, and an independently scrolling virtual list. Settings use plain sections separated by dividers in a column at most 800px wide.
+- Popup uses a direct header with update count and manage action above scrolling sections and divider-separated rows. The extension popup ranges from 500–680px wide and 440–700px high; it has no inset outer card. Content side padding is 20px, reduced to 16px below 640px.
+- Below 640px, manage row actions move under their text and shared action targets reach 44px. Popup rows retain horizontal actions down to 400px, then place actions under the text. Titles and metadata wrap or clamp within the available width.
+- Use Flexbox for toolbars and control groups, and CSS Grid for cover/copy/action rows and two-dimensional arrangements. Do not simulate grids with percentage calculations.
 - Contain long-form website content with a readable max-width. Product lists may run wider when their data requires it.
 - Keep elements in separate spatial zones. Menus, dialogs, and popovers must not overlap or clip task-critical content unexpectedly.
 - Avoid equal three-card marketing rows. Prefer a single focused panel, an asymmetric two-column composition, or a dense list according to the content.
