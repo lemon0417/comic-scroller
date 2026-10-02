@@ -18,6 +18,7 @@ import {
   type SyntheticEvent,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -86,14 +87,20 @@ function ComicImage(props: Props) {
     imageLoadFailed: imageLoadFailedProp,
     updateImgType,
   } = props;
+  const hasResolvedImage = Boolean(
+    !loading && naturalWidth && naturalHeight,
+  );
   const imageMetricsRef = useRef({ width: 0, height: 0 });
   const failureReportedRef = useRef(false);
-  const [showImage, setShowImage] = useState(false);
+  const [showImage, setShowImage] = useState(hasResolvedImage);
 
-  useEffect(() => {
-    setShowImage(false);
+  useLayoutEffect(() => {
+    imageMetricsRef.current = hasResolvedImage
+      ? { width: naturalWidth || 0, height: naturalHeight || 0 }
+      : { width: 0, height: 0 };
+    setShowImage(hasResolvedImage);
     failureReportedRef.current = false;
-  }, [index, loading, src]);
+  }, [hasResolvedImage, index, naturalHeight, naturalWidth, src]);
 
   const reportImageFailure = useCallback((stage: ReaderImageFailureStage) => {
     if (
@@ -313,12 +320,11 @@ function createFallbackImageRecord(): ComicsImageRecord {
   };
 }
 
-function makeMapStateToProps(
-  _state: { comics: ComicsState },
-  props: { index: number },
-) {
-  const { index } = props;
-  return function mapStateToProps({ comics }: { comics: ComicsState }) {
+function makeMapStateToProps() {
+  return function mapStateToProps(
+    { comics }: { comics: ComicsState },
+    { index }: { index: number },
+  ) {
     const {
       chapter,
       href,

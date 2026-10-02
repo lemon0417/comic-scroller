@@ -150,7 +150,7 @@ function ReaderImageRow({
       data-image-id={imageIndex}
       style={style}
     >
-      <ConnectedComicImage index={imageIndex} />
+      <ConnectedComicImage key={imageIndex} index={imageIndex} />
     </div>
   );
 }
@@ -176,6 +176,7 @@ function ImageContainer({
     useRef<AppendRangeSuppress | null>(null);
   const suppressedAppendLengthRef = useRef<number | null>(null);
   const appliedEvictionRestoreSequenceRef = useRef<number | null>(null);
+  const isApplyingEvictionRestoreRef = useRef(false);
   const lastScrollTopRef = useRef(0);
   const liveScrollTopRef = useRef(0);
   const imageResultRef = useRef(imageResult);
@@ -203,6 +204,9 @@ function ImageContainer({
   const captureScrollAnchor = useCallback(() => {
     const listElement = listRef.current?.element;
     if (!listElement) {
+      return;
+    }
+    if (isApplyingEvictionRestoreRef.current) {
       return;
     }
 
@@ -351,16 +355,26 @@ function ImageContainer({
               (liveScrollTopRef.current || listElement.scrollTop) -
                 leadingEvictionRestore.removedScrollHeight,
             );
-      listElement.scrollTop = Math.max(0, restoredScrollTop);
-      lastScrollTopRef.current = listElement.scrollTop;
-      liveScrollTopRef.current = listElement.scrollTop;
-      appliedEvictionRestoreSequenceRef.current =
-        leadingEvictionRestore.sequence;
-      pendingAnchorRestoreRef.current = null;
-      pendingAppendRangeSuppressRef.current = null;
-      suppressedAppendLengthRef.current = null;
-      prevImageResultRef.current = imageResult;
-      lastVisibleRangeRef.current = EMPTY_VISIBLE_RANGE;
+      isApplyingEvictionRestoreRef.current = true;
+      try {
+        listElement.scrollTop = Math.max(0, restoredScrollTop);
+        lastScrollTopRef.current = listElement.scrollTop;
+        liveScrollTopRef.current = listElement.scrollTop;
+        appliedEvictionRestoreSequenceRef.current =
+          leadingEvictionRestore.sequence;
+        pendingAppendRangeSuppressRef.current = null;
+        suppressedAppendLengthRef.current = null;
+        prevImageResultRef.current = imageResult;
+        lastVisibleRangeRef.current = EMPTY_VISIBLE_RANGE;
+
+        const ScrollEvent = listElement.ownerDocument.defaultView?.Event;
+        if (ScrollEvent) {
+          listElement.dispatchEvent(new ScrollEvent("scroll"));
+        }
+      } finally {
+        isApplyingEvictionRestoreRef.current = false;
+        pendingAnchorRestoreRef.current = null;
+      }
       clearLeadingEvictionRestoreProp(leadingEvictionRestore.sequence);
       return undefined;
     }
@@ -443,6 +457,7 @@ function ImageContainer({
       style={{
         height: Math.max(320, innerHeight - READER_HEADER_HEIGHT),
         left: 0,
+        overflowAnchor: "none",
         position: "fixed",
         right: 0,
         top: READER_HEADER_HEIGHT,

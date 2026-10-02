@@ -19,6 +19,8 @@ type ComicImageTestProps = {
   innerWidth: number;
   loadError: "image" | "resolve" | null;
   loading: boolean;
+  naturalHeight?: number;
+  naturalWidth?: number;
   renderHeight?: number;
   renderWidth?: number;
   imageScale?: number;
@@ -84,6 +86,19 @@ describe("ComicImage Loading controls", () => {
     if (!img) throw new Error("expected img element");
     fireEvent.load(img);
     expect(queryByText("Loading...")).not.toBeInTheDocument();
+  });
+
+  it("keeps a previously resolved image visible when its row is remounted", () => {
+    const { container, queryByText } = renderComicImage({
+      loading: false,
+      type: "natural",
+      height: 1600,
+      naturalWidth: 900,
+      naturalHeight: 1600,
+    });
+
+    expect(queryByText("Loading...")).not.toBeInTheDocument();
+    expect(container.querySelector("img")).not.toHaveStyle({ display: "none" });
   });
 
   it("updates image metrics from viewport-aware sizing", () => {

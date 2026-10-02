@@ -13,9 +13,18 @@ import ImageContainer, {
 
 jest.mock("@components/ComicImage", () => ({
   __esModule: true,
-  default: ({ index }: { index: number }) => (
-    <div data-testid={`comic-image-${index}`}>{index}</div>
-  ),
+  default: function MockComicImage({ index }: { index: number }) {
+    const { useState } = jest.requireActual("react") as typeof import("react");
+    const [mountedImageId] = useState(index);
+    return (
+      <div
+        data-mounted-image-id={mountedImageId}
+        data-testid={`comic-image-${index}`}
+      >
+        {index}
+      </div>
+    );
+  },
 }));
 
 type ImageContainerProps = {
@@ -184,7 +193,12 @@ describe("ImageContainer", () => {
     const listElement = container.querySelector(".reader-canvas");
 
     expect(listElement).toBeInstanceOf(HTMLDivElement);
+    expect((listElement as HTMLDivElement).style.overflowAnchor).toBe("none");
     (listElement as HTMLDivElement).scrollTop = 900;
+    const dispatchEvent = jest.spyOn(
+      listElement as HTMLDivElement,
+      "dispatchEvent",
+    );
 
     rerender(
       <TestImageContainer
@@ -199,7 +213,53 @@ describe("ImageContainer", () => {
     );
 
     expect((listElement as HTMLDivElement).scrollTop).toBe(636);
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "scroll" }),
+    );
     expect(clearLeadingEvictionRestore).toHaveBeenCalledWith(1);
+  });
+
+  it("does not reuse image component state after leading rows are evicted", () => {
+    const commonProps = {
+      chapterLoadStatus: "ready" as const,
+      clearLeadingEvictionRestore: jest.fn(),
+      fetchChapter: jest.fn(),
+      hasPendingChapterGate: false,
+      imageListKey: "m1",
+      imageRowHeights: [132, 132, 132, 132],
+      innerHeight: 900,
+      requestedChapter: "m100",
+      updateVisibleImageRange: jest.fn(),
+    };
+    const { rerender } = render(
+      <TestImageContainer
+        {...commonProps}
+        imageResult={[10, 11, 12, 13]}
+        leadingEvictionRestore={null}
+      />,
+    );
+
+    rerender(
+      <TestImageContainer
+        {...commonProps}
+        imageResult={[12, 13]}
+        imageRowHeights={[132, 132]}
+        leadingEvictionRestore={{
+          sequence: 1,
+          firstRetainedImageId: 12,
+          removedScrollHeight: 264,
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("comic-image-12")).toHaveAttribute(
+      "data-mounted-image-id",
+      "12",
+    );
+    expect(screen.getByTestId("comic-image-13")).toHaveAttribute(
+      "data-mounted-image-id",
+      "13",
+    );
   });
 
   it("preserves a partially visible retained anchor after leading eviction", () => {
@@ -244,6 +304,63 @@ describe("ImageContainer", () => {
 
     expect(listElement.scrollTop).toBe(36);
     expect(clearLeadingEvictionRestore).toHaveBeenCalledWith(1);
+  });
+
+  it("keeps the viewport stable across consecutive leading evictions", () => {
+    const clearLeadingEvictionRestore = jest.fn();
+    const commonProps = {
+      chapterLoadStatus: "ready" as const,
+      clearLeadingEvictionRestore,
+      fetchChapter: jest.fn(),
+      hasPendingChapterGate: false,
+      imageListKey: "m1",
+      innerHeight: 900,
+      requestedChapter: "m100",
+      updateVisibleImageRange: jest.fn(),
+    };
+    const { container, rerender } = render(
+      <TestImageContainer
+        {...commonProps}
+        imageResult={[10, 11, 12, 13, 14, 15]}
+        imageRowHeights={[132, 132, 132, 132, 132, 132]}
+        leadingEvictionRestore={null}
+      />,
+    );
+    const listElement = container.querySelector(
+      ".reader-canvas",
+    ) as HTMLDivElement;
+    listElement.scrollTop = 900;
+
+    rerender(
+      <TestImageContainer
+        {...commonProps}
+        imageResult={[12, 13, 14, 15]}
+        imageRowHeights={[132, 132, 132, 132]}
+        leadingEvictionRestore={{
+          sequence: 1,
+          firstRetainedImageId: 12,
+          removedScrollHeight: 264,
+        }}
+      />,
+    );
+    expect(listElement.scrollTop).toBe(636);
+
+    rerender(
+      <TestImageContainer
+        {...commonProps}
+        imageResult={[14, 15]}
+        imageRowHeights={[132, 132]}
+        leadingEvictionRestore={{
+          sequence: 2,
+          firstRetainedImageId: 14,
+          removedScrollHeight: 264,
+        }}
+      />,
+    );
+
+    expect(listElement.scrollTop).toBe(372);
+    expect(clearLeadingEvictionRestore).toHaveBeenNthCalledWith(1, 1);
+    expect(clearLeadingEvictionRestore).toHaveBeenNthCalledWith(2, 2);
   });
 
   it("renders a single tail loading gate without reporting it as visible content", () => {
