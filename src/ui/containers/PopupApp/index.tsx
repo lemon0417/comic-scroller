@@ -20,10 +20,15 @@ import { openManagePage, openReaderPage } from "@utils/navigation";
 import { useEffect } from "react";
 import { connect } from "react-redux";
 
-function SectionTitle({ title }: { title: string }) {
+function SectionTitle({ title, count }: { title: string; count?: number }) {
   return (
     <div className="popup-section-header">
-      <h2 className="popup-section-title">{title}</h2>
+      <h2 className="popup-section-title">
+        {title}
+        {typeof count === "number" ? (
+          <CountBadge aria-label={`更新數：${count}`}>{count}</CountBadge>
+        ) : null}
+      </h2>
       <div className="popup-section-rule" aria-hidden="true" />
     </div>
   );
@@ -68,12 +73,9 @@ function PopupAppComponent(props: PopupAppProps) {
   return (
     <div className="popup-shell">
       <header className="popup-header">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <div className="min-w-0">
-            <h1 className="popup-title">更新</h1>
-            <p className="popup-subtitle">繼續閱讀與新章節</p>
-          </div>
-          <CountBadge aria-label="更新數">{displayUpdateCount}</CountBadge>
+        <div className="min-w-0">
+          <h1 className="popup-title">更新</h1>
+          <p className="popup-subtitle">繼續閱讀與新章節</p>
         </div>
         <Button variant="secondary" onClick={() => openManagePage("following")}>
           管理
@@ -122,7 +124,7 @@ function PopupAppComponent(props: PopupAppProps) {
 
             {update.length > 0 ? (
               <section className="popup-section">
-                <SectionTitle title="最新更新" />
+                <SectionTitle title="最新更新" count={displayUpdateCount} />
                 {updatesTruncated ? (
                   <p className="mb-2 px-1 text-[11px] text-comic-ink/50">
                     僅顯示最新 {POPUP_UPDATE_LIMIT} 筆，請前往管理頁查看全部。

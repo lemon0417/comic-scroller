@@ -9,7 +9,7 @@ related_targets: ["popup.html"]
 
 Mode: Operate. A reader opens the extension popup to resume the last work or start an updated chapter; library management is the secondary exit.
 
-Use a direct header with update count and the manage action, followed by one scrolling content region. Resume and update sections use headings, fine dividers, and flat cover/copy/action rows rather than panels inside panels. Release notices live in the scrolling content so the header remains available.
+Use a direct header with title and the manage action, followed by one scrolling content region. The total update count sits directly after the latest-updates heading, before its divider; it is absent during loading or when there are no updates. Resume and update sections use headings, fine dividers, and flat cover/copy/action rows rather than panels inside panels. Release notices live in the scrolling content so the header remains available.
 
 The signature is an immediately actionable feed with no enclosing visual card. Keep the existing popup dimensions, data limits, cover fallbacks, loading/empty/error states, and reader-opening behavior. In constrained widths, place actions below the copy.
 

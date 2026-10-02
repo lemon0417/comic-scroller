@@ -95,16 +95,20 @@ describe("PopupApp", () => {
     expect(
       screen.getByText("僅顯示最新 50 筆，請前往管理頁查看全部。"),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "閱讀" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Chainsaw Man" }),
-    ).toHaveAttribute("href", "https://dm5.com/series");
+    expect(screen.getByRole("button", { name: "閱讀" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Chainsaw Man" })).toHaveAttribute(
+      "href",
+      "https://dm5.com/series",
+    );
     expect(
       screen.queryByRole("button", { name: "開啟作品" }),
     ).not.toBeInTheDocument();
-    expect(container.querySelector(".ds-count-badge")).toHaveTextContent("78");
+    const count = screen.getByLabelText("更新數：78");
+    expect(count).toHaveTextContent("78");
+    expect(count.closest("h2")).toBe(screen.getByText("最新更新"));
+    expect(screen.getByText("最新更新")).toHaveAccessibleName(/最新更新.*78/);
+    expect(container.querySelector(".popup-header .ds-count-badge")).toBeNull();
+    expect(screen.getByText("繼續閱讀")).not.toContainElement(count);
 
     fireEvent.click(screen.getByRole("button", { name: "管理" }));
 
@@ -141,6 +145,8 @@ describe("PopupApp", () => {
     );
 
     expect(requestPopupData).toHaveBeenCalledWith("popup");
+    expect(screen.queryByLabelText(/^更新數/)).not.toBeInTheDocument();
+    expect(screen.queryByText("最新更新")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "繼續" }));
 
     expect(chrome.tabs.create).toHaveBeenCalledWith({
@@ -165,6 +171,66 @@ describe("PopupApp", () => {
     expect(
       screen.queryByText("僅顯示最新 50 筆，請前往管理頁查看全部。"),
     ).not.toBeInTheDocument();
+    expect(screen.getByLabelText("更新數：1")).toHaveTextContent("1");
+  });
+
+  it("uses the feed length when no explicit update total is supplied", () => {
+    render(
+      <TestPopupApp
+        hydrationStatus="ready"
+        update={[
+          createFeedEntry({ key: "update_1" }),
+          createFeedEntry({ key: "update_2" }),
+        ]}
+        updatesTruncated={false}
+        continueReading={null}
+        extensionReleaseNotice={null}
+        requestDismissExtensionReleaseNotice={jest.fn()}
+        requestPopupData={jest.fn()}
+      />,
+    );
+
+    const count = screen.getByLabelText("更新數：2");
+    expect(count).toHaveTextContent("2");
+    expect(count.closest("h2")).toBe(screen.getByText("最新更新"));
+  });
+
+  it("does not show an update count while loading", () => {
+    render(
+      <TestPopupApp
+        hydrationStatus="loading"
+        update={[createFeedEntry()]}
+        updateCount={78}
+        updatesTruncated
+        continueReading={null}
+        extensionReleaseNotice={null}
+        requestDismissExtensionReleaseNotice={jest.fn()}
+        requestPopupData={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("載入中")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^更新數/)).not.toBeInTheDocument();
+    expect(screen.queryByText("最新更新")).not.toBeInTheDocument();
+  });
+
+  it("keeps the empty state without an update count", () => {
+    render(
+      <TestPopupApp
+        hydrationStatus="ready"
+        update={[]}
+        updateCount={0}
+        updatesTruncated={false}
+        continueReading={null}
+        extensionReleaseNotice={null}
+        requestDismissExtensionReleaseNotice={jest.fn()}
+        requestPopupData={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText("尚無更新")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^更新數/)).not.toBeInTheDocument();
+    expect(screen.queryByText("最新更新")).not.toBeInTheDocument();
   });
 
   it("shows the extension release notice and can dismiss it", () => {
