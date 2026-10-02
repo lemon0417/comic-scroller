@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ComponentType } from "react";
 
 jest.mock("react-redux", () => ({
@@ -20,6 +20,73 @@ jest.mock("@containers/ChapterList", () => ({
 const TestApp = App as unknown as ComponentType<any>;
 
 describe("App", () => {
+  const subscriptionProps = () => ({
+    fetchChapter: jest.fn(),
+    toggleSubscribe: jest.fn(),
+    requestUnsubscribeSeries: jest.fn(),
+    navigateChapter: jest.fn(),
+    chapterTitle: "Ch 1",
+    chapterList: ["c1"],
+    chapterNowIndex: 0,
+    title: "Demo",
+    subscribe: true,
+    seriesKey: "dm5:m123",
+    site: "dm5",
+    comicsID: "m123",
+    url: "",
+    clearReaderSubscriptionNotice: jest.fn(),
+  });
+
+  it.each([true, false])(
+    "confirms unsubscribe with cleanup=%s and restores defaults on reopen",
+    (clearSeriesData) => {
+      const props = subscriptionProps();
+      render(<TestApp {...props} />);
+      const trigger = screen.getByRole("button", { name: "取消追蹤" });
+      trigger.focus();
+      fireEvent.click(trigger);
+      let dialog = screen.getByRole("dialog", { name: "取消追蹤作品" });
+      expect(within(dialog).getByRole("checkbox")).toBeChecked();
+      expect(
+        within(dialog).getByRole("button", { name: "取消" }),
+      ).toHaveFocus();
+      fireEvent.click(within(dialog).getByRole("checkbox"));
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(props.requestUnsubscribeSeries).not.toHaveBeenCalled();
+      expect(trigger).toHaveFocus();
+      fireEvent.click(trigger);
+      dialog = screen.getByRole("dialog", { name: "取消追蹤作品" });
+      expect(within(dialog).getByRole("checkbox")).toBeChecked();
+      if (!clearSeriesData)
+        fireEvent.click(within(dialog).getByRole("checkbox"));
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "確認取消追蹤" }),
+      );
+      expect(props.requestUnsubscribeSeries).toHaveBeenCalledTimes(1);
+      expect(props.requestUnsubscribeSeries).toHaveBeenCalledWith(
+        "dm5:m123",
+        clearSeriesData,
+      );
+      expect(props.toggleSubscribe).not.toHaveBeenCalled();
+    },
+  );
+
+  it("adds tracking with one click and disables requests while busy", () => {
+    const props = { ...subscriptionProps(), subscribe: false };
+    const { rerender } = render(<TestApp {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: "追蹤作品" }));
+    expect(props.toggleSubscribe).toHaveBeenCalledTimes(1);
+    rerender(
+      <TestApp
+        {...props}
+        subscriptionPending
+        subscriptionNotice="取消追蹤失敗，請稍後再試。"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "追蹤作品" })).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent("取消追蹤失敗");
+  });
+
   beforeEach(() => {
     (global as any).chrome = {
       runtime: {
@@ -71,21 +138,16 @@ describe("App", () => {
     expect(
       screen.getByRole("button", { name: "開啟章節列表" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "上一章" }),
-    ).toBeEnabled();
-    expect(
-      screen.getByRole("button", { name: "下一章" }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "取消追蹤" }),
-    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "上一章" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "下一章" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "取消追蹤" })).toBeEnabled();
     expect(
       screen.getByRole("button", { name: "進入全螢幕" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "縮放 100%" }),
-    ).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: "縮放 100%" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
     expect(
       screen.queryByRole("toolbar", { name: "圖片縮放工具" }),
     ).not.toBeInTheDocument();
@@ -231,7 +293,11 @@ describe("App", () => {
   it("only fetches the initial chapter once across rerenders", () => {
     const fetchChapter = jest.fn();
 
-    window.history.replaceState({}, "", "/app.html?site=dm5&chapter=chapter-1123");
+    window.history.replaceState(
+      {},
+      "",
+      "/app.html?site=dm5&chapter=chapter-1123",
+    );
 
     const { rerender } = render(
       <TestApp

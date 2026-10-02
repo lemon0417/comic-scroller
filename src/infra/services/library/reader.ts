@@ -7,6 +7,7 @@ export {
   applyReadProgress,
   setSeriesSubscriptionByKey,
   toggleSeriesSubscriptionByKey,
+  unsubscribeSeriesByKey,
 } from "./mutations";
 export {
   getReaderSeriesState,
@@ -18,3 +19,4 @@ export {
 export {
   subscribeToLibrarySignal,
 } from "./signal";
+export { pushLibrarySyncIfEnabled } from "./sync";

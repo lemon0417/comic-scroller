@@ -1,4 +1,5 @@
 import {
+  REQUEST_CLEANUP_UNSUBSCRIBED_SERIES,
   REQUEST_DISMISS_EXTENSION_RELEASE_NOTICE,
   REQUEST_EXPORT_CONFIG,
   REQUEST_IMPORT_CONFIG,
@@ -17,7 +18,14 @@ import {
 } from "@domain/library";
 
 type HydrationSource = "load" | "import" | "reset";
-type ActiveAction = "import" | "export" | "remove" | "reset" | "sync" | null;
+type ActiveAction =
+  | "import"
+  | "export"
+  | "remove"
+  | "cleanup"
+  | "reset"
+  | "sync"
+  | null;
 
 type Notice = {
   tone: "success" | "error" | "info";
@@ -54,6 +62,7 @@ const SET_EXTENSION_RELEASE_NOTICE = "SET_EXTENSION_RELEASE_NOTICE";
 const SET_LIBRARY_SYNC_STATUS = "SET_LIBRARY_SYNC_STATUS";
 const CLEAR_EXPORT_CONFIG = "CLEAR_EXPORT_CONFIG";
 const CLEAR_POPUP_NOTICE = "CLEAR_POPUP_NOTICE";
+const FINISH_LIBRARY_REMOVAL = "FINISH_LIBRARY_REMOVAL";
 
 const initialState: PopupState = {
   feed: createEmptyPopupFeedSnapshot(),
@@ -87,6 +96,10 @@ export default function popupState(
   action: Action,
 ): PopupState {
   switch (action.type) {
+    case REQUEST_CLEANUP_UNSUBSCRIBED_SERIES:
+      return { ...state, activeAction: "cleanup", notice: null };
+    case FINISH_LIBRARY_REMOVAL:
+      return { ...state, activeAction: null };
     case REQUEST_POPUP_DATA:
       return {
         ...state,
@@ -130,7 +143,10 @@ export default function popupState(
         ...state,
         feed: action.data || createEmptyPopupFeedSnapshot(),
         hydrationStatus: "ready",
-        activeAction: null,
+        activeAction:
+          state.activeAction === "remove" || state.activeAction === "cleanup"
+            ? state.activeAction
+            : null,
         notice: resolveSuccessNotice(action.source) || state.notice,
       };
     case SET_EXTENSION_RELEASE_NOTICE:
@@ -160,7 +176,10 @@ export default function popupState(
       return {
         ...state,
         hydrationStatus: "ready",
-        activeAction: null,
+        activeAction:
+          state.activeAction === "remove" || state.activeAction === "cleanup"
+            ? state.activeAction
+            : null,
         notice: action.message
           ? {
               tone: action.tone || "error",
@@ -218,4 +237,8 @@ export function clearExportConfig() {
 
 export function clearPopupNotice() {
   return { type: CLEAR_POPUP_NOTICE };
+}
+
+export function finishLibraryRemoval() {
+  return { type: FINISH_LIBRARY_REMOVAL };
 }

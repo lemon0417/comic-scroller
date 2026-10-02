@@ -1,9 +1,13 @@
 import IconButton from "@components/IconButton";
+import NoticeBanner from "@components/NoticeBanner";
+import UnsubscribeSeriesDialog from "@components/UnsubscribeSeriesDialog";
 import ChapterList from "@containers/ChapterList";
 import ImageContainer from "@containers/ImageContainer";
 import {
+  clearReaderSubscriptionNotice,
   fetchChapter,
   navigateChapter,
+  requestUnsubscribeSeries,
   toggleSubscribe,
 } from "@domain/actions/reader";
 import {
@@ -48,6 +52,9 @@ type AppStateProps = {
   seriesKey: string;
   site: string;
   subscribe: boolean;
+  subscriptionPending: boolean;
+  subscriptionNotice: string;
+  persistenceInvalidated: boolean;
   title: string;
   url: string;
   canDecreaseReaderZoom: boolean;
@@ -58,12 +65,14 @@ type AppStateProps = {
 };
 
 type AppDispatchProps = {
+  clearReaderSubscriptionNotice: typeof clearReaderSubscriptionNotice;
   adjustReaderImageScale: typeof adjustReaderImageScale;
   fetchChapter: typeof fetchChapter;
   navigateChapter: typeof navigateChapter;
   resetReaderImageScale: typeof resetReaderImageScale;
   setReaderZoomTarget: typeof setReaderZoomTarget;
   toggleSubscribe: typeof toggleSubscribe;
+  requestUnsubscribeSeries: typeof requestUnsubscribeSeries;
 };
 
 type AppProps = AppStateProps & AppDispatchProps;
@@ -108,6 +117,11 @@ function App(props: AppProps) {
   );
   const [showChapterList, setShowChapterList] = useState(false);
   const [showReaderZoomTools, setShowReaderZoomTools] = useState(false);
+  const [unsubscribeDialog, setUnsubscribeDialog] = useState<{
+    seriesKey: string;
+    title: string;
+    clearSeriesData: boolean;
+  } | null>(null);
   const {
     innerWidth = 0,
     chapterList,
@@ -129,6 +143,11 @@ function App(props: AppProps) {
     site,
     setReaderZoomTarget: setReaderZoomTargetProp = () => undefined,
     subscribe,
+    subscriptionPending = false,
+    subscriptionNotice = "",
+    persistenceInvalidated = false,
+    clearReaderSubscriptionNotice: clearReaderSubscriptionNoticeProp,
+    requestUnsubscribeSeries: requestUnsubscribeSeriesProp,
     title,
     toggleSubscribe: toggleSubscribeProp,
     url,
@@ -219,8 +238,20 @@ function App(props: AppProps) {
   }, [chapterNowIndex, navigateChapterProp]);
 
   const subscribeHandler = useCallback(() => {
+    if (subscriptionPending || persistenceInvalidated) return;
+    if (subscribe) {
+      setUnsubscribeDialog({ seriesKey, title, clearSeriesData: true });
+      return;
+    }
     toggleSubscribeProp();
-  }, [toggleSubscribeProp]);
+  }, [
+    persistenceInvalidated,
+    seriesKey,
+    subscribe,
+    subscriptionPending,
+    title,
+    toggleSubscribeProp,
+  ]);
 
   const fullscreenHandler = useCallback(() => {
     if (document.fullscreenElement) {
@@ -398,7 +429,11 @@ function App(props: AppProps) {
           ) : undefined}
           <IconButton
             ariaLabel={subscribe ? "取消追蹤" : "追蹤作品"}
-            disabled={chapterTitle === ""}
+            disabled={
+              chapterTitle === "" ||
+              subscriptionPending ||
+              persistenceInvalidated
+            }
             onClickHandler={chapterTitle !== "" ? subscribeHandler : undefined}
           >
             <TagIcon className={getTagIconClass(chapterTitle, subscribe)} />
@@ -419,10 +454,49 @@ function App(props: AppProps) {
           </IconButton>
         </div>
       </header>
+      {subscriptionNotice ? (
+        <NoticeBanner
+          message={subscriptionNotice}
+          tone="error"
+          onDismiss={clearReaderSubscriptionNoticeProp}
+        />
+      ) : null}
       <ImageContainer />
       <ChapterList
         show={showChapterList}
         showChapterListHandler={showChapterListHandler}
+      />
+      <UnsubscribeSeriesDialog
+        open={
+          unsubscribeDialog !== null &&
+          unsubscribeDialog.seriesKey === seriesKey &&
+          subscribe
+        }
+        title={unsubscribeDialog?.title || ""}
+        clearSeriesData={unsubscribeDialog?.clearSeriesData ?? true}
+        busy={subscriptionPending}
+        onClearSeriesDataChange={(checked) =>
+          setUnsubscribeDialog((current) =>
+            current ? { ...current, clearSeriesData: checked } : null,
+          )
+        }
+        onClose={() => {
+          if (!subscriptionPending) setUnsubscribeDialog(null);
+        }}
+        onConfirm={() => {
+          if (
+            subscriptionPending ||
+            !unsubscribeDialog ||
+            unsubscribeDialog.seriesKey !== seriesKey ||
+            !subscribe
+          )
+            return;
+          requestUnsubscribeSeriesProp(
+            unsubscribeDialog.seriesKey,
+            unsubscribeDialog.clearSeriesData,
+          );
+          setUnsubscribeDialog(null);
+        }}
       />
     </div>
   );
@@ -435,6 +509,9 @@ function mapStateToProps({ comics }: { comics: ComicsState }): AppStateProps {
     chapterNowIndex,
     chapterList,
     subscribe,
+    subscriptionPending,
+    subscriptionNotice,
+    persistenceInvalidated,
     site,
     comicsID,
     seriesKey,
@@ -453,6 +530,9 @@ function mapStateToProps({ comics }: { comics: ComicsState }): AppStateProps {
     comicsID,
     seriesKey,
     subscribe,
+    subscriptionPending,
+    subscriptionNotice,
+    persistenceInvalidated,
     url: `${baseURL}/${comicsID}`,
     canDecreaseReaderZoom: activeReaderZoomScale > READER_IMAGE_SCALE_MIN,
     canIncreaseReaderZoom: activeReaderZoomScale < READER_IMAGE_SCALE_MAX,
@@ -463,12 +543,14 @@ function mapStateToProps({ comics }: { comics: ComicsState }): AppStateProps {
 }
 
 const connectedApp = connect(mapStateToProps, {
+  clearReaderSubscriptionNotice,
   adjustReaderImageScale,
   fetchChapter,
   navigateChapter,
   resetReaderImageScale,
   setReaderZoomTarget,
   toggleSubscribe,
+  requestUnsubscribeSeries,
 })(App);
 
 export default connectedApp;

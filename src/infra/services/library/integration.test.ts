@@ -372,6 +372,62 @@ async function seedLibraryDbV6WithMissingInvariants() {
 describe("library integration", () => {
   let chromeEnv: ReturnType<typeof createChromeMock>;
 
+  const cleanupStores = [
+    SERIES_STORE,
+    CHAPTERS_STORE,
+    READS_STORE,
+    SUBSCRIPTIONS_STORE,
+    HISTORY_STORE,
+    UPDATES_STORE,
+  ];
+
+  async function seedCleanupSeries(
+    site: "dm5" | "sf",
+    comicsID: string,
+    subscribed = false,
+  ) {
+    const { seriesKey } = await mutations.applyReaderSeriesState(
+      site,
+      comicsID,
+      {
+        title: `${site} ${comicsID}`,
+        url: `https://example.com/${comicsID}`,
+        chapterList: ["c2", "c1"],
+        chapters: {
+          c1: { title: "Ch 1", href: "" },
+          c2: { title: "Ch 2", href: "" },
+        },
+      },
+      "c1",
+    );
+    if (subscribed) await mutations.setSeriesSubscriptionByKey(seriesKey, true);
+    const db = await shared.openLibraryDb();
+    const tx = db.transaction([UPDATES_STORE], "readwrite");
+    const done = shared.transactionDone(tx);
+    await shared.requestToPromise(
+      tx
+        .objectStore(UPDATES_STORE)
+        .put({ seriesKey, chapterID: "c2", position: 1 }),
+    );
+    await done;
+    return seriesKey;
+  }
+
+  async function readCleanupRows() {
+    const db = await shared.openLibraryDb();
+    const tx = db.transaction(cleanupStores, "readonly");
+    const done = shared.transactionDone(tx);
+    const rows = await Promise.all(
+      cleanupStores.map((name) =>
+        shared.requestToPromise<any[]>(tx.objectStore(name).getAll()),
+      ),
+    );
+    await done;
+    return Object.fromEntries(
+      cleanupStores.map((name, index) => [name, rows[index]]),
+    );
+  }
+
   beforeEach(async () => {
     chromeEnv = createChromeMock();
     (global as any).chrome = chromeEnv.chromeMock;
@@ -387,6 +443,172 @@ describe("library integration", () => {
 
   afterEach(async () => {
     await resetLibraryPersistence(true);
+  });
+
+  it("fully unsubscribes a series without deleting the same ID at another site", async () => {
+    const target = await seedCleanupSeries("dm5", "123", true);
+    const other = await seedCleanupSeries("sf", "123", true);
+    const before = await readCleanupRows();
+    await expect(
+      mutations.unsubscribeSeriesByKey(target, { clearSeriesData: true }),
+    ).resolves.toBe(1);
+    const after = await readCleanupRows();
+    for (const name of cleanupStores) {
+      expect(after[name]).toEqual(
+        before[name].filter((row) => row.seriesKey === other),
+      );
+    }
+    await expect(queries.getReaderSeriesSyncState(target)).resolves.toEqual({
+      exists: false,
+      subscribed: false,
+    });
+  });
+
+  it("atomically clears subscription and reminders while preserving history and reads", async () => {
+    const target = await seedCleanupSeries("dm5", "123", true);
+    const before = await readCleanupRows();
+    await expect(
+      mutations.unsubscribeSeriesByKey(target, { clearSeriesData: false }),
+    ).resolves.toBe(0);
+    const after = await readCleanupRows();
+    for (const name of [
+      SERIES_STORE,
+      CHAPTERS_STORE,
+      READS_STORE,
+      HISTORY_STORE,
+    ]) {
+      expect(after[name]).toEqual(before[name]);
+    }
+    expect(after[SUBSCRIPTIONS_STORE]).toEqual([]);
+    expect(after[UPDATES_STORE]).toEqual([]);
+  });
+
+  it("reclaims cache when unsubscribe and reminder dismissal remove the last references", async () => {
+    const target = await seedCleanupSeries("dm5", "123", true);
+    const db = await shared.openLibraryDb();
+    const tx = db.transaction([HISTORY_STORE], "readwrite");
+    const done = shared.transactionDone(tx);
+    await shared.requestToPromise(tx.objectStore(HISTORY_STORE).delete(target));
+    await done;
+    await mutations.unsubscribeSeriesByKey(target, { clearSeriesData: false });
+    const rows = await readCleanupRows();
+    for (const name of cleanupStores) expect(rows[name]).toEqual([]);
+  });
+
+  it("cleans untracked history, never-tracked series, orphan cache and dangling child rows", async () => {
+    const tracked = await seedCleanupSeries("dm5", "123", true);
+    const formerlyTracked = await seedCleanupSeries("sf", "123", true);
+    await mutations.setSeriesSubscriptionByKey(formerlyTracked, false);
+    await seedCleanupSeries("sf", "never-tracked");
+    const orphan = await seedCleanupSeries("dm5", "orphan");
+    const db = await shared.openLibraryDb();
+    const tx = db.transaction(
+      [HISTORY_STORE, UPDATES_STORE, READS_STORE],
+      "readwrite",
+    );
+    const done = shared.transactionDone(tx);
+    await shared.requestToPromise(tx.objectStore(HISTORY_STORE).delete(orphan));
+    await shared.requestToPromise(
+      tx.objectStore(UPDATES_STORE).delete([orphan, "c2"]),
+    );
+    await shared.requestToPromise(
+      tx
+        .objectStore(READS_STORE)
+        .put({ seriesKey: "sf:dangling", chapterID: "c1" }),
+    );
+    await done;
+    const before = await readCleanupRows();
+
+    await expect(mutations.cleanupUnsubscribedSeries()).resolves.toEqual({
+      removedSeriesCount: 4,
+      updatesCount: 1,
+    });
+    const after = await readCleanupRows();
+    for (const name of cleanupStores) {
+      expect(after[name]).toEqual(
+        before[name].filter((row) => row.seriesKey === tracked),
+      );
+    }
+    const signalBefore = chromeEnv.getStorageState().librarySignal;
+    await expect(mutations.cleanupUnsubscribedSeries()).resolves.toEqual({
+      removedSeriesCount: 0,
+      updatesCount: 1,
+    });
+    expect(chromeEnv.getStorageState().librarySignal).toEqual(signalBefore);
+  });
+
+  it("preserves a subscription committed before batch cleanup starts", async () => {
+    const target = await seedCleanupSeries("sf", "123");
+    const subscribe = mutations.setSeriesSubscriptionByKey(target, true);
+    const cleanup = mutations.cleanupUnsubscribedSeries();
+    await subscribe;
+    await expect(cleanup).resolves.toEqual({
+      removedSeriesCount: 0,
+      updatesCount: 1,
+    });
+    await expect(queries.getReaderSeriesSyncState(target)).resolves.toEqual({
+      exists: true,
+      subscribed: true,
+    });
+  });
+
+  it("rolls back the whole batch when deletion fails after some rows were removed", async () => {
+    await seedCleanupSeries("dm5", "123");
+    await seedCleanupSeries("sf", "123");
+    const before = await readCleanupRows();
+    const originalDelete = IDBObjectStore.prototype.delete;
+    const deleteSpy = jest
+      .spyOn(IDBObjectStore.prototype, "delete")
+      .mockImplementation(function (this: IDBObjectStore, key) {
+        if (this.name === HISTORY_STORE) throw new Error("simulated failure");
+        return originalDelete.call(this, key);
+      });
+    try {
+      await expect(mutations.cleanupUnsubscribedSeries()).rejects.toThrow(
+        "simulated failure",
+      );
+    } finally {
+      deleteSpy.mockRestore();
+    }
+    expect(await readCleanupRows()).toEqual(before);
+  });
+
+  it("does not recreate deleted data from late progress, metadata or background refresh", async () => {
+    const target = await seedCleanupSeries("dm5", "123", true);
+    await mutations.unsubscribeSeriesByKey(target, { clearSeriesData: true });
+    await mutations.applyReadProgress("dm5", "123", "c2");
+    await mutations.applyReaderSeriesState(
+      "dm5",
+      "123",
+      {
+        title: "stale",
+        chapterList: ["c2"],
+        chapters: { c2: { title: "Ch 2", href: "" } },
+      },
+      "c2",
+      { requireExistingSeries: true },
+    );
+    await mutations.applyBackgroundSeriesRefresh(
+      "dm5",
+      "123",
+      { chapterList: ["c2"], chapters: { c2: { title: "Ch 2", href: "" } } },
+      ["c2"],
+    );
+    const rows = await readCleanupRows();
+    for (const name of cleanupStores) expect(rows[name]).toEqual([]);
+  });
+
+  it("ignores an in-flight background refresh after unsubscribe while keeping history", async () => {
+    const target = await seedCleanupSeries("dm5", "123", true);
+    await mutations.unsubscribeSeriesByKey(target, { clearSeriesData: false });
+    const before = await readCleanupRows();
+    await mutations.applyBackgroundSeriesRefresh(
+      "dm5",
+      "123",
+      { chapterList: ["new"], chapters: { new: { title: "New", href: "" } } },
+      ["new"],
+    );
+    expect(await readCleanupRows()).toEqual(before);
   });
 
   it("round-trips import, query, mutation, and export against a real IndexedDB", async () => {

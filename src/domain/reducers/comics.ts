@@ -1,8 +1,13 @@
 import {
+  CLEAR_READER_SUBSCRIPTION_NOTICE,
   FETCH_CHAPTER,
+  FINISH_READER_SUBSCRIPTION,
   IMAGE_LOAD_FAILED,
+  INVALIDATE_READER_PERSISTENCE,
   type ReaderImageFailureStage,
+  REQUEST_UNSUBSCRIBE_SERIES,
   RETRY_IMAGE,
+  TOGGLE_SUBSCRIBE,
   UPDATE_READ,
   UPDATE_VISIBLE_IMAGE_RANGE,
 } from "@domain/actions/reader";
@@ -82,6 +87,9 @@ export type ComicsState = {
   canPreloadPreviousChapter: boolean;
   baseURL: string;
   subscribe: boolean;
+  subscriptionPending: boolean;
+  subscriptionNotice: string;
+  persistenceInvalidated: boolean;
   chapterLoadStatus: "failed" | "idle" | "loading" | "ready";
   chapters: Record<string, ComicsChapterRecord>;
   chapterList: string[];
@@ -132,6 +140,10 @@ type Action = {
   readerSeries?: ReaderSeriesSyncPayload;
   scaleDelta?: number;
   zoomTarget?: ReaderZoomTarget;
+  seriesKey?: string;
+  clearSeriesData?: boolean;
+  message?: string;
+  restorePersistence?: boolean;
 };
 
 export const MAX_IMAGE_AUTO_RETRY_COUNT = 2;
@@ -149,6 +161,9 @@ const initialState: ComicsState = {
   canPreloadPreviousChapter: true,
   baseURL: "",
   subscribe: false,
+  subscriptionPending: false,
+  subscriptionNotice: "",
+  persistenceInvalidated: false,
   chapterLoadStatus: "idle",
   chapters: {},
   chapterList: [],
@@ -775,10 +790,44 @@ export default function comics(
   action: Action,
 ): ComicsState {
   switch (action.type) {
+    case TOGGLE_SUBSCRIBE:
+      if (state.subscriptionPending || state.persistenceInvalidated)
+        return state;
+      return { ...state, subscriptionPending: true, subscriptionNotice: "" };
+    case REQUEST_UNSUBSCRIBE_SERIES:
+      if (state.subscriptionPending || action.seriesKey !== state.seriesKey)
+        return state;
+      return {
+        ...state,
+        subscriptionPending: true,
+        subscriptionNotice: "",
+        persistenceInvalidated: Boolean(action.clearSeriesData),
+        readerGeneration:
+          state.readerGeneration + (action.clearSeriesData ? 1 : 0),
+      };
+    case FINISH_READER_SUBSCRIPTION:
+      if (action.seriesKey !== state.seriesKey) return state;
+      return {
+        ...state,
+        subscriptionPending: false,
+        subscriptionNotice: action.message || "",
+        persistenceInvalidated: action.restorePersistence
+          ? false
+          : state.persistenceInvalidated,
+      };
+    case INVALIDATE_READER_PERSISTENCE:
+      return {
+        ...state,
+        persistenceInvalidated: true,
+        readerGeneration: state.readerGeneration + 1,
+      };
+    case CLEAR_READER_SUBSCRIPTION_NOTICE:
+      return { ...state, subscriptionNotice: "" };
     case FETCH_CHAPTER:
       return {
         ...state,
         chapterLoadStatus: "loading",
+        persistenceInvalidated: false,
         readyChapters: {},
         pendingChapterGate: null,
         leadingEvictionRestore: null,

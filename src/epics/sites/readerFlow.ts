@@ -7,6 +7,7 @@ import {
   UPDATE_READ,
 } from "@domain/actions/reader";
 import {
+  buildSeriesKey,
   type SiteKey,
   uniqueStrings,
 } from "@domain/library";
@@ -378,6 +379,7 @@ export function createFetchChapterEpic(config: ReaderFlowConfig): AppEpic {
       switchMap((action) => {
         const { chapter: chapterID } = action as ReaderChapterAction;
         const readerGeneration = getReaderGeneration(state$);
+        const existingSeriesKey = state$?.value?.comics?.seriesKey;
         return defer(() => config.fetchChapterImages$(chapterID)).pipe(
           defaultIfEmpty(null),
           catchError((error: unknown) => {
@@ -402,6 +404,12 @@ export function createFetchChapterEpic(config: ReaderFlowConfig): AppEpic {
                   config.fetchMeta$(payload.comicUrl, fetchMetaOptions),
                 ),
                 mergeMap((rawMeta) => {
+                  if (
+                    getReaderGeneration(state$) !== readerGeneration ||
+                    state$?.value?.comics?.persistenceInvalidated
+                  ) {
+                    return EMPTY;
+                  }
                   const meta = normalizeReaderSiteMeta(rawMeta);
                   config.onMetaLoaded?.(payload, meta);
                   return from(
@@ -416,6 +424,11 @@ export function createFetchChapterEpic(config: ReaderFlowConfig): AppEpic {
                         url: payload.comicUrl,
                       },
                       payload.chapterID,
+                      {
+                        requireExistingSeries:
+                          existingSeriesKey ===
+                          buildSeriesKey(config.site, payload.seriesID),
+                      },
                     ),
                   ).pipe(
                     mergeMap(({ readChapterIDs, subscribed, updatesCount }) => {
@@ -461,6 +474,7 @@ export function createUpdateReadEpic(site: SiteKey): AppEpic {
       switchMap((action) => {
         const { index } = action as ReaderIndexAction;
         const { comicsID, chapterList } = state$.value.comics;
+        if (state$.value.comics.persistenceInvalidated) return EMPTY;
         const readerGeneration = getReaderGeneration(state$);
 
         return from(applyReadProgress(site, comicsID, chapterList[index])).pipe(

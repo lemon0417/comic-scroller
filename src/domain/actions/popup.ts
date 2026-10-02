@@ -13,6 +13,8 @@ export const REQUEST_REMOVE_CARD = "REQUEST_REMOVE_CARD";
 export const REQUEST_POPUP_DATA = "REQUEST_POPUP_DATA";
 export const REQUEST_IMPORT_CONFIG = "REQUEST_IMPORT_CONFIG";
 export const REQUEST_RESET_CONFIG = "REQUEST_RESET_CONFIG";
+export const REQUEST_CLEANUP_UNSUBSCRIBED_SERIES =
+  "REQUEST_CLEANUP_UNSUBSCRIBED_SERIES";
 export const REQUEST_EXPORT_CONFIG = "REQUEST_EXPORT_CONFIG";
 export const REQUEST_DISMISS_EXTENSION_RELEASE_NOTICE =
   "REQUEST_DISMISS_EXTENSION_RELEASE_NOTICE";
@@ -35,6 +37,10 @@ export function requestImportConfig(payload: unknown) {
 
 export function requestResetConfig() {
   return { type: REQUEST_RESET_CONFIG };
+}
+
+export function requestCleanupUnsubscribedSeries() {
+  return { type: REQUEST_CLEANUP_UNSUBSCRIBED_SERIES };
 }
 
 export function requestExportConfig() {

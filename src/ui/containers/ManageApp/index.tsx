@@ -3,6 +3,7 @@ import NoticeBanner from "@components/NoticeBanner";
 import ReleaseNoticeBanner from "@components/ReleaseNoticeBanner";
 import Tabs from "@components/Tabs";
 import {
+  requestCleanupUnsubscribedSeries,
   requestDismissExtensionReleaseNotice,
   requestExportConfig,
   requestImportConfig,
@@ -30,7 +31,6 @@ import {
   useCallback,
   useDeferredValue,
   useEffect,
-  useId,
   useMemo,
   useRef,
   useState,
@@ -51,6 +51,7 @@ import {
 import type { ManageDialogState, ManageFeedTab, ManageTab } from "./types";
 
 type ManageAppProps = PopupViewProps & {
+  requestCleanupUnsubscribedSeries: typeof requestCleanupUnsubscribedSeries;
   clearExportConfig: typeof clearExportConfig;
   clearPopupNotice: typeof clearPopupNotice;
   requestDismissExtensionReleaseNotice: typeof requestDismissExtensionReleaseNotice;
@@ -81,6 +82,7 @@ function ManageAppComponent(props: ManageAppProps) {
     requestExportConfig: requestExportConfigProp,
     requestImportConfig: requestImportConfigProp,
     requestResetConfig: requestResetConfigProp,
+    requestCleanupUnsubscribedSeries: requestCleanupUnsubscribedSeriesProp,
     requestSetLibrarySyncEnabled: requestSetLibrarySyncEnabledProp = () =>
       undefined,
     requestSyncLibraryNow: requestSyncLibraryNowProp = () => undefined,
@@ -101,8 +103,6 @@ function ManageAppComponent(props: ManageAppProps) {
     () => normalizeManageSearchQuery(deferredSearchQuery),
     [deferredSearchQuery],
   );
-  const clearSeriesDataCheckboxId = useId();
-  const clearSeriesDataDescriptionId = useId();
   const downloadRef = useRef<HTMLAnchorElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -215,13 +215,12 @@ function ManageAppComponent(props: ManageAppProps) {
     setDialogState({
       kind: "subscribe",
       item,
-      clearSeriesData: false,
+      clearSeriesData: true,
     });
   }, []);
 
-  const handleSubscribeClearSeriesDataChange: ChangeEventHandler<HTMLInputElement> =
-    useCallback((event) => {
-      const checked = event.currentTarget.checked;
+  const handleSubscribeClearSeriesDataChange = useCallback(
+    (checked: boolean) => {
       setDialogState((currentState) =>
         currentState.kind === "subscribe"
           ? {
@@ -230,15 +229,23 @@ function ManageAppComponent(props: ManageAppProps) {
             }
           : currentState,
       );
-    }, []);
+    },
+    [],
+  );
 
   const handleDialogConfirm = useCallback(() => {
-    if (dialogState.kind === "closed") {
+    if (busy || dialogState.kind === "closed") {
       return;
     }
 
     setLocalError("");
     clearPopupNoticeProp();
+
+    if (dialogState.kind === "cleanup") {
+      requestCleanupUnsubscribedSeriesProp();
+      setDialogState({ kind: "closed" });
+      return;
+    }
 
     if (dialogState.kind === "reset") {
       requestResetConfigProp();
@@ -262,14 +269,16 @@ function ManageAppComponent(props: ManageAppProps) {
       index: dialogState.item.index,
       comicsID: dialogState.item.comicsID,
       site: dialogState.item.site,
-      ...(dialogState.clearSeriesData ? { clearSeriesData: true } : {}),
+      clearSeriesData: dialogState.clearSeriesData,
     });
     setDialogState({ kind: "closed" });
   }, [
+    busy,
     clearPopupNoticeProp,
     dialogState,
     requestRemoveCardProp,
     requestResetConfigProp,
+    requestCleanupUnsubscribedSeriesProp,
   ]);
 
   const handleExportClick = useCallback(() => {
@@ -354,6 +363,7 @@ function ManageAppComponent(props: ManageAppProps) {
             onExportClick={handleExportClick}
             onImportClick={() => fileInputRef.current?.click()}
             onResetClick={openResetDialog}
+            onCleanupClick={() => setDialogState({ kind: "cleanup" })}
             onSyncNow={handleSyncNow}
             onSyncToggle={handleSyncToggle}
           />
@@ -403,8 +413,6 @@ function ManageAppComponent(props: ManageAppProps) {
       />
       <ManageConfirmDialog
         busy={busy}
-        clearSeriesDataCheckboxId={clearSeriesDataCheckboxId}
-        clearSeriesDataDescriptionId={clearSeriesDataDescriptionId}
         dialogState={dialogState}
         onClearSeriesDataChange={handleSubscribeClearSeriesDataChange}
         onClose={closeDialog}
@@ -415,6 +423,7 @@ function ManageAppComponent(props: ManageAppProps) {
 }
 
 export default connect(selectPopupView, {
+  requestCleanupUnsubscribedSeries,
   clearExportConfig,
   clearPopupNotice,
   requestDismissExtensionReleaseNotice,

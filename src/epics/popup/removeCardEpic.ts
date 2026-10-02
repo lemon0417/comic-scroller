@@ -1,40 +1,42 @@
 import {
   type RemoveCardPayload,
+  REQUEST_CLEANUP_UNSUBSCRIBED_SERIES,
   REQUEST_REMOVE_CARD,
 } from "@domain/actions/popup";
 import {
+  buildSeriesKey,
+  createEmptyLibrarySyncStatus,
   getPopupUpdateCount,
   type SiteKey,
 } from "@domain/library";
 import {
+  finishLibraryRemoval,
   hydratePopupFeed,
   setLibrarySyncStatus,
   setPopupNotice,
 } from "@domain/reducers/popupState";
 import {
+  cleanupUnsubscribedSeries,
   dismissSeriesUpdate,
   getPopupFeedSnapshot,
   pushLibrarySyncIfEnabled,
-  removeSeriesCascade,
   removeSeriesFromHistory,
-  setSeriesSubscription,
+  unsubscribeSeriesByKey,
 } from "@infra/services/library/popup";
 import { ofType } from "redux-observable";
-import { from, type Observable, of } from "rxjs";
-import { catchError, mergeMap } from "rxjs/operators";
+import { defer, from, type Observable } from "rxjs";
+import { catchError, exhaustMap, mergeMap } from "rxjs/operators";
 
 import type { PopupEpic } from "../types";
 
 type RemoveCardAction = {
-  type: typeof REQUEST_REMOVE_CARD;
+  type: typeof REQUEST_REMOVE_CARD | typeof REQUEST_CLEANUP_UNSUBSCRIBED_SERIES;
   payload?: Partial<RemoveCardPayload> & {
     site?: SiteKey;
   };
 };
 
-function getRemoveErrorMessage(
-  payload: RemoveCardAction["payload"],
-) {
+function getRemoveErrorMessage(payload: RemoveCardAction["payload"]) {
   if (payload?.category === "history") {
     return "移除閱讀紀錄失敗，請稍後再試。";
   }
@@ -46,50 +48,70 @@ function getRemoveErrorMessage(
   return "略過更新失敗，請稍後再試。";
 }
 
-const removeCardEpic: PopupEpic = (action$) =>
+const removeCardEpic: PopupEpic = (action$, state$) =>
   (action$ as Observable<RemoveCardAction>).pipe(
-    ofType(REQUEST_REMOVE_CARD),
-    mergeMap((action) => {
-      const {
-        category,
-        comicsID,
-        chapterID,
-        clearSeriesData,
-        site,
-      } = action.payload || {};
+    ofType(REQUEST_REMOVE_CARD, REQUEST_CLEANUP_UNSUBSCRIBED_SERIES),
+    exhaustMap((action) => {
+      const isCleanup = action.type === REQUEST_CLEANUP_UNSUBSCRIBED_SERIES;
+      const { category, comicsID, chapterID, clearSeriesData, site } =
+        action.payload || {};
 
-      if (!category || !comicsID || !site) {
-        return [];
+      if (!isCleanup && (!category || !comicsID || !site)) {
+        return [finishLibraryRemoval()];
       }
 
-      const operation =
-        category === "history"
-          ? removeSeriesFromHistory(site, comicsID)
-          : category === "subscribe"
-            ? clearSeriesData
-              ? removeSeriesCascade(site, comicsID)
-              : setSeriesSubscription(site, comicsID, false).then(() =>
-                  dismissSeriesUpdate(site, comicsID),
-                )
-            : dismissSeriesUpdate(site, comicsID, chapterID);
-
-      return from(operation).pipe(
-        mergeMap(() => from(pushLibrarySyncIfEnabled())),
-        mergeMap((librarySyncStatus) =>
-          from(getPopupFeedSnapshot()).pipe(
-            mergeMap((feed) => {
-              const count = getPopupUpdateCount(feed);
-              chrome.action.setBadgeText({
-                text: `${count === 0 ? "" : count}`,
-              });
-              return [
-                hydratePopupFeed(feed, "load"),
-                setLibrarySyncStatus(librarySyncStatus),
-              ];
-            }),
-          ),
+      return defer(async () => {
+        let removedSeriesCount: number | null = null;
+        if (isCleanup) {
+          removedSeriesCount = (await cleanupUnsubscribedSeries())
+            .removedSeriesCount;
+        } else if (site && comicsID) {
+          if (category === "history") {
+            await removeSeriesFromHistory(site, comicsID);
+          } else if (category === "subscribe") {
+            await unsubscribeSeriesByKey(buildSeriesKey(site, comicsID), {
+              clearSeriesData: clearSeriesData === true,
+            });
+          } else {
+            await dismissSeriesUpdate(site, comicsID, chapterID);
+          }
+        }
+        const librarySyncStatus = await pushLibrarySyncIfEnabled().catch(() =>
+          createEmptyLibrarySyncStatus({
+            ...state$?.value?.popup?.librarySyncStatus,
+            lastError: "同步失敗，請稍後再試。",
+          }),
+        );
+        const feed = await getPopupFeedSnapshot();
+        const count = getPopupUpdateCount(feed);
+        await chrome.action.setBadgeText({ text: count ? String(count) : "" });
+        return [
+          hydratePopupFeed(feed, "load"),
+          setLibrarySyncStatus(librarySyncStatus),
+          finishLibraryRemoval(),
+          ...(removedSeriesCount === null
+            ? []
+            : [
+                setPopupNotice(
+                  removedSeriesCount
+                    ? `已清理 ${removedSeriesCount} 部未追蹤作品。`
+                    : "沒有需要清理的未追蹤作品。",
+                  "success",
+                ),
+              ]),
+        ];
+      }).pipe(
+        mergeMap((actions) => from(actions)),
+        catchError(() =>
+          from([
+            finishLibraryRemoval(),
+            setPopupNotice(
+              isCleanup
+                ? "清理未追蹤作品失敗，請稍後再試。"
+                : getRemoveErrorMessage(action.payload),
+            ),
+          ]),
         ),
-        catchError(() => of(setPopupNotice(getRemoveErrorMessage(action.payload)))),
       );
     }),
   );

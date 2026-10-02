@@ -1,23 +1,18 @@
-import CheckboxField from "@components/CheckboxField";
 import ConfirmDialog from "@components/ConfirmDialog";
-import type { ChangeEventHandler } from "react";
+import UnsubscribeSeriesDialog from "@components/UnsubscribeSeriesDialog";
 
 import type { ManageDialogState } from "./types";
 
 type ManageConfirmDialogProps = {
   busy: boolean;
-  clearSeriesDataCheckboxId: string;
-  clearSeriesDataDescriptionId: string;
   dialogState: ManageDialogState;
-  onClearSeriesDataChange: ChangeEventHandler<HTMLInputElement>;
+  onClearSeriesDataChange: (checked: boolean) => void;
   onClose: () => void;
   onConfirm: () => void;
 };
 
 export function ManageConfirmDialog({
   busy,
-  clearSeriesDataCheckboxId,
-  clearSeriesDataDescriptionId,
   dialogState,
   onClearSeriesDataChange,
   onClose,
@@ -25,6 +20,20 @@ export function ManageConfirmDialog({
 }: ManageConfirmDialogProps) {
   if (dialogState.kind === "closed") {
     return null;
+  }
+
+  if (dialogState.kind === "cleanup") {
+    return (
+      <ConfirmDialog
+        open
+        title="清理未追蹤作品"
+        description="確定清理所有未追蹤作品嗎？包含從未追蹤、只有閱讀紀錄的漫畫。會刪除作品資料、閱讀紀錄、已讀狀態、章節快取與更新提醒，並關閉相關閱讀分頁。已追蹤作品會保留。此操作無法復原。"
+        confirmLabel="確認清理"
+        busy={busy}
+        onClose={onClose}
+        onConfirm={onConfirm}
+      />
+    );
   }
 
   if (dialogState.kind === "reset") {
@@ -56,24 +65,14 @@ export function ManageConfirmDialog({
   }
 
   return (
-    <ConfirmDialog
+    <UnsubscribeSeriesDialog
       open
-      title="棄坑作品"
-      description={`確定取消追蹤「${dialogState.item.title}」嗎？未勾選時只會取消追蹤並清除更新提醒。`}
-      confirmLabel="確認棄坑"
+      title={dialogState.item.title}
+      clearSeriesData={dialogState.clearSeriesData}
       busy={busy}
+      onClearSeriesDataChange={onClearSeriesDataChange}
       onClose={onClose}
       onConfirm={onConfirm}
-    >
-      <CheckboxField
-        id={clearSeriesDataCheckboxId}
-        descriptionId={clearSeriesDataDescriptionId}
-        label="一併清除閱讀紀錄與作品資料"
-        description="勾選後會額外刪除這部作品的閱讀紀錄與快取。此操作無法復原。"
-        checked={dialogState.clearSeriesData}
-        disabled={busy}
-        onChange={onClearSeriesDataChange}
-      />
-    </ConfirmDialog>
+    />
   );
 }

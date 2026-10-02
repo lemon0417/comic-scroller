@@ -483,6 +483,7 @@ describe("library mutations", () => {
       [CHAPTERS_STORE]: chaptersStore,
       [READS_STORE]: readsStore,
       [UPDATES_STORE]: updatesStore,
+      [SUBSCRIPTIONS_STORE]: { get: jest.fn(() => ({ seriesKey: "dm5:m123" })) },
     };
     const transaction = {
       objectStore: jest.fn(
@@ -606,6 +607,7 @@ describe("library mutations", () => {
       [SERIES_STORE]: seriesStore,
       [CHAPTERS_STORE]: chaptersStore,
       [UPDATES_STORE]: updatesStore,
+      [SUBSCRIPTIONS_STORE]: { get: jest.fn(() => ({ seriesKey: "dm5:m123" })) },
     };
     const transaction = {
       objectStore: jest.fn(

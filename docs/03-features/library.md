@@ -122,6 +122,9 @@
   - `series`
   - `chapters`
   - `reads`
+- 上述回收在取消追蹤、移除紀錄或略過更新時觸發，沒有時間到期或定期全庫掃描；超出閱讀紀錄上限而被擠出的作品仍可能留下快取
+- manage 的「清理未追蹤作品」可在單一 transaction 手動清除全部未追蹤資料與孤兒附屬列；已追蹤作品的資料與排序維持原值
+- 已刪除作品的閱讀進度與既有 reader 的延遲 metadata 不會建立作品；背景 refresh 寫入前會在同一 transaction 驗證作品存在且仍有追蹤
 
 ## Reader UI State
 - reader 頁面的 Redux `comics` state 不是 repository row 的鏡像

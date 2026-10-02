@@ -1,7 +1,8 @@
-import { fetchImgList } from "@domain/actions/reader";
 import {
-  updateSubscribe,
-} from "@domain/reducers/comics";
+  fetchImgList,
+  invalidateReaderPersistence,
+} from "@domain/actions/reader";
+import { updateSubscribe } from "@domain/reducers/comics";
 import { Subject } from "rxjs";
 
 import readerSyncEpic from "./readerSyncEpic";
@@ -61,10 +62,12 @@ describe("readerSyncEpic", () => {
     jest.clearAllMocks();
     listener = null;
     unsubscribe = jest.fn();
-    subscribeToLibrarySignal.mockImplementation((nextListener: typeof listener) => {
-      listener = nextListener;
-      return unsubscribe;
-    });
+    subscribeToLibrarySignal.mockImplementation(
+      (nextListener: typeof listener) => {
+        listener = nextListener;
+        return unsubscribe;
+      },
+    );
     closeCurrentTab.mockResolvedValue(undefined);
   });
 
@@ -172,7 +175,7 @@ describe("readerSyncEpic", () => {
     await flushPromises();
 
     expect(closeCurrentTab).toHaveBeenCalledTimes(1);
-    expect(actions).toEqual([]);
+    expect(actions).toEqual([invalidateReaderPersistence()]);
     subscription.unsubscribe();
   });
 
@@ -195,6 +198,24 @@ describe("readerSyncEpic", () => {
     await flushPromises();
 
     expect(actions).toEqual([updateSubscribe(false)]);
+    subscription.unsubscribe();
+  });
+
+  it("invalidates persistence but defers closing while its own unsubscribe is pending", async () => {
+    getReaderSeriesSyncState.mockResolvedValue({
+      exists: false,
+      subscribed: false,
+    });
+    const actions: unknown[] = [];
+    const subscription = readerSyncEpic(new Subject(), {
+      value: {
+        comics: { seriesKey: "dm5:m123", subscriptionPending: true },
+      } as never,
+    }).subscribe((action) => actions.push(action));
+    listener?.(createSignal(["dm5:m123"], ["series", "subscriptions"]));
+    await flushPromises();
+    expect(actions).toEqual([invalidateReaderPersistence()]);
+    expect(closeCurrentTab).not.toHaveBeenCalled();
     subscription.unsubscribe();
   });
 
@@ -333,7 +354,10 @@ describe("readerSyncEpic", () => {
     listener?.(createSignal());
     await flushPromises();
 
-    expect(actions).toEqual([updateSubscribe(true)]);
+    expect(actions).toEqual([
+      invalidateReaderPersistence(),
+      updateSubscribe(true),
+    ]);
     subscription.unsubscribe();
   });
 });

@@ -45,6 +45,11 @@ export type BackgroundSeriesRefreshResult = {
   updatesCount: number;
 };
 
+export type SeriesCleanupResult = {
+  removedSeriesCount: number;
+  updatesCount: number;
+};
+
 function canonicalizeComicsID(site: string, comicsID: string) {
   const raw = String(comicsID || "");
   if (!raw) return "";

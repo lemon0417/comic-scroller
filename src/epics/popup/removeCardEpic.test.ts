@@ -1,5 +1,9 @@
-import { requestRemoveCard } from "@domain/actions/popup";
 import {
+  requestCleanupUnsubscribedSeries,
+  requestRemoveCard,
+} from "@domain/actions/popup";
+import {
+  finishLibraryRemoval,
   hydratePopupFeed,
   setLibrarySyncStatus,
   setPopupNotice,
@@ -20,6 +24,8 @@ jest.mock("@infra/services/library/popup", () => {
     removeSeriesFromHistory: jest.fn(),
     removeSeriesCascade: jest.fn(),
     setSeriesSubscription: jest.fn(),
+    unsubscribeSeriesByKey: jest.fn(),
+    cleanupUnsubscribedSeries: jest.fn(),
   };
 });
 
@@ -29,7 +35,8 @@ const {
   pushLibrarySyncIfEnabled,
   removeSeriesCascade,
   removeSeriesFromHistory,
-  setSeriesSubscription,
+  unsubscribeSeriesByKey,
+  cleanupUnsubscribedSeries,
 } = jest.requireMock("@infra/services/library/popup");
 
 const librarySyncStatus = {
@@ -101,6 +108,7 @@ describe("removeCardEpic", () => {
     expect(actions).toEqual([
       hydratePopupFeed(nextFeed, "load"),
       setLibrarySyncStatus(librarySyncStatus),
+      finishLibraryRemoval(),
     ]);
     expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "1" });
   });
@@ -158,6 +166,7 @@ describe("removeCardEpic", () => {
     expect(actions).toEqual([
       hydratePopupFeed(nextFeed, "load"),
       setLibrarySyncStatus(librarySyncStatus),
+      finishLibraryRemoval(),
     ]);
     expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "" });
   });
@@ -193,7 +202,7 @@ describe("removeCardEpic", () => {
       ],
       continueReading: null,
     };
-    setSeriesSubscription.mockResolvedValue(false);
+    unsubscribeSeriesByKey.mockResolvedValue(0);
     dismissSeriesUpdate.mockResolvedValue(0);
     getPopupFeedSnapshot.mockResolvedValue(nextFeed);
 
@@ -211,8 +220,10 @@ describe("removeCardEpic", () => {
       ).pipe(toArray()),
     );
 
-    expect(setSeriesSubscription).toHaveBeenCalledWith("dm5", "c1", false);
-    expect(dismissSeriesUpdate).toHaveBeenCalledWith("dm5", "c1");
+    expect(unsubscribeSeriesByKey).toHaveBeenCalledWith("dm5:c1", {
+      clearSeriesData: false,
+    });
+    expect(dismissSeriesUpdate).not.toHaveBeenCalled();
     expect(removeSeriesCascade).not.toHaveBeenCalled();
   });
 
@@ -223,7 +234,7 @@ describe("removeCardEpic", () => {
       history: [],
       continueReading: null,
     };
-    removeSeriesCascade.mockResolvedValue(0);
+    unsubscribeSeriesByKey.mockResolvedValue(0);
     getPopupFeedSnapshot.mockResolvedValue(nextFeed);
 
     await lastValueFrom(
@@ -241,8 +252,9 @@ describe("removeCardEpic", () => {
       ).pipe(toArray()),
     );
 
-    expect(removeSeriesCascade).toHaveBeenCalledWith("dm5", "c1");
-    expect(setSeriesSubscription).not.toHaveBeenCalled();
+    expect(unsubscribeSeriesByKey).toHaveBeenCalledWith("dm5:c1", {
+      clearSeriesData: true,
+    });
   });
 
   it("surfaces a notice when removing history fails", async () => {
@@ -263,7 +275,90 @@ describe("removeCardEpic", () => {
     );
 
     expect(actions).toEqual([
+      finishLibraryRemoval(),
       setPopupNotice("移除閱讀紀錄失敗，請稍後再試。"),
     ]);
+  });
+
+  it.each([0, 3])(
+    "reports the actual batch cleanup count (%s)",
+    async (removedSeriesCount) => {
+      const feed = {
+        update: [],
+        subscribe: [],
+        history: [],
+        continueReading: null,
+      };
+      cleanupUnsubscribedSeries.mockResolvedValue({
+        removedSeriesCount,
+        updatesCount: 0,
+      });
+      getPopupFeedSnapshot.mockResolvedValue(feed);
+      const actions = await lastValueFrom(
+        removeCardEpic(of(requestCleanupUnsubscribedSeries()), {
+          value: undefined as never,
+        }).pipe(toArray()),
+      );
+      expect(cleanupUnsubscribedSeries).toHaveBeenCalledTimes(1);
+      expect(pushLibrarySyncIfEnabled).toHaveBeenCalledTimes(1);
+      expect(actions).toEqual([
+        hydratePopupFeed(feed, "load"),
+        setLibrarySyncStatus(librarySyncStatus),
+        finishLibraryRemoval(),
+        setPopupNotice(
+          removedSeriesCount
+            ? "已清理 3 部未追蹤作品。"
+            : "沒有需要清理的未追蹤作品。",
+          "success",
+        ),
+      ]);
+      expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ text: "" });
+    },
+  );
+
+  it("reports batch failure without pushing sync", async () => {
+    cleanupUnsubscribedSeries.mockRejectedValueOnce(new Error("storage"));
+    const actions = await lastValueFrom(
+      removeCardEpic(of(requestCleanupUnsubscribedSeries()), {
+        value: undefined as never,
+      }).pipe(toArray()),
+    );
+    expect(actions).toEqual([
+      finishLibraryRemoval(),
+      setPopupNotice("清理未追蹤作品失敗，請稍後再試。"),
+    ]);
+    expect(pushLibrarySyncIfEnabled).not.toHaveBeenCalled();
+  });
+
+  it("still rehydrates and reports local cleanup when the sync attempt rejects", async () => {
+    const feed = {
+      update: [],
+      subscribe: [],
+      history: [],
+      continueReading: null,
+    };
+    cleanupUnsubscribedSeries.mockResolvedValue({
+      removedSeriesCount: 2,
+      updatesCount: 0,
+    });
+    getPopupFeedSnapshot.mockResolvedValue(feed);
+    pushLibrarySyncIfEnabled.mockRejectedValueOnce(new Error("sync"));
+    const actions = await lastValueFrom(
+      removeCardEpic(of(requestCleanupUnsubscribedSeries()), {
+        value: undefined as never,
+      }).pipe(toArray()),
+    );
+    expect(actions).toContainEqual(hydratePopupFeed(feed, "load"));
+    expect(actions).toContainEqual(
+      setPopupNotice("已清理 2 部未追蹤作品。", "success"),
+    );
+    expect(actions).toContainEqual(
+      expect.objectContaining({
+        type: "SET_LIBRARY_SYNC_STATUS",
+        syncStatus: expect.objectContaining({
+          lastError: "同步失敗，請稍後再試。",
+        }),
+      }),
+    );
   });
 });

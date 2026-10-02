@@ -10,6 +10,7 @@ type ManageDataPanelProps = {
   onExportClick: () => void;
   onImportClick: () => void;
   onResetClick: () => void;
+  onCleanupClick: () => void;
   onSyncNow: () => void;
   onSyncToggle: (enabled: boolean) => void;
 };
@@ -38,6 +39,7 @@ export function ManageDataPanel({
   onExportClick,
   onImportClick,
   onResetClick,
+  onCleanupClick,
   onSyncNow,
   onSyncToggle,
 }: ManageDataPanelProps) {
@@ -96,6 +98,14 @@ export function ManageDataPanel({
           </Button>
           <Button variant="secondary" disabled={busy} onClick={onExportClick}>
             匯出設定
+          </Button>
+        </div>
+        <p className="manage-section-desc">
+          清除未追蹤作品的閱讀紀錄、更新提醒與快取；已追蹤作品會保留。
+        </p>
+        <div className="manage-settings-actions">
+          <Button variant="danger" disabled={busy} onClick={onCleanupClick}>
+            清理未追蹤作品
           </Button>
         </div>
       </section>

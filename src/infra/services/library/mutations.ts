@@ -3,6 +3,7 @@ import type {
   ReaderSeriesMutationResult,
   ReadProgressMutationResult,
   SeriesChapterSnapshot,
+  SeriesCleanupResult,
 } from "@domain/library";
 
 import {
@@ -54,6 +55,7 @@ async function persistSeriesRecordState(
     addHistory?: boolean;
     dismissChapterID?: string;
     includeSubscriptionState?: boolean;
+    requireExistingSeries?: boolean;
   },
 ) {
   await ensureLibraryReady();
@@ -92,6 +94,12 @@ async function persistSeriesRecordState(
   const previousRow = await requestToPromise<SeriesRow | undefined>(
     seriesStore.get(seriesKey),
   );
+  // Progress and an existing reader's late metadata must not recreate deleted data.
+  if (!previousRow && (!input.record || input.requireExistingSeries)) {
+    const updatesCount = await requestToPromise<number>(updatesStore.count());
+    await done;
+    return { seriesKey, readChapterIDs: [], subscribed: false, updatesCount };
+  }
   const previousChapters = previousRow && shouldPersistChapterCache && chaptersStore
     ? await requestToPromise<ChapterRow[]>(
         chaptersStore.index("seriesKey").getAll(seriesKey),
@@ -745,22 +753,61 @@ export async function removeSeriesFromHistory(site: SiteKey, comicsID: string) {
   );
 }
 
-export async function removeSeriesCascade(site: SiteKey, comicsID: string) {
-  await ensureLibraryReady();
-  const seriesKey = buildSeriesKey(site, comicsID);
-  const db = await openLibraryDb();
-  const transaction = db.transaction(
-    [SERIES_STORE, CHAPTERS_STORE, READS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE],
-    "readwrite",
-  );
-  const done = transactionDone(transaction);
-  const seriesStore = transaction.objectStore(SERIES_STORE);
-  const chaptersStore = transaction.objectStore(CHAPTERS_STORE);
-  const readsStore = transaction.objectStore(READS_STORE);
-  const subscriptionsStore = transaction.objectStore(SUBSCRIPTIONS_STORE);
-  const historyStore = transaction.objectStore(HISTORY_STORE);
-  const updatesStore = transaction.objectStore(UPDATES_STORE);
+type SeriesCleanupStores = {
+  seriesStore: IDBObjectStore;
+  chaptersStore: IDBObjectStore;
+  readsStore: IDBObjectStore;
+  subscriptionsStore: IDBObjectStore;
+  historyStore: IDBObjectStore;
+  updatesStore: IDBObjectStore;
+};
 
+const SERIES_CLEANUP_STORES = [
+  SERIES_STORE,
+  CHAPTERS_STORE,
+  READS_STORE,
+  SUBSCRIPTIONS_STORE,
+  HISTORY_STORE,
+  UPDATES_STORE,
+] as const;
+
+function getSeriesCleanupStores(
+  transaction: IDBTransaction,
+): SeriesCleanupStores {
+  return {
+    seriesStore: transaction.objectStore(SERIES_STORE),
+    chaptersStore: transaction.objectStore(CHAPTERS_STORE),
+    readsStore: transaction.objectStore(READS_STORE),
+    subscriptionsStore: transaction.objectStore(SUBSCRIPTIONS_STORE),
+    historyStore: transaction.objectStore(HISTORY_STORE),
+    updatesStore: transaction.objectStore(UPDATES_STORE),
+  };
+}
+
+async function abortSeriesCleanup(
+  transaction: IDBTransaction,
+  done: Promise<void>,
+) {
+  try {
+    transaction.abort();
+  } catch {
+    // A failed IndexedDB request may already have aborted the transaction.
+  }
+  await done.catch(() => undefined);
+}
+
+async function deleteSeriesDataInTransaction(
+  stores: SeriesCleanupStores,
+  seriesKey: string,
+) {
+  const {
+    seriesStore,
+    chaptersStore,
+    readsStore,
+    subscriptionsStore,
+    historyStore,
+    updatesStore,
+  } = stores;
   await requestToPromise(seriesStore.delete(seriesKey));
   const chapterKeys = await requestToPromise<IDBValidKey[]>(
     chaptersStore.index("seriesKey").getAllKeys(seriesKey),
@@ -772,14 +819,105 @@ export async function removeSeriesCascade(site: SiteKey, comicsID: string) {
   await removeOrderedSeriesKeyInTransaction(subscriptionsStore, seriesKey);
   await removeOrderedSeriesKeyInTransaction(historyStore, seriesKey);
   await deleteSeriesUpdatesInTransaction(updatesStore, seriesKey);
-  const updatesCount = await requestToPromise<number>(updatesStore.count());
+}
+
+export async function unsubscribeSeriesByKey(
+  seriesKey: string,
+  { clearSeriesData }: { clearSeriesData: boolean },
+) {
+  await ensureLibraryReady();
+  const db = await openLibraryDb();
+  const transaction = db.transaction(SERIES_CLEANUP_STORES, "readwrite");
+  const done = transactionDone(transaction);
+  const stores = getSeriesCleanupStores(transaction);
+  let removedSeries = clearSeriesData;
+  let updatesCount: number;
+  try {
+    if (clearSeriesData) {
+      await deleteSeriesDataInTransaction(stores, seriesKey);
+    } else {
+      await removeOrderedSeriesKeyInTransaction(
+        stores.subscriptionsStore,
+        seriesKey,
+      );
+      await deleteSeriesUpdatesInTransaction(stores.updatesStore, seriesKey);
+      removedSeries = await pruneSeriesCacheIfOrphanedInTransaction(
+        stores,
+        seriesKey,
+      );
+    }
+    updatesCount = await requestToPromise<number>(stores.updatesStore.count());
+  } catch (error) {
+    await abortSeriesCleanup(transaction, done);
+    throw error;
+  }
   await done;
   await emitLibrarySignal(
-    "removeSeries",
-    ["series", "subscriptions", "history", "updates"],
+    clearSeriesData ? "removeSeries" : "unsubscribeSeries",
+    [
+      ...(removedSeries ? ["series" as const] : []),
+      "subscriptions",
+      ...(clearSeriesData ? ["history" as const] : []),
+      "updates",
+    ],
     [seriesKey],
   );
   return Number(updatesCount || 0);
+}
+
+export async function removeSeriesCascade(site: SiteKey, comicsID: string) {
+  return unsubscribeSeriesByKey(buildSeriesKey(site, comicsID), {
+    clearSeriesData: true,
+  });
+}
+
+export async function cleanupUnsubscribedSeries(): Promise<SeriesCleanupResult> {
+  await ensureLibraryReady();
+  const db = await openLibraryDb();
+  const transaction = db.transaction(SERIES_CLEANUP_STORES, "readwrite");
+  const done = transactionDone(transaction);
+  const stores = getSeriesCleanupStores(transaction);
+  let seriesKeys: string[] = [];
+  let updatesCount: number;
+  try {
+    const [subscriptionKeys, ...allKeys] = await Promise.all([
+      requestToPromise<IDBValidKey[]>(stores.subscriptionsStore.getAllKeys()),
+      ...[
+        stores.seriesStore,
+        stores.chaptersStore,
+        stores.readsStore,
+        stores.historyStore,
+        stores.updatesStore,
+      ].map((store) => requestToPromise<IDBValidKey[]>(store.getAllKeys())),
+    ]);
+    const subscribed = new Set(subscriptionKeys.map(String));
+    // Keys only: include orphaned child rows without loading chapter metadata.
+    seriesKeys = Array.from(
+      new Set(
+        allKeys.flat().map((key) => String(Array.isArray(key) ? key[0] : key)),
+      ),
+    ).filter((key) => !subscribed.has(key));
+    for (const seriesKey of seriesKeys) {
+      await deleteSeriesDataInTransaction(stores, seriesKey);
+    }
+    updatesCount = await requestToPromise<number>(stores.updatesStore.count());
+  } catch (error) {
+    await abortSeriesCleanup(transaction, done);
+    throw error;
+  }
+  await done;
+  if (seriesKeys.length) {
+    // A whole-library hint stays small even when years of orphaned caches are removed.
+    await emitLibrarySignal("cleanupUnsubscribedSeries", [
+      "series",
+      "history",
+      "updates",
+    ]);
+  }
+  return {
+    removedSeriesCount: seriesKeys.length,
+    updatesCount: Number(updatesCount || 0),
+  };
 }
 
 export async function applyReaderSeriesState(
@@ -787,6 +925,7 @@ export async function applyReaderSeriesState(
   comicsID: string,
   record: Partial<SeriesRecord>,
   chapterID: string,
+  options: { requireExistingSeries?: boolean } = {},
 ): Promise<ReaderSeriesMutationResult> {
   return persistSeriesRecordState(site, comicsID, {
     record,
@@ -794,6 +933,7 @@ export async function applyReaderSeriesState(
     addHistory: true,
     dismissChapterID: chapterID,
     includeSubscriptionState: true,
+    requireExistingSeries: options.requireExistingSeries,
   });
 }
 
@@ -823,7 +963,7 @@ export async function applyBackgroundSeriesRefresh(
   const seriesKey = buildSeriesKey(site, comicsID);
   const db = await openLibraryDb();
   const transaction = db.transaction(
-    [SERIES_STORE, CHAPTERS_STORE, READS_STORE, UPDATES_STORE],
+    [SERIES_STORE, CHAPTERS_STORE, READS_STORE, UPDATES_STORE, SUBSCRIPTIONS_STORE],
     "readwrite",
   );
   const done = transactionDone(transaction);
@@ -832,10 +972,18 @@ export async function applyBackgroundSeriesRefresh(
   const readsStore = transaction.objectStore(READS_STORE);
   const updatesStore = transaction.objectStore(UPDATES_STORE);
 
-  const [previousRow, readChapterIDs] = await Promise.all([
+  const [previousRow, readChapterIDs, subscriptionRow] = await Promise.all([
     requestToPromise<SeriesRow | undefined>(seriesStore.get(seriesKey)),
     loadReadChapterIDsInTransaction(readsStore, seriesKey),
+    requestToPromise<SubscriptionRow | undefined>(
+      transaction.objectStore(SUBSCRIPTIONS_STORE).get(seriesKey),
+    ),
   ]);
+  if (!previousRow || !subscriptionRow) {
+    const updatesCount = await requestToPromise<number>(updatesStore.count());
+    await done;
+    return { updatesCount: Number(updatesCount || 0) };
+  }
   const mergedRecord = mergeBackgroundRefreshRecord(
     site,
     comicsID,

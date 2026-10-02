@@ -2,6 +2,7 @@ import {
   fetchChapter,
   fetchImgList,
   fetchImgSrc,
+  updateRead,
 } from "@domain/actions/reader";
 import {
   clearPendingChapterGate,
@@ -14,13 +15,17 @@ import {
   updateChapterList,
   updateChapterNowIndex,
 } from "@domain/reducers/comics";
-import { applyReaderSeriesState } from "@infra/services/library/reader";
+import {
+  applyReaderSeriesState,
+  applyReadProgress,
+} from "@infra/services/library/reader";
 import { lastValueFrom, of, Subject, throwError } from "rxjs";
 import { toArray } from "rxjs/operators";
 
 import {
   createFetchChapterEpic,
   createFetchImgListEpic,
+  createUpdateReadEpic,
   getRequestedImageIds,
   normalizeReaderSiteMeta,
 } from "./readerFlow";
@@ -65,7 +70,9 @@ describe("readerFlow", () => {
     Object.defineProperty(result, "3", {
       configurable: true,
       get() {
-        throw new Error("should not read image ids outside the requested range");
+        throw new Error(
+          "should not read image ids outside the requested range",
+        );
       },
     });
 
@@ -110,6 +117,7 @@ describe("readerFlow", () => {
         chapterList: ["c3", "c2", "c1"],
       }),
       "c2",
+      { requireExistingSeries: false },
     );
     expect(output).toEqual(
       expect.arrayContaining([
@@ -136,6 +144,53 @@ describe("readerFlow", () => {
 
     expect(fetchMeta$).not.toHaveBeenCalled();
     expect(output).toEqual([setChapterLoadFailed()]);
+  });
+
+  it("discards metadata that arrives after cleanup invalidates the reader", () => {
+    const metadata = new Subject<any>();
+    const state$ = {
+      value: {
+        comics: {
+          seriesKey: "dm5:demo-series",
+          readerGeneration: 3,
+          persistenceInvalidated: false,
+        },
+      },
+    };
+    const subscription = createFetchChapterEpic({
+      site: "dm5",
+      baseURL: "https://www.dm5.com",
+      fetchChapterImages$: () =>
+        of({
+          chapterID: "c1",
+          seriesID: "demo-series",
+          comicUrl: "https://example.com/demo",
+          imgList: [],
+        }),
+      fetchMeta$: () => metadata,
+    })(of(fetchChapter("c1")), state$ as any).subscribe();
+    state$.value.comics.readerGeneration += 1;
+    state$.value.comics.persistenceInvalidated = true;
+    metadata.next({ title: "Late", chapters: {}, chapterList: [] });
+    metadata.complete();
+    expect(applyReaderSeriesState).not.toHaveBeenCalled();
+    subscription.unsubscribe();
+  });
+
+  it("does not write reading progress once persistence is invalidated", async () => {
+    const result = await lastValueFrom(
+      createUpdateReadEpic("dm5")(of(updateRead(0)), {
+        value: {
+          comics: {
+            comicsID: "123",
+            chapterList: ["c1"],
+            persistenceInvalidated: true,
+          },
+        },
+      } as any).pipe(toArray()),
+    );
+    expect(result).toEqual([]);
+    expect(applyReadProgress).not.toHaveBeenCalled();
   });
 
   it("keeps handling chapters after a chapter request errors", async () => {
@@ -277,7 +332,9 @@ describe("readerFlow", () => {
 
     const output = await outputPromise;
     expect(output).not.toContainEqual(setChapterLoadFailed());
-    expect(output).toEqual(expect.arrayContaining([updateChapterList(["c2", "c1"])]));
+    expect(output).toEqual(
+      expect.arrayContaining([updateChapterList(["c2", "c1"])]),
+    );
     expect(applyReaderSeriesStateMock).toHaveBeenCalledTimes(2);
   });
 
@@ -400,9 +457,7 @@ describe("readerFlow", () => {
     );
 
     expect(output).toEqual([
-      concatImageList([
-        { chapter: "c1", src: "https://example.com/c1-1.jpg" },
-      ]),
+      concatImageList([{ chapter: "c1", src: "https://example.com/c1-1.jpg" }]),
       updateCanPreloadPreviousChapter(true),
       fetchImgSrc(0, 6),
       updateChapterLatestIndex(0),
@@ -447,37 +502,40 @@ describe("readerFlow", () => {
   it.each([
     ["empty images", () => of({ chapterID: "c1", imgList: [] })],
     ["an error", () => throwError(() => new Error("preload failed"))],
-  ])("does not advance the preload frontier after %s", async (_label, response$) => {
-    const epic = createFetchImgListEpic(response$ as any);
-    const state$ = {
-      value: {
-        comics: {
-          chapterList: ["c2", "c1"],
-          imageList: {
-            result: [0],
-            entity: { 0: { chapter: "c2" } },
+  ])(
+    "does not advance the preload frontier after %s",
+    async (_label, response$) => {
+      const epic = createFetchImgListEpic(response$ as any);
+      const state$ = {
+        value: {
+          comics: {
+            chapterList: ["c2", "c1"],
+            imageList: {
+              result: [0],
+              entity: { 0: { chapter: "c2" } },
+            },
+            pendingChapterGate: null,
           },
-          pendingChapterGate: null,
         },
-      },
-    };
+      };
 
     const output = await lastValueFrom(
       epic(of(fetchImgList(1)), state$ as any).pipe(toArray()),
     );
 
-    expect(output).toEqual([
-      startPendingChapterGate({
-        blockingChapterId: "c2",
-        chapterId: "c1",
-        chapterIndex: 1,
-        readerGeneration: 0,
-        status: "fetching",
-      }),
-      clearPendingChapterGate(),
-    ]);
-    expect(output).not.toContainEqual(updateChapterLatestIndex(1));
-  });
+      expect(output).toEqual([
+        startPendingChapterGate({
+          blockingChapterId: "c2",
+          chapterId: "c1",
+          chapterIndex: 1,
+          readerGeneration: 0,
+          status: "fetching",
+        }),
+        clearPendingChapterGate(),
+      ]);
+      expect(output).not.toContainEqual(updateChapterLatestIndex(1));
+    },
+  );
 
   it("ignores preload responses from an older reader generation", () => {
     const chapterStreams = {
@@ -528,9 +586,7 @@ describe("readerFlow", () => {
     action$.complete();
 
     expect(output).toEqual([
-      concatImageList([
-        { chapter: "c1", src: "https://example.com/c1-1.jpg" },
-      ]),
+      concatImageList([{ chapter: "c1", src: "https://example.com/c1-1.jpg" }]),
       updateCanPreloadPreviousChapter(true),
       fetchImgSrc(0, 6),
       updateChapterLatestIndex(1),

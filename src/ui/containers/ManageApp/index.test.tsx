@@ -251,7 +251,45 @@ describe("ManageApp", () => {
     expect(requestDismissExtensionReleaseNotice).toHaveBeenCalledWith("4.2.0");
   });
 
-  it("opens an abandon modal and unsubscribes without cascade delete by default", () => {
+  it("confirms batch cleanup only after displaying its scope", () => {
+    const props = {
+      hydrationStatus: "ready",
+      activeAction: null,
+      notice: null,
+      exportUrl: "",
+      exportFilename: "",
+      update: [],
+      subscribe: [],
+      history: [],
+      continueReading: null,
+      requestPopupData: jest.fn(),
+      requestExportConfig: jest.fn(),
+      requestImportConfig: jest.fn(),
+      requestResetConfig: jest.fn(),
+      requestRemoveCard: jest.fn(),
+      clearExportConfig: jest.fn(),
+      clearPopupNotice: jest.fn(),
+      requestCleanupUnsubscribedSeries: jest.fn(),
+    };
+    const { rerender } = render(<TestManageApp {...props} />);
+    fireEvent.click(screen.getByRole("tab", { name: "選項" }));
+    fireEvent.click(screen.getByRole("button", { name: "清理未追蹤作品" }));
+    let dialog = screen.getByRole("dialog", { name: "清理未追蹤作品" });
+    expect(dialog).toHaveTextContent("從未追蹤");
+    expect(dialog).toHaveTextContent("已追蹤作品會保留");
+    fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
+    expect(props.requestCleanupUnsubscribedSeries).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "清理未追蹤作品" }));
+    dialog = screen.getByRole("dialog", { name: "清理未追蹤作品" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "確認清理" }));
+    expect(props.requestCleanupUnsubscribedSeries).toHaveBeenCalledTimes(1);
+    rerender(<TestManageApp {...props} activeAction="cleanup" />);
+    expect(
+      screen.getByRole("button", { name: "清理未追蹤作品" }),
+    ).toBeDisabled();
+  });
+
+  it("opens an abandon modal with full cleanup checked by default", () => {
     const requestRemoveCard = jest.fn();
 
     render(
@@ -291,26 +329,29 @@ describe("ManageApp", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "追蹤 1" }));
     fireEvent.click(screen.getByRole("button", { name: "棄坑" }));
-    const dialog = screen.getByRole("dialog", { name: "棄坑作品" });
+    const dialog = screen.getByRole("dialog", { name: "取消追蹤作品" });
 
     expect(dialog).toBeInTheDocument();
     expect(
       within(dialog).getByRole("checkbox", {
         name: "一併清除閱讀紀錄與作品資料",
       }),
-    ).not.toBeChecked();
+    ).toBeChecked();
 
-    fireEvent.click(within(dialog).getByRole("button", { name: "確認棄坑" }));
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "確認取消追蹤" }),
+    );
 
     expect(requestRemoveCard).toHaveBeenCalledWith({
       category: "subscribe",
       index: 0,
       comicsID: "123",
       site: "dm5",
+      clearSeriesData: true,
     });
   });
 
-  it("can request cascade delete from the abandon modal", () => {
+  it("can preserve history and resets full cleanup when reopened", () => {
     const requestRemoveCard = jest.fn();
 
     render(
@@ -350,19 +391,31 @@ describe("ManageApp", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "追蹤 1" }));
     fireEvent.click(screen.getByRole("button", { name: "棄坑" }));
-    const dialog = screen.getByRole("dialog", { name: "棄坑作品" });
+    let dialog = screen.getByRole("dialog", { name: "取消追蹤作品" });
     fireEvent.click(
       within(dialog).getByRole("checkbox", {
         name: "一併清除閱讀紀錄與作品資料",
       }),
     );
-    fireEvent.click(within(dialog).getByRole("button", { name: "確認棄坑" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
+    expect(requestRemoveCard).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "棄坑" }));
+    dialog = screen.getByRole("dialog", { name: "取消追蹤作品" });
+    expect(within(dialog).getByRole("checkbox")).toBeChecked();
+    fireEvent.click(
+      within(dialog).getByRole("checkbox", {
+        name: "一併清除閱讀紀錄與作品資料",
+      }),
+    );
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "確認取消追蹤" }),
+    );
 
     expect(requestRemoveCard).toHaveBeenCalledWith({
       category: "subscribe",
       index: 0,
       comicsID: "123",
-      clearSeriesData: true,
+      clearSeriesData: false,
       site: "dm5",
     });
   });

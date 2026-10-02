@@ -7,4 +7,5 @@ export type ManageDialogState =
   | { kind: "closed" }
   | { kind: "history"; item: PopupFeedEntry }
   | { kind: "reset" }
+  | { kind: "cleanup" }
   | { kind: "subscribe"; item: PopupFeedEntry; clearSeriesData: boolean };

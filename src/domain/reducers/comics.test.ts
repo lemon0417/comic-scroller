@@ -1,6 +1,8 @@
 import {
   fetchChapter,
+  finishReaderSubscription,
   imageLoadFailed,
+  requestUnsubscribeSeries,
   retryImage,
   updateRead,
   updateVisibleImageRange,
@@ -31,6 +33,29 @@ import comics, {
 } from "./comics";
 
 describe("comics reducer", () => {
+  it("invalidates old reader requests for full cleanup and restores persistence after failure", () => {
+    const initial = {
+      ...comics(undefined, { type: "@@INIT" }),
+      seriesKey: "dm5:m123",
+      readerGeneration: 5,
+    };
+    const pending = comics(initial, requestUnsubscribeSeries("dm5:m123", true));
+    expect(pending.subscriptionPending).toBe(true);
+    expect(pending.persistenceInvalidated).toBe(true);
+    expect(pending.readerGeneration).toBe(6);
+    expect(comics(pending, requestUnsubscribeSeries("dm5:m123", true))).toBe(
+      pending,
+    );
+    expect(comics(pending, finishReaderSubscription("sf:123"))).toBe(pending);
+    const failed = comics(
+      pending,
+      finishReaderSubscription("dm5:m123", "失敗", true),
+    );
+    expect(failed.subscriptionPending).toBe(false);
+    expect(failed.persistenceInvalidated).toBe(false);
+    expect(failed.subscriptionNotice).toBe("失敗");
+  });
+
   it("updates innerHeight", () => {
     const prevState = comics(undefined, { type: "@@INIT" } as any) as any;
     const nextState = comics(prevState, updateInnerHeight(720) as any);

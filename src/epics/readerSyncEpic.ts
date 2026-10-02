@@ -1,4 +1,7 @@
-import { fetchImgList } from "@domain/actions/reader";
+import {
+  fetchImgList,
+  invalidateReaderPersistence,
+} from "@domain/actions/reader";
 import type { RootState } from "@domain/reducers";
 import {
   projectReaderSeriesState,
@@ -12,13 +15,8 @@ import {
 } from "@infra/services/library/reader";
 import { devLog } from "@utils/devLog";
 import { closeCurrentTab } from "@utils/navigation";
-import { defer, EMPTY, from, of } from "rxjs";
-import {
-  catchError,
-  filter,
-  map,
-  switchMap,
-} from "rxjs/operators";
+import { concat, defer, EMPTY, from, of } from "rxjs";
+import { catchError, filter, map, switchMap } from "rxjs/operators";
 
 import { observeLibrarySignals } from "./librarySignal";
 import type { AppEpic, EpicAction } from "./types";
@@ -43,13 +41,18 @@ export function isReaderLibrarySignalRelevant(
   );
 }
 
-function closeMissingSeries() {
-  return from(closeCurrentTab()).pipe(
-    catchError((error: unknown) => {
-      devLog("reader:close-missing-series-failed", error);
-      return EMPTY;
-    }),
-    switchMap(() => EMPTY),
+function closeMissingSeries(subscriptionPending: boolean) {
+  return concat(
+    of(invalidateReaderPersistence()),
+    subscriptionPending
+      ? EMPTY
+      : defer(() => from(closeCurrentTab())).pipe(
+          catchError((error: unknown) => {
+            devLog("reader:close-missing-series-failed", error);
+            return EMPTY;
+          }),
+          switchMap(() => EMPTY),
+        ),
   );
 }
 
@@ -114,7 +117,9 @@ const readerSyncEpic: AppEpic = (_action$, state$) => {
             if (exists) {
               return of(updateSubscribe(subscribed));
             }
-            return closeMissingSeries();
+            return closeMissingSeries(
+              Boolean(state$.value.comics.subscriptionPending),
+            );
           }),
           catchError((error: unknown) => {
             devLog("reader:library-sync-failed", error);
@@ -131,7 +136,9 @@ const readerSyncEpic: AppEpic = (_action$, state$) => {
 
           needsFullHydration = false;
           if (!series) {
-            return closeMissingSeries();
+            return closeMissingSeries(
+              Boolean(state$.value.comics.subscriptionPending),
+            );
           }
 
           const comics = state$.value.comics;

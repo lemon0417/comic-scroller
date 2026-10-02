@@ -10,10 +10,12 @@ export type {
   PopupFeedSnapshot,
 } from "./models";
 export {
+  cleanupUnsubscribedSeries,
   dismissSeriesUpdate,
   removeSeriesCascade,
   removeSeriesFromHistory,
   setSeriesSubscription,
+  unsubscribeSeriesByKey,
 } from "./mutations";
 export {
   getPopupFeedSnapshot,
