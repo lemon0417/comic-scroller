@@ -82,32 +82,50 @@
   - compact dump v2
   - gzip archive
 
-## Chrome Sync v1
+## Chrome Sync v2
 - runtime source of truth 仍是 IndexedDB；Chrome Sync 只是一層跨裝置同步輔助，不取代 repository
 - 啟用狀態與本機同步 metadata 存在 `chrome.storage.local.librarySyncState`
 - 遠端資料存在 `chrome.storage.sync`：
   - `librarySyncManifest`
   - `librarySyncChunk:*`
-- 同步 payload 使用 `comic-scroller-library-sync` v1
+- 同步 payload 使用 `comic-scroller-library-sync` v2，`encoding: indexed-json-gzip-base64`；先將精簡資料轉為索引 JSON，再以瀏覽器原生 gzip 壓縮並編碼成 base64
 - payload 只同步精簡書庫資料：
   - 作品主資料：`site / comicsID / title / cover / url / lastRead`
   - `subscriptions`
-  - `history`
-  - `updates`
-  - `read`
-  - latest / lastRead / read / update 需要的章節摘要
-- 不同步完整章節快取、背景輪詢 `checkedAt`、debug 設定或 reader UI state
-- sync projection 只讀 latest / lastRead / read / update 涉及的章節 row，不 hydrate 完整 `chapters` store
+  - `history`：最近 50 筆
+  - `updates`：全部待讀更新
+  - `read`：僅最後閱讀章節 ID，不攜帶完整已讀清單
+  - latest / lastRead / update 需要的章節摘要
+- 作品只保留追蹤、最近 50 筆閱讀紀錄或更新提醒引用的項目；純快取作品不進入 payload
+- 不同步完整已讀明細、完整章節快取、背景輪詢 `checkedAt`、debug 設定或 reader UI state
+- sync projection 不讀 `reads` store，只查引用作品與 latest / lastRead / update 涉及的章節 row
 - repository 內部使用獨立的 `LibrarySyncStateV1`，明確保存 `latestChapterID / lastReadChapterID / readChapterIDs / chapterSummaries`
-- Chrome Sync v1 wire adapter 集中負責 `LibrarySyncStateV1` 與既有遠端 JSON shape 的轉換；不借用完整 backup dump 或 runtime snapshot 型別
-- pull merge 以增量方式 upsert series、章節摘要與 reads，不刪除本機完整章節快取
+- `syncModel.ts` 集中負責 v1 JSON 與 v2 索引 wire adapter；`syncCodec.ts` 負責 gzip / base64，不借用完整 backup dump 或 runtime snapshot 型別
+- v2 索引 JSON 的資料列：
+  - root：`[seriesRows, subscriptionRefs, historyRefs, updateRefs]`
+  - series：`[siteCode, comicsID, title, cover, url, latestRef, lastReadRef, chapterRows]`
+  - chapter：`[chapterID, title, href]`
+  - update：`[seriesRef, chapterRef]`
+  - site code 固定為 `0: dm5 / 1: sf / 2: comicbus`；參照從 1 起算，latest / lastRead 的 `0` 表示缺少 checkpoint
+  - 作品與章節 ID 各存一次；保留清單排序及全部追蹤、更新
+- 新版讀取 v1 / v2，寫入僅使用 v2；v1 遠端 payload 先精簡再合併，合併後再次精簡，不需要 DB migration
+- 使用同步的所有裝置都必須升級；舊客戶端不能讀取 v2，且可能再次寫回 v1
+- manifest 保留 `updatedAt / deviceId / chunkCount / payloadBytes`；v2 新增 `encoding / encodedBytes`，分別記錄編碼方式與 base64 字串 bytes
+- pull merge 以增量方式 upsert series、章節摘要與最後閱讀 ID，不刪除本機完整已讀明細或章節快取
 - `checkedAt` 不進入遠端 payload；既有 subscription merge 時保留本機值，遠端新增項目從 `0` 開始
-- 寫入前會檢查安全配額上限 `90KB`；超過時只回寫同步錯誤，不覆蓋本機 IndexedDB
+- 安全上限 `90 KiB`（92,160 bytes）按壓縮後的 manifest + 分片實際儲存占用（key + JSON 序列化 value）檢查；超額不寫遠端，不自動裁掉追蹤或更新提醒
+- 分片按 UTF-8 計費大小（key + JSON 序列化 value）切割，每片最多 6,000 bytes；寫入前也檢查總儲存量不超過 102,400 bytes，包含 manifest、尚未移除的舊分片與其他既有 key
+- 本機 metadata 的 `payloadBytes / pendingPayloadBytes` 分別是成功 / 失敗當次的原始 JSON UTF-8 bytes；`storageBytes / pendingStorageBytes` 是成功 / 失敗當次壓縮後的 manifest + 分片儲存占用；尚未完成壓縮的錯誤不提供失敗儲存大小
+- 成功後清除 `lastError / pendingPayloadBytes / pendingStorageBytes`
+- 原始 JSON 與串流解壓結果上限都是 `8 MiB`；逐片檢查完整性與長度，驗證 v2 tuple、站點代碼及所有索引範圍；不支援的版本、編碼或損壞資料會中止同步，手動同步與自動 push 都不得覆寫
+- 瀏覽器缺少原生 CompressionStream / DecompressionStream 時顯示更新 Chrome 的錯誤，不降級寫入 v1；gzip 備份仍維持原有相容行為
+- 同步錯誤保留原始原因；即使本機錯誤 metadata 寫入失敗，也透過服務回傳值提供 UI 顯示
 - 同步 merge 是 best-effort：
   - 遠端 manifest 較新時，作品 title / cover / url / lastRead 優先採遠端
-  - 本機與遠端的作品、已讀、追蹤、紀錄、更新會合併去重，避免資料遺失
-  - v1 不維護 tombstone，因此跨裝置刪除可能被另一端舊資料合併回來
-- 完整備份仍應使用匯出 `.json.gz`；Chrome Sync v1 只處理「無腦同步」的輕量場景
+  - 本機與遠端的引用作品、追蹤、紀錄、更新合併去重；閱讀 checkpoint 按原有新舊優先規則選擇
+  - 同步不維護 tombstone，因此跨裝置刪除可能被另一端舊資料合併回來
+- 完整備份仍應使用匯出 `.json.gz`；Chrome Sync 只處理「無腦同步」的輕量場景
+- 新裝置僅還原最後閱讀位置，不還原完整已讀明細
 
 ## 快取與回收
 - `chapters` 是 cache，不是每部作品都必須永久保存

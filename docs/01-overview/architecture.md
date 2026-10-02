@@ -69,8 +69,11 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - `chrome.storage.sync` 的 library sync payload 由 `library/sync.ts` 管理：
   - 遠端 manifest / chunks 存在 sync storage
   - 本機啟用狀態與同步 metadata 存在 local storage
-  - 內部 `LibrarySyncStateV1` 與 Chrome Sync v1 wire rows 是獨立 contract，不共用完整 backup dump / runtime snapshot 型別
-  - `syncModel.ts` 集中處理 wire adapter 與 state merge，並明確保存 latest / lastRead / read / chapter summaries
+  - 內部 `LibrarySyncStateV1` 與 Chrome Sync v1 / v2 wire rows 是獨立 contract，不共用完整 backup dump / runtime snapshot 型別
+  - `syncModel.ts` 集中處理 v1 JSON / v2 索引 wire adapter 與 state merge，並明確保存 latest / lastRead / read / chapter summaries
+  - `syncCodec.ts` 使用原生 gzip / base64 編碼 v2 索引 JSON；原始 / 解壓資料上限 8 MiB，儲存配額按 manifest + 分片計算
+  - `byteStreams.ts` 提供同步與備份共用的 UTF-8 / byte stream helper，解壓大小限制由呼叫端指定
+  - 新版讀取 v1 / v2，僅寫入 v2；未知或損壞遠端資料會阻止手動同步與自動推送，所有同步裝置需升級
   - `syncPersistence.ts` 直接讀寫 sync state，只投影必要章節摘要，merge 後增量 upsert IndexedDB，不取代完整章節快取
   - 背景輪詢 `checkedAt` 僅保存在本機；sync merge 保留既有值，遠端新增 subscription 預設為 `0`
   - IndexedDB 仍是唯一 runtime source of truth
@@ -186,4 +189,4 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - `compat.ts` 是過渡層，不應成為新功能的預設入口，也不應透過主 facade 再向外擴張
 - Reader store 與 Popup store 只保存頁面需要的 state，不作為跨頁面持久化真實來源
 - 不全面導入 `features/*`；需要降低頁面 container 複雜度時，優先在該 container 目錄內做局部 feature-style module decomposition
-- 跨裝置同步屬於 repository seam，不應為 v1 同步另開全域 feature-based 架構；若後續加入 tombstone / conflict resolution，再評估是否拆出更完整的 feature module
+- 跨裝置同步屬於 repository seam，不應為同步格式另開全域 feature-based 架構；若後續加入 tombstone / conflict resolution，再評估是否拆出更完整的 feature module

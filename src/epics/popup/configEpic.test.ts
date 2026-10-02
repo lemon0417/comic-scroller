@@ -270,6 +270,69 @@ describe("popupConfigEpic", () => {
     ]);
   });
 
+  it.each([requestSyncLibraryNow(), requestSetLibrarySyncEnabled(true)])(
+    "keeps returned sync errors without rereading storage (%#)",
+    async (request) => {
+      getPopupFeedSnapshot.mockResolvedValue(emptyFeed);
+      const failedStatus = {
+        ...librarySyncStatus,
+        enabled: true,
+        lastError:
+          "同步資料 1953078 bytes 超過 Chrome Sync 安全配額 92160 bytes。",
+        pendingPayloadBytes: 1953078,
+      };
+      syncLibraryNow.mockResolvedValue(failedStatus);
+      const actions = await lastValueFrom(
+        popupConfigEpic(of(request)).pipe(toArray()),
+      );
+      expect(actions).toContainEqual(setLibrarySyncStatus(failedStatus));
+      expect(getLibrarySyncStatus).not.toHaveBeenCalled();
+    },
+  );
+
+  it("keeps sync errors when the subsequent feed reload also fails", async () => {
+    const failedStatus = {
+      ...librarySyncStatus,
+      lastError: "Chrome quota error",
+      pendingPayloadBytes: 1000,
+    };
+    syncLibraryNow.mockResolvedValue(failedStatus);
+    getPopupFeedSnapshot.mockRejectedValue(new Error("Feed unavailable"));
+    const actions = await lastValueFrom(
+      popupConfigEpic(of(requestSyncLibraryNow())).pipe(toArray()),
+    );
+    expect(actions).toContainEqual(setLibrarySyncStatus(failedStatus));
+    expect(actions).toContainEqual(
+      setPopupNotice("目前無法載入書庫資料，請稍後再試。"),
+    );
+  });
+
+  it("shows the original unexpected sync rejection", async () => {
+    syncLibraryNow.mockRejectedValueOnce(
+      new Error("Chrome storage unavailable"),
+    );
+    const actions = await lastValueFrom(
+      popupConfigEpic(of(requestSyncLibraryNow())).pipe(toArray()),
+    );
+    expect(actions).toEqual([
+      setPopupNotice("同步失敗：Chrome storage unavailable"),
+    ]);
+  });
+
+  it("does not continue syncing when enabling sync fails", async () => {
+    getPopupFeedSnapshot.mockResolvedValue(emptyFeed);
+    const failedStatus = {
+      ...librarySyncStatus,
+      lastError: "Local storage unavailable",
+    };
+    setLibrarySyncEnabled.mockResolvedValue(failedStatus);
+    const actions = await lastValueFrom(
+      popupConfigEpic(of(requestSetLibrarySyncEnabled(true))).pipe(toArray()),
+    );
+    expect(syncLibraryNow).not.toHaveBeenCalled();
+    expect(actions).toContainEqual(setLibrarySyncStatus(failedStatus));
+  });
+
   it("surfaces a notice when popup data loading fails", async () => {
     getPopupFeedSnapshot.mockRejectedValue(new Error("boom"));
 

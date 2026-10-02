@@ -260,6 +260,10 @@ describe("ManageApp", () => {
           lastSyncedAt: 1710000000000,
           remoteUpdatedAt: 1710000000000,
           payloadBytes: 4096,
+          storageBytes: 2048,
+          pendingPayloadBytes: 1953078,
+          pendingStorageBytes: 100000,
+          lastError: "同步資料 1953078 bytes 超過 Chrome Sync 安全配額 92160 bytes。",
           quotaBytes: 92160,
         }}
         update={[]}
@@ -279,6 +283,16 @@ describe("ManageApp", () => {
     );
 
     fireEvent.click(screen.getByRole("tab", { name: "選項" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("1953078 bytes");
+    expect(screen.getByText("上次成功的原始資料大小")).toBeInTheDocument();
+    expect(screen.getByText("上次成功的同步儲存大小")).toBeInTheDocument();
+    expect(screen.getByText("2 KiB（2,048 bytes）")).toBeInTheDocument();
+    expect(screen.getByText("4 KiB（4,096 bytes）")).toBeInTheDocument();
+    expect(screen.getByText("本次失敗的原始資料大小")).toBeInTheDocument();
+    expect(screen.getByText("本次失敗的同步儲存大小")).toBeInTheDocument();
+    expect(screen.getByText("98 KiB（100,000 bytes）")).toBeInTheDocument();
+    expect(screen.getByText("1908 KiB（1,953,078 bytes）")).toBeInTheDocument();
+    expect(screen.getByText("90 KiB（92,160 bytes）")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("switch", { name: "同步精簡書庫" }));
     fireEvent.click(screen.getByRole("button", { name: "立即同步" }));
 

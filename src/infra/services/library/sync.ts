@@ -1,30 +1,31 @@
 import type { LibrarySyncStatus } from "@domain/library";
-import {
-  createEmptyLibrarySyncStatus,
-} from "@domain/library";
+import { createEmptyLibrarySyncStatus } from "@domain/library";
 
-import type {
-  LibrarySyncStateV1,
-  LibrarySyncWireRowsV1,
-} from "./syncModel";
 import {
+  decodeLibrarySyncJson,
+  encodeLibrarySyncJson,
+  getUtf8ByteLength,
+  LIBRARY_SYNC_ENCODING,
+  LIBRARY_SYNC_MAX_RAW_BYTES,
+} from "./syncCodec";
+import type { LibrarySyncStateV1, LibrarySyncWireRowsV1 } from "./syncModel";
+import {
+  compactLibrarySyncState,
   mergeLibrarySyncStates,
-  syncStateToWireRows,
+  syncIndexedRowsToState,
+  syncStateToIndexedRows,
   syncWireRowsToState,
 } from "./syncModel";
-import {
-  applyLibrarySyncState,
-  readLibrarySyncState,
-} from "./syncPersistence";
+import { applyLibrarySyncState, readLibrarySyncState } from "./syncPersistence";
 
 export const LIBRARY_SYNC_STATE_KEY = "librarySyncState";
-export const LIBRARY_SYNC_MAX_PAYLOAD_BYTES = 90 * 1024;
+export const LIBRARY_SYNC_MAX_STORAGE_BYTES = 90 * 1024;
 
 const LIBRARY_SYNC_MANIFEST_KEY = "librarySyncManifest";
 const LIBRARY_SYNC_CHUNK_PREFIX = "librarySyncChunk:";
 const LIBRARY_SYNC_PAYLOAD_FORMAT = "comic-scroller-library-sync";
-const LIBRARY_SYNC_PAYLOAD_FORMAT_VERSION = 1;
 const LIBRARY_SYNC_CHUNK_SIZE = 6000;
+const LIBRARY_SYNC_STORAGE_QUOTA_BYTES = 100 * 1024;
 
 type StoredLibrarySyncState = {
   enabled?: boolean;
@@ -33,20 +34,43 @@ type StoredLibrarySyncState = {
   lastRemoteUpdatedAt?: number;
   lastError?: string;
   payloadBytes?: number;
+  pendingPayloadBytes?: number;
+  storageBytes?: number;
+  pendingStorageBytes?: number;
 };
 
-type LibrarySyncManifest = {
+class LibrarySyncWriteError extends Error {
+  constructor(
+    message: string,
+    readonly payloadBytes: number,
+    readonly storageBytes?: number,
+  ) {
+    super(message);
+    Object.setPrototypeOf(this, LibrarySyncWriteError.prototype);
+  }
+}
+
+type LibrarySyncManifestBase = {
   format: typeof LIBRARY_SYNC_PAYLOAD_FORMAT;
-  formatVersion: typeof LIBRARY_SYNC_PAYLOAD_FORMAT_VERSION;
   updatedAt: number;
   deviceId: string;
   chunkCount: number;
   payloadBytes: number;
 };
 
-type LibrarySyncPayload = {
+type LibrarySyncManifest = LibrarySyncManifestBase &
+  (
+    | { formatVersion: 1 }
+    | {
+        formatVersion: 2;
+        encoding: typeof LIBRARY_SYNC_ENCODING;
+        encodedBytes: number;
+      }
+  );
+
+type LibrarySyncPayloadV1 = {
   format: typeof LIBRARY_SYNC_PAYLOAD_FORMAT;
-  formatVersion: typeof LIBRARY_SYNC_PAYLOAD_FORMAT_VERSION;
+  formatVersion: 1;
   updatedAt: number;
   deviceId: string;
   data: LibrarySyncWireRowsV1;
@@ -170,6 +194,9 @@ function normalizeStoredSyncState(input: unknown): StoredLibrarySyncState {
     lastRemoteUpdatedAt: toPositiveNumber(source.lastRemoteUpdatedAt),
     lastError: typeof source.lastError === "string" ? source.lastError : "",
     payloadBytes: toPositiveNumber(source.payloadBytes),
+    pendingPayloadBytes: toPositiveNumber(source.pendingPayloadBytes),
+    storageBytes: toPositiveNumber(source.storageBytes),
+    pendingStorageBytes: toPositiveNumber(source.pendingStorageBytes),
   };
 }
 
@@ -184,11 +211,18 @@ function compactStoredSyncState(state: StoredLibrarySyncState) {
   }
   if (state.lastError) result.lastError = state.lastError;
   if (state.payloadBytes) result.payloadBytes = state.payloadBytes;
+  if (state.pendingPayloadBytes)
+    result.pendingPayloadBytes = state.pendingPayloadBytes;
+  if (state.storageBytes) result.storageBytes = state.storageBytes;
+  if (state.pendingStorageBytes)
+    result.pendingStorageBytes = state.pendingStorageBytes;
   return result;
 }
 
 async function readLocalSyncState() {
-  const items = await storageGet(getStorageArea("local"), [LIBRARY_SYNC_STATE_KEY]);
+  const items = await storageGet(getStorageArea("local"), [
+    LIBRARY_SYNC_STATE_KEY,
+  ]);
   return normalizeStoredSyncState(items[LIBRARY_SYNC_STATE_KEY]);
 }
 
@@ -199,7 +233,10 @@ async function writeLocalSyncState(state: StoredLibrarySyncState) {
 }
 
 function createDeviceId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -218,92 +255,223 @@ async function ensureLocalSyncState() {
   return next;
 }
 
-function getUtf8ByteLength(input: string) {
-  if (typeof TextEncoder !== "undefined") {
-    return new TextEncoder().encode(input).length;
-  }
-  return unescape(encodeURIComponent(input)).length;
-}
-
 function chunkString(input: string) {
   const chunks: string[] = [];
-  for (let index = 0; index < input.length; index += LIBRARY_SYNC_CHUNK_SIZE) {
-    chunks.push(input.slice(index, index + LIBRARY_SYNC_CHUNK_SIZE));
+  let chunk = "";
+  let bytes = getUtf8ByteLength(getChunkKey(0)) + 2;
+  // Iterate code points so a surrogate pair never straddles two storage items.
+  for (const character of Array.from(input)) {
+    const characterBytes = getUtf8ByteLength(JSON.stringify(character)) - 2;
+    if (bytes + characterBytes > LIBRARY_SYNC_CHUNK_SIZE) {
+      chunks.push(chunk);
+      chunk = "";
+      bytes = getUtf8ByteLength(getChunkKey(chunks.length)) + 2;
+    }
+    chunk += character;
+    bytes += characterBytes;
   }
-  return chunks.length > 0 ? chunks : [""];
+  chunks.push(chunk);
+  return chunks;
+}
+
+function getStorageByteLength(items: Record<string, unknown>) {
+  return Object.entries(items).reduce(
+    (total, [key, value]) =>
+      total + getUtf8ByteLength(key) + getUtf8ByteLength(JSON.stringify(value)),
+    0,
+  );
 }
 
 function getChunkKey(index: number) {
   return `${LIBRARY_SYNC_CHUNK_PREFIX}${index}`;
 }
 
-function isLibrarySyncManifest(input: unknown): input is LibrarySyncManifest {
+function normalizeLibrarySyncManifest(
+  input: unknown,
+): LibrarySyncManifest | null {
+  if (input === undefined) return null;
   const source = toRecord(input);
-  return (
-    source.format === LIBRARY_SYNC_PAYLOAD_FORMAT &&
-    source.formatVersion === LIBRARY_SYNC_PAYLOAD_FORMAT_VERSION &&
-    typeof source.deviceId === "string" &&
-    Number.isFinite(Number(source.updatedAt)) &&
-    Number.isFinite(Number(source.chunkCount)) &&
-    Number.isFinite(Number(source.payloadBytes))
-  );
-}
-
-function normalizeLibrarySyncManifest(input: unknown) {
-  if (!isLibrarySyncManifest(input)) {
-    return null;
+  if (
+    source.format !== LIBRARY_SYNC_PAYLOAD_FORMAT ||
+    ![1, 2].includes(Number(source.formatVersion))
+  ) {
+    throw new Error("遠端同步格式不受支援，請更新所有裝置的 Comic Scroller。");
+  }
+  if (
+    typeof source.formatVersion !== "number" ||
+    typeof source.deviceId !== "string" ||
+    !source.deviceId ||
+    typeof source.updatedAt !== "number" ||
+    !Number.isSafeInteger(source.updatedAt) ||
+    source.updatedAt < 0 ||
+    typeof source.chunkCount !== "number" ||
+    !Number.isSafeInteger(source.chunkCount) ||
+    source.chunkCount < 1 ||
+    source.chunkCount > 512 ||
+    typeof source.payloadBytes !== "number" ||
+    !Number.isSafeInteger(source.payloadBytes) ||
+    source.payloadBytes < 1 ||
+    source.payloadBytes > LIBRARY_SYNC_MAX_RAW_BYTES
+  ) {
+    throw new Error("遠端同步 manifest 不完整或資料大小超過處理上限。");
+  }
+  const base: LibrarySyncManifestBase = {
+    format: LIBRARY_SYNC_PAYLOAD_FORMAT,
+    updatedAt: source.updatedAt,
+    deviceId: source.deviceId,
+    chunkCount: source.chunkCount,
+    payloadBytes: source.payloadBytes,
+  };
+  if (source.formatVersion === 1) return { ...base, formatVersion: 1 };
+  if (source.encoding !== LIBRARY_SYNC_ENCODING) {
+    throw new Error("遠端同步編碼不受支援，請更新所有裝置的 Comic Scroller。");
+  }
+  if (
+    typeof source.encodedBytes !== "number" ||
+    !Number.isSafeInteger(source.encodedBytes) ||
+    source.encodedBytes < 1 ||
+    source.encodedBytes > LIBRARY_SYNC_STORAGE_QUOTA_BYTES
+  ) {
+    throw new Error("遠端同步編碼大小不正確或超過儲存上限。");
   }
   return {
-    format: LIBRARY_SYNC_PAYLOAD_FORMAT,
-    formatVersion: LIBRARY_SYNC_PAYLOAD_FORMAT_VERSION,
-    updatedAt: Number(input.updatedAt),
-    deviceId: input.deviceId,
-    chunkCount: Number(input.chunkCount),
-    payloadBytes: Number(input.payloadBytes),
-  } satisfies LibrarySyncManifest;
+    ...base,
+    formatVersion: 2,
+    encoding: LIBRARY_SYNC_ENCODING,
+    encodedBytes: source.encodedBytes,
+  };
 }
 
-function isLibrarySyncPayload(input: unknown): input is LibrarySyncPayload {
-  const source = toRecord(input);
-  const data = source.data;
-  return (
-    source.format === LIBRARY_SYNC_PAYLOAD_FORMAT &&
-    source.formatVersion === LIBRARY_SYNC_PAYLOAD_FORMAT_VERSION &&
-    typeof source.deviceId === "string" &&
-    Number.isFinite(Number(source.updatedAt)) &&
-    Boolean(data && typeof data === "object" && !Array.isArray(data))
+function readRemoteSummary(items: Record<string, unknown>) {
+  const manifest = normalizeLibrarySyncManifest(
+    items[LIBRARY_SYNC_MANIFEST_KEY],
   );
-}
-
-async function readRemoteManifest() {
-  const items = await storageGet(getStorageArea("sync"), [LIBRARY_SYNC_MANIFEST_KEY]);
-  return normalizeLibrarySyncManifest(items[LIBRARY_SYNC_MANIFEST_KEY]);
-}
-
-async function readRemotePayload(): Promise<RemoteLibrarySyncPayload | null> {
-  const manifest = await readRemoteManifest();
-  if (!manifest || manifest.chunkCount <= 0) {
-    return null;
-  }
-
+  if (!manifest) return null;
   const chunkKeys = Array.from({ length: manifest.chunkCount }, (_, index) =>
     getChunkKey(index),
   );
-  const items = await storageGet(getStorageArea("sync"), chunkKeys);
-  const payloadText = chunkKeys.map((key) => String(items[key] || "")).join("");
-  if (!payloadText) {
-    return null;
+  const chunks = chunkKeys.map((key) => {
+    if (typeof items[key] !== "string" || !items[key]) {
+      throw new Error("遠端同步分片不完整，請稍後再試。");
+    }
+    return items[key] as string;
+  });
+  const text = chunks.join("");
+  const expectedBytes =
+    manifest.formatVersion === 2
+      ? manifest.encodedBytes
+      : manifest.payloadBytes;
+  if (getUtf8ByteLength(text) !== expectedBytes) {
+    throw new Error("遠端同步分片大小與 manifest 不符，請稍後再試。");
   }
+  const storedItems = Object.fromEntries(
+    [LIBRARY_SYNC_MANIFEST_KEY, ...chunkKeys].map((key) => [key, items[key]]),
+  );
+  return { manifest, text, storageBytes: getStorageByteLength(storedItems) };
+}
 
-  const parsed = JSON.parse(payloadText) as unknown;
-  if (!isLibrarySyncPayload(parsed)) {
-    return null;
+function isLibrarySyncPayloadV1(input: unknown): input is LibrarySyncPayloadV1 {
+  const source = toRecord(input);
+  const data = toRecord(source.data);
+  if (
+    !(
+      source.format === LIBRARY_SYNC_PAYLOAD_FORMAT &&
+      source.formatVersion === 1 &&
+      typeof source.deviceId === "string" &&
+      typeof source.updatedAt === "number" &&
+      [data.series, data.subscriptions, data.history, data.updates].every(
+        Array.isArray,
+      )
+    )
+  )
+    return false;
+  return (
+    (data.series as unknown[]).every((item) => {
+      const series = toRecord(item);
+      if (
+        ![
+          series.site,
+          series.comicsID,
+          series.title,
+          series.cover,
+          series.url,
+          series.lastRead,
+        ].every((value) => typeof value === "string") ||
+        !series.comicsID ||
+        !Array.isArray(series.chapters)
+      )
+        return false;
+      if (
+        series.read !== undefined &&
+        (!Array.isArray(series.read) ||
+          !series.read.every((id) => typeof id === "string" && id.length > 0))
+      )
+        return false;
+      const chapterIDs = new Set<string>();
+      return series.chapters.every((item) => {
+        const chapter = toRecord(item);
+        if (
+          typeof chapter.chapterID !== "string" ||
+          !chapter.chapterID ||
+          chapterIDs.has(chapter.chapterID) ||
+          typeof chapter.title !== "string" ||
+          typeof chapter.href !== "string"
+        )
+          return false;
+        chapterIDs.add(chapter.chapterID);
+        return true;
+      });
+    }) &&
+    (data.history as unknown[]).every((id) => typeof id === "string") &&
+    (data.subscriptions as unknown[]).every(
+      (item) => typeof toRecord(item).seriesKey === "string",
+    ) &&
+    (data.updates as unknown[]).every((item) => {
+      const update = toRecord(item);
+      return (
+        typeof update.seriesKey === "string" &&
+        typeof update.chapterID === "string"
+      );
+    })
+  );
+}
+
+async function decodeRemoteItems(
+  items: Record<string, unknown>,
+): Promise<RemoteLibrarySyncPayload | null> {
+  const remote = readRemoteSummary(items);
+  if (!remote) return null;
+  const { manifest, text } = remote;
+  if (manifest.formatVersion === 2) {
+    return {
+      manifest,
+      state: syncIndexedRowsToState(
+        await decodeLibrarySyncJson(text, manifest.payloadBytes),
+      ),
+    };
   }
+  const parsed: unknown = JSON.parse(text);
+  if (
+    !isLibrarySyncPayloadV1(parsed) ||
+    parsed.deviceId !== manifest.deviceId ||
+    parsed.updatedAt !== manifest.updatedAt
+  ) {
+    throw new Error("遠端同步 v1 資料與 manifest 不符，請稍後再試。");
+  }
+  const state = syncWireRowsToState(parsed.data);
+  if (
+    Object.keys(state.seriesByKey).length !== parsed.data.series.length ||
+    state.subscriptions.length !== parsed.data.subscriptions.length ||
+    state.history.length !== parsed.data.history.length ||
+    state.updates.length !== parsed.data.updates.length
+  ) {
+    throw new Error("遠端同步 v1 資料包含不合法的作品或清單項目。");
+  }
+  return { manifest, state: compactLibrarySyncState(state) };
+}
 
-  return {
-    manifest,
-    state: syncWireRowsToState(parsed.data),
-  };
+async function readRemotePayload(): Promise<RemoteLibrarySyncPayload | null> {
+  return decodeRemoteItems(await storageGet(getStorageArea("sync"), null));
 }
 
 async function writeRemoteState(
@@ -312,118 +480,157 @@ async function writeRemoteState(
 ) {
   const now = Date.now();
   const deviceId = state.deviceId || createDeviceId();
-  const payload: LibrarySyncPayload = {
-    format: LIBRARY_SYNC_PAYLOAD_FORMAT,
-    formatVersion: LIBRARY_SYNC_PAYLOAD_FORMAT_VERSION,
-    updatedAt: now,
-    deviceId,
-    data: syncStateToWireRows(libraryState),
-  };
-  const payloadText = JSON.stringify(payload);
-  const payloadBytes = getUtf8ByteLength(payloadText);
-  if (payloadBytes > LIBRARY_SYNC_MAX_PAYLOAD_BYTES) {
-    throw new Error(
-      `同步資料 ${payloadBytes} bytes 超過 Chrome Sync 安全配額 ${LIBRARY_SYNC_MAX_PAYLOAD_BYTES} bytes。`,
+  const json = JSON.stringify(syncStateToIndexedRows(libraryState));
+  const payloadBytes = getUtf8ByteLength(json);
+  let storageBytes: number | undefined;
+  try {
+    const previousItems = await storageGet(getStorageArea("sync"), null);
+    // Automatic pushes must also refuse unknown or damaged remote payloads.
+    await decodeRemoteItems(previousItems);
+    const encoded = await encodeLibrarySyncJson(json);
+    const chunks = chunkString(encoded);
+    const syncItems: Record<string, unknown> = Object.fromEntries(
+      chunks.map((chunk, index) => [getChunkKey(index), chunk]),
+    );
+    syncItems[LIBRARY_SYNC_MANIFEST_KEY] = {
+      format: LIBRARY_SYNC_PAYLOAD_FORMAT,
+      formatVersion: 2,
+      encoding: LIBRARY_SYNC_ENCODING,
+      updatedAt: now,
+      deviceId,
+      chunkCount: chunks.length,
+      payloadBytes,
+      encodedBytes: encoded.length,
+    } satisfies LibrarySyncManifest;
+    storageBytes = getStorageByteLength(syncItems);
+    if (storageBytes > LIBRARY_SYNC_MAX_STORAGE_BYTES) {
+      throw new Error(
+        `同步儲存資料 ${storageBytes} bytes 超過 Chrome Sync 安全配額 ${LIBRARY_SYNC_MAX_STORAGE_BYTES} bytes（原始資料 ${payloadBytes} bytes）。`,
+      );
+    }
+    // Include old tails and unrelated keys: stale removal runs after set().
+    const totalStorageBytes = getStorageByteLength({
+      ...previousItems,
+      ...syncItems,
+    });
+    if (totalStorageBytes > LIBRARY_SYNC_STORAGE_QUOTA_BYTES) {
+      throw new Error(
+        `同步儲存資料合計 ${totalStorageBytes} bytes 超過 Chrome Sync 總配額 ${LIBRARY_SYNC_STORAGE_QUOTA_BYTES} bytes（本次同步 ${storageBytes} bytes，另含既有資料）。`,
+      );
+    }
+    await storageSet(getStorageArea("sync"), syncItems);
+    const activeKeys = new Set(Object.keys(syncItems));
+    const staleChunkKeys = Object.keys(previousItems).filter(
+      (key) => /^librarySyncChunk:\d+$/.test(key) && !activeKeys.has(key),
+    );
+    await storageRemove(getStorageArea("sync"), staleChunkKeys);
+    await writeLocalSyncState({
+      ...state,
+      deviceId,
+      lastSyncedAt: now,
+      lastRemoteUpdatedAt: now,
+      lastError: "",
+      payloadBytes,
+      storageBytes,
+      pendingPayloadBytes: undefined,
+      pendingStorageBytes: undefined,
+    });
+    return await getLibrarySyncStatus();
+  } catch (error) {
+    throw new LibrarySyncWriteError(
+      toErrorMessage(error),
+      payloadBytes,
+      storageBytes,
     );
   }
-
-  const chunks = chunkString(payloadText);
-  const previousManifest = await readRemoteManifest().catch(() => null);
-  const syncItems = chunks.reduce<Record<string, unknown>>((acc, chunk, index) => {
-    acc[getChunkKey(index)] = chunk;
-    return acc;
-  }, {});
-  syncItems[LIBRARY_SYNC_MANIFEST_KEY] = {
-    format: LIBRARY_SYNC_PAYLOAD_FORMAT,
-    formatVersion: LIBRARY_SYNC_PAYLOAD_FORMAT_VERSION,
-    updatedAt: now,
-    deviceId,
-    chunkCount: chunks.length,
-    payloadBytes,
-  } satisfies LibrarySyncManifest;
-
-  await storageSet(getStorageArea("sync"), syncItems);
-
-  const staleChunkKeys = Array.from(
-    { length: previousManifest?.chunkCount || 0 },
-    (_, index) => getChunkKey(index),
-  ).filter((_, index) => index >= chunks.length);
-  await storageRemove(getStorageArea("sync"), staleChunkKeys);
-
-  const nextState = {
-    ...state,
-    deviceId,
-    lastSyncedAt: now,
-    lastRemoteUpdatedAt: now,
-    lastError: "",
-    payloadBytes,
-  };
-  await writeLocalSyncState(nextState);
-  return getLibrarySyncStatus();
 }
 
-async function recordSyncError(
-  error: unknown,
-  state?: StoredLibrarySyncState,
-) {
+async function recordSyncError(error: unknown, state?: StoredLibrarySyncState) {
   const currentState =
-    state || (await readLocalSyncState().catch(() => normalizeStoredSyncState({})));
-  await writeLocalSyncState({
+    state ||
+    (await readLocalSyncState().catch(() => normalizeStoredSyncState({})));
+  const nextState = {
     ...currentState,
     lastError: toErrorMessage(error),
-  });
-  return getLibrarySyncStatus();
+    pendingPayloadBytes:
+      error instanceof LibrarySyncWriteError ? error.payloadBytes : undefined,
+    pendingStorageBytes:
+      error instanceof LibrarySyncWriteError ? error.storageBytes : undefined,
+  };
+  await writeLocalSyncState(nextState).catch(() => undefined);
+  const status = await getLibrarySyncStatus();
+  return {
+    ...status,
+    enabled: Boolean(nextState.enabled),
+    lastSyncedAt: nextState.lastSyncedAt,
+    lastError: nextState.lastError,
+    pendingPayloadBytes: nextState.pendingPayloadBytes,
+    pendingStorageBytes: nextState.pendingStorageBytes,
+  };
 }
 
 export async function getLibrarySyncStatus(): Promise<LibrarySyncStatus> {
   const available = isStorageAvailable();
-  const state = await readLocalSyncState()
-    .catch(() => normalizeStoredSyncState({}));
-  const manifest = available
-    ? await readRemoteManifest().catch(() => null)
+  const state = await readLocalSyncState().catch(() =>
+    normalizeStoredSyncState({}),
+  );
+  const remote = available
+    ? await storageGet(getStorageArea("sync"), null)
+        .then(readRemoteSummary)
+        .catch(() => null)
     : null;
 
   return createEmptyLibrarySyncStatus({
     enabled: Boolean(state.enabled),
     available,
     lastSyncedAt: state.lastSyncedAt,
-    remoteUpdatedAt: manifest?.updatedAt || state.lastRemoteUpdatedAt,
+    remoteUpdatedAt: remote?.manifest.updatedAt || state.lastRemoteUpdatedAt,
     lastError: state.lastError,
-    payloadBytes: manifest?.payloadBytes || state.payloadBytes,
-    quotaBytes: LIBRARY_SYNC_MAX_PAYLOAD_BYTES,
+    payloadBytes: remote?.manifest.payloadBytes || state.payloadBytes,
+    storageBytes: remote?.storageBytes || state.storageBytes,
+    pendingStorageBytes: state.pendingStorageBytes,
+    pendingPayloadBytes: state.pendingPayloadBytes,
+    quotaBytes: LIBRARY_SYNC_MAX_STORAGE_BYTES,
   });
 }
 
 export async function setLibrarySyncEnabled(enabled: boolean) {
-  const state = await ensureLocalSyncState();
-  await writeLocalSyncState({
-    ...state,
-    enabled,
-    lastError: "",
-  });
-  return getLibrarySyncStatus();
+  let state: StoredLibrarySyncState | undefined;
+  try {
+    state = await ensureLocalSyncState();
+    await writeLocalSyncState({
+      ...state,
+      enabled,
+      lastError: "",
+      pendingPayloadBytes: undefined,
+      pendingStorageBytes: undefined,
+    });
+    return await getLibrarySyncStatus();
+  } catch (error) {
+    return recordSyncError(error, state);
+  }
 }
 
 export async function syncLibraryNow() {
-  const state = await ensureLocalSyncState();
-  if (!state.enabled) {
-    return getLibrarySyncStatus();
-  }
-
+  let state: StoredLibrarySyncState | undefined;
   try {
+    state = await ensureLocalSyncState();
+    if (!state.enabled) return await getLibrarySyncStatus();
     const local = await readLibrarySyncState();
     const remotePayload = await readRemotePayload();
     const remoteIsNewer = Boolean(
       remotePayload?.manifest.updatedAt &&
-      remotePayload.manifest.updatedAt > (state.lastRemoteUpdatedAt || 0),
+        remotePayload.manifest.updatedAt > (state.lastRemoteUpdatedAt || 0),
     );
-    const mergedState = remotePayload
-      ? mergeLibrarySyncStates(
-          local.state,
-          remotePayload.state,
-          remoteIsNewer ? "remote" : "local",
-        )
-      : local.state;
+    const mergedState = compactLibrarySyncState(
+      remotePayload
+        ? mergeLibrarySyncStates(
+            compactLibrarySyncState(local.state),
+            remotePayload.state,
+            remoteIsNewer ? "remote" : "local",
+          )
+        : local.state,
+    );
 
     if (remotePayload) {
       await applyLibrarySyncState(
@@ -432,9 +639,10 @@ export async function syncLibraryNow() {
       );
     }
 
-    return writeRemoteState(mergedState, {
+    return await writeRemoteState(mergedState, {
       ...state,
-      lastRemoteUpdatedAt: remotePayload?.manifest.updatedAt || state.lastRemoteUpdatedAt,
+      lastRemoteUpdatedAt:
+        remotePayload?.manifest.updatedAt || state.lastRemoteUpdatedAt,
     });
   } catch (error) {
     return recordSyncError(error, state);
@@ -442,15 +650,12 @@ export async function syncLibraryNow() {
 }
 
 export async function pushLibrarySyncIfEnabled() {
-  const state = await readLocalSyncState()
-    .catch(() => normalizeStoredSyncState({}));
-  if (!state.enabled) {
-    return getLibrarySyncStatus();
-  }
-
+  let state: StoredLibrarySyncState | undefined;
   try {
+    state = await readLocalSyncState();
+    if (!state.enabled) return await getLibrarySyncStatus();
     const local = await readLibrarySyncState();
-    return writeRemoteState(local.state, {
+    return await writeRemoteState(local.state, {
       ...state,
       deviceId: state.deviceId || createDeviceId(),
     });

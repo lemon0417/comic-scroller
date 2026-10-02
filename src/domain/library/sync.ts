@@ -5,6 +5,9 @@ export type LibrarySyncStatus = {
   remoteUpdatedAt?: number;
   lastError?: string;
   payloadBytes?: number;
+  pendingPayloadBytes?: number;
+  storageBytes?: number;
+  pendingStorageBytes?: number;
   quotaBytes?: number;
 };
 

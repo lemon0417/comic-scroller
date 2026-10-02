@@ -64,7 +64,10 @@ function updateBadge(feed: PopupFeedSnapshot | undefined) {
   chrome.action.setBadgeText({ text: `${count === 0 ? "" : count}` });
 }
 
-function getPopupConfigErrorMessage(actionType: PopupConfigAction["type"]) {
+function getPopupConfigErrorMessage(
+  actionType: PopupConfigAction["type"],
+  error?: unknown,
+) {
   if (actionType === REQUEST_IMPORT_CONFIG) {
     return "匯入失敗，請確認設定檔格式後再試。";
   }
@@ -78,18 +81,28 @@ function getPopupConfigErrorMessage(actionType: PopupConfigAction["type"]) {
     actionType === REQUEST_SET_LIBRARY_SYNC_ENABLED ||
     actionType === REQUEST_SYNC_LIBRARY_NOW
   ) {
+    const detail =
+      error instanceof Error
+        ? error.message
+        : typeof error === "string"
+          ? error
+          : "";
+    if (detail) return `同步失敗：${detail}`;
     return "同步失敗，請稍後再試。";
   }
   return "目前無法載入書庫資料，請稍後再試。";
 }
 
-async function loadPopupViewData(view?: PopupDataView) {
+async function loadPopupViewData(
+  view?: PopupDataView,
+  syncStatus?: LibrarySyncStatus,
+) {
   const [feed, extensionReleaseNotice, librarySyncStatus] = await Promise.all([
     getPopupFeedSnapshot(
       view === "popup" ? { updateLimit: POPUP_UPDATE_LIMIT } : {},
     ),
     getExtensionReleaseNotice().catch(() => null),
-    getLibrarySyncStatus(),
+    syncStatus ? Promise.resolve(syncStatus) : getLibrarySyncStatus(),
   ]);
 
   return {
@@ -97,6 +110,24 @@ async function loadPopupViewData(view?: PopupDataView) {
     extensionReleaseNotice,
     librarySyncStatus,
   };
+}
+
+function reloadAfterSync(
+  status: LibrarySyncStatus,
+  source: "load" | "import" | "reset" = "load",
+) {
+  return from(loadPopupViewData("manage", status)).pipe(
+    mergeMap((data) => {
+      updateBadge(data.feed);
+      return createLoadedActions(data, source);
+    }),
+    catchError(() =>
+      of(
+        setLibrarySyncStatus(status),
+        setPopupNotice(getPopupConfigErrorMessage(REQUEST_POPUP_DATA)),
+      ),
+    ),
+  );
 }
 
 function createLoadedActions(
@@ -138,15 +169,7 @@ const popupConfigEpic: PopupEpic = (action$) =>
       if (action.type === REQUEST_IMPORT_CONFIG) {
         return from(importLibraryDump(action.payload || {})).pipe(
           mergeMap(() => from(pushLibrarySyncIfEnabled())),
-          mergeMap(() =>
-            from(loadPopupViewData()).pipe(
-              mergeMap((data) => {
-                const { feed } = data;
-                updateBadge(feed);
-                return createLoadedActions(data, "import");
-              }),
-            ),
-          ),
+          mergeMap((status) => reloadAfterSync(status, "import")),
           catchError(() =>
             of(setPopupNotice(getPopupConfigErrorMessage(action.type))),
           ),
@@ -156,15 +179,7 @@ const popupConfigEpic: PopupEpic = (action$) =>
       if (action.type === REQUEST_RESET_CONFIG) {
         return from(resetLibrary()).pipe(
           mergeMap(() => from(pushLibrarySyncIfEnabled())),
-          mergeMap(() =>
-            from(loadPopupViewData()).pipe(
-              mergeMap((data) => {
-                const { feed } = data;
-                updateBadge(feed);
-                return createLoadedActions(data, "reset");
-              }),
-            ),
-          ),
+          mergeMap((status) => reloadAfterSync(status, "reset")),
           catchError(() =>
             of(setPopupNotice(getPopupConfigErrorMessage(action.type))),
           ),
@@ -190,33 +205,25 @@ const popupConfigEpic: PopupEpic = (action$) =>
             (action.payload as { enabled?: boolean }).enabled,
         );
         return from(setLibrarySyncEnabled(enabled)).pipe(
-          mergeMap(() => from(enabled ? syncLibraryNow() : getLibrarySyncStatus())),
-          mergeMap(() =>
-            from(loadPopupViewData("manage")).pipe(
-              mergeMap((data) => {
-                updateBadge(data.feed);
-                return createLoadedActions(data, "load");
-              }),
+          mergeMap((status) =>
+            from(
+              enabled && !status.lastError
+                ? syncLibraryNow()
+                : Promise.resolve(status),
             ),
           ),
-          catchError(() =>
-            of(setPopupNotice(getPopupConfigErrorMessage(action.type))),
+          mergeMap((status) => reloadAfterSync(status)),
+          catchError((error: unknown) =>
+            of(setPopupNotice(getPopupConfigErrorMessage(action.type, error))),
           ),
         );
       }
 
       if (action.type === REQUEST_SYNC_LIBRARY_NOW) {
         return from(syncLibraryNow()).pipe(
-          mergeMap(() =>
-            from(loadPopupViewData("manage")).pipe(
-              mergeMap((data) => {
-                updateBadge(data.feed);
-                return createLoadedActions(data, "load");
-              }),
-            ),
-          ),
-          catchError(() =>
-            of(setPopupNotice(getPopupConfigErrorMessage(action.type))),
+          mergeMap((status) => reloadAfterSync(status)),
+          catchError((error: unknown) =>
+            of(setPopupNotice(getPopupConfigErrorMessage(action.type, error))),
           ),
         );
       }

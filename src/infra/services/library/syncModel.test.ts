@@ -1,11 +1,11 @@
 import { buildSeriesKey } from "./schema";
-import type {
-  LibrarySyncSeriesStateV1,
-  LibrarySyncStateV1,
-} from "./syncModel";
+import type { LibrarySyncSeriesStateV1, LibrarySyncStateV1 } from "./syncModel";
 import {
+  compactLibrarySyncState,
   createEmptyLibrarySyncState,
   mergeLibrarySyncStates,
+  syncIndexedRowsToState,
+  syncStateToIndexedRows,
   syncStateToWireRows,
   syncWireRowsToState,
 } from "./syncModel";
@@ -32,6 +32,150 @@ function createState(): LibrarySyncStateV1 {
 }
 
 describe("library sync model", () => {
+  it("preserves chapter IDs that match object prototype names through decoding and merging", () => {
+    const rows = [
+      [
+        [
+          0,
+          "m1",
+          "Demo",
+          "",
+          "",
+          1,
+          1,
+          [
+            ["__proto__", "Chapter", "chapter-url"],
+            ["constructor", "Next", "next-url"],
+          ],
+        ],
+      ],
+      [1],
+      [],
+      [[1, 2]],
+    ];
+    const remote = syncIndexedRowsToState(rows);
+    const merged = mergeLibrarySyncStates(createState(), remote, "remote");
+    const summaries = merged.seriesByKey["dm5:m1"].chapterSummaries;
+    expect(Object.hasOwn(summaries, "__proto__")).toBe(true);
+    expect(summaries.__proto__).toEqual({
+      title: "Chapter",
+      href: "chapter-url",
+    });
+    expect(summaries.constructor).toEqual({ title: "Next", href: "next-url" });
+    expect(Object.getPrototypeOf(summaries)).toBe(Object.prototype);
+    expect(syncIndexedRowsToState(syncStateToIndexedRows(merged))).toEqual(
+      remote,
+    );
+    expect(syncWireRowsToState(syncStateToWireRows(remote))).toEqual(remote);
+  });
+
+  it.each([
+    null,
+    [[], [], []],
+    [[], [1], [], []],
+    [[], [], [0], []],
+    [[], [], [], [[1, 1]]],
+    [[[3, "id", "", "", "", 0, 0, []]], [], [], []],
+    [[[0, "id", 123, "", "", 0, 0, []]], [], [], []],
+    [[[0, "id", "", "", "", 1, 0, []]], [], [], []],
+    [[[0, "id", "", "", "", 0, -1, []]], [], [], []],
+    [
+      [
+        [
+          0,
+          "id",
+          "",
+          "",
+          "",
+          0,
+          0,
+          [
+            ["c1", "", ""],
+            ["c1", "", ""],
+          ],
+        ],
+      ],
+      [],
+      [],
+      [],
+    ],
+    [
+      [
+        [0, "id", "", "", "", 0, 0, []],
+        [0, "id", "", "", "", 0, 0, []],
+      ],
+      [],
+      [],
+      [],
+    ],
+    [[[0, "id", "", "", "", 0, 0, [["c1", "", ""]]]], [], [], [[1, 2]]],
+    [[[0, "id", "", "", "", 0, 0, []]], [1.5], [], []],
+  ])("rejects malformed indexed rows instead of dropping data (%#)", (rows) => {
+    expect(() => syncIndexedRowsToState(rows)).toThrow();
+  });
+
+  it("keeps site codes stable and uses explicit missing checkpoints", () => {
+    const state = createState();
+    for (const site of ["dm5", "sf", "comicbus"] as const) {
+      const key = buildSeriesKey(site, "123");
+      state.seriesByKey[key] = createSeriesState({
+        site,
+        comicsID: key.split(":")[1],
+      });
+      state.subscriptions.push(key);
+    }
+    const rows = syncStateToIndexedRows(state);
+    expect(rows[0].map((row) => row[0])).toEqual([0, 1, 2]);
+    expect(rows[0].map((row) => row.slice(5, 7))).toEqual([
+      [0, 0],
+      [0, 0],
+      [0, 0],
+    ]);
+    expect(rows[1]).toEqual([1, 2, 3]);
+    expect(syncIndexedRowsToState(rows)).toEqual(state);
+  });
+
+  it("keeps every subscription and update, the latest 50 history entries, and only checkpoint summaries", () => {
+    const state = createState();
+    for (let index = 0; index < 55; index += 1) {
+      const key = buildSeriesKey("dm5", `m${index}`);
+      state.seriesByKey[key] = createSeriesState({ comicsID: `m${index}` });
+      state.history.push(key);
+    }
+    state.subscriptions = ["dm5:m52"];
+    state.updates = [
+      { seriesKey: "dm5:m53", chapterID: "pending1" },
+      { seriesKey: "dm5:m53", chapterID: "pending2" },
+    ];
+    state.seriesByKey["dm5:m53"] = createSeriesState({
+      comicsID: "m53",
+      latestChapterID: "latest",
+      lastReadChapterID: "last",
+      readChapterIDs: ["old", "last"],
+      chapterSummaries: {
+        old: { title: "Old read", href: "old" },
+        last: { title: "Last read", href: "last" },
+        latest: { title: "Latest", href: "latest" },
+        pending1: { title: "Pending 1", href: "pending1" },
+        pending2: { title: "Pending 2", href: "pending2" },
+      },
+    });
+    const before = JSON.stringify(state);
+    const compact = compactLibrarySyncState(state);
+    expect(compact.subscriptions).toEqual(state.subscriptions);
+    expect(compact.updates).toEqual(state.updates);
+    expect(compact.history).toEqual(state.history.slice(0, 50));
+    expect(Object.keys(compact.seriesByKey)).toHaveLength(52);
+    expect(compact.seriesByKey).not.toHaveProperty("dm5:m51");
+    expect(compact.seriesByKey).not.toHaveProperty("dm5:m54");
+    expect(compact.seriesByKey["dm5:m53"].readChapterIDs).toEqual(["last"]);
+    expect(
+      Object.keys(compact.seriesByKey["dm5:m53"].chapterSummaries),
+    ).toEqual(["latest", "last", "pending1", "pending2"]);
+    expect(JSON.stringify(state)).toBe(before);
+    expect(compactLibrarySyncState(compact)).toEqual(compact);
+  });
+
   it("round-trips the v1 wire shape while keeping latest chapter explicit", () => {
     const seriesKey = buildSeriesKey("dm5", "m1");
     const state = createState();
@@ -51,11 +195,9 @@ describe("library sync model", () => {
     state.updates = [{ seriesKey, chapterID: "c3" }];
 
     const wire = syncStateToWireRows(state);
-    expect(wire.series[0].chapters.map((chapter) => chapter.chapterID)).toEqual([
-      "c3",
-      "c2",
-      "c1",
-    ]);
+    expect(wire.series[0].chapters.map((chapter) => chapter.chapterID)).toEqual(
+      ["c3", "c2", "c1"],
+    );
     expect(wire.series[0].chapters).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ chapterID: "cached" }),

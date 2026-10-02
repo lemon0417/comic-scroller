@@ -1309,13 +1309,38 @@ describe("library integration", () => {
             cover: "local.jpg",
             url: "https://www.dm5.com/m123/",
             lastRead: "m1",
-            read: ["m1"],
+            read: ["m1", "m0"],
             chapters: [
-              { chapterID: "m3", title: "Ch 3", href: "https://www.dm5.com/m3/" },
-              { chapterID: "m2", title: "Ch 2", href: "https://www.dm5.com/m2/" },
-              { chapterID: "m1", title: "Ch 1", href: "https://www.dm5.com/m1/" },
-              { chapterID: "m0", title: "Ch 0", href: "https://www.dm5.com/m0/" },
+              {
+                chapterID: "m3",
+                title: "Ch 3",
+                href: "https://www.dm5.com/m3/",
+              },
+              {
+                chapterID: "m2",
+                title: "Ch 2",
+                href: "https://www.dm5.com/m2/",
+              },
+              {
+                chapterID: "m1",
+                title: "Ch 1",
+                href: "https://www.dm5.com/m1/",
+              },
+              {
+                chapterID: "m0",
+                title: "Ch 0",
+                href: "https://www.dm5.com/m0/",
+              },
             ],
+          },
+          {
+            site: "dm5",
+            comicsID: "orphan",
+            title: "Cache only",
+            cover: "",
+            url: "",
+            lastRead: "",
+            chapters: [{ chapterID: "cache", title: "Cache", href: "" }],
           },
         ],
         subscriptions: [{ seriesKey: "dm5:m123", checkedAt: 111 }],
@@ -1325,59 +1350,68 @@ describe("library integration", () => {
     });
 
     const local = await syncPersistence.readLibrarySyncState();
+    expect(Object.keys(local.state.seriesByKey)).toEqual(["dm5:m123"]);
+    expect(local.state.seriesByKey["dm5:m123"].readChapterIDs).toEqual(["m1"]);
     expect(local.subscriptionCheckedAtByKey).toEqual({
       "dm5:m123": 111,
     });
     expect(
       Object.keys(local.state.seriesByKey["dm5:m123"].chapterSummaries),
-    ).toEqual([
-      "m3",
-      "m1",
-      "m2",
-    ]);
+    ).toEqual(["m3", "m1", "m2"]);
     expect(
       local.state.seriesByKey["dm5:m123"].chapterSummaries,
     ).not.toHaveProperty("m0");
 
-    const mergedState = syncModel.syncWireRowsToState({
-      series: [
-        {
-          site: "dm5",
-          comicsID: "m123",
-          title: "Remote Demo",
-          cover: "remote.jpg",
-          url: "https://www.dm5.com/m123/",
-          lastRead: "m1",
-          read: ["m1"],
-          chapters: [
-            { chapterID: "m4", title: "Ch 4", href: "https://www.dm5.com/m4/" },
-            { chapterID: "m3", title: "Ch 3", href: "https://www.dm5.com/m3/" },
-            { chapterID: "m1", title: "Ch 1", href: "https://www.dm5.com/m1/" },
-          ],
-        },
-        {
-          site: "sf",
-          comicsID: "77",
-          title: "Remote Only",
-          cover: "",
-          url: "http://comic.sfacg.com/HTML/77/",
-          lastRead: "",
-          chapters: [
-            {
-              chapterID: "HTML/77/c7.html",
-              title: "Ch 7",
-              href: "http://comic.sfacg.com/HTML/77/c7.html",
-            },
-          ],
-        },
-      ],
-      subscriptions: [
-        { seriesKey: "dm5:m123" },
-        { seriesKey: "sf:77" },
-      ],
-      history: ["dm5:m123"],
-      updates: [{ seriesKey: "dm5:m123", chapterID: "m4" }],
-    });
+    const mergedState = syncModel.compactLibrarySyncState(
+      syncModel.syncWireRowsToState({
+        series: [
+          {
+            site: "dm5",
+            comicsID: "m123",
+            title: "Remote Demo",
+            cover: "remote.jpg",
+            url: "https://www.dm5.com/m123/",
+            lastRead: "m1",
+            read: ["m1"],
+            chapters: [
+              {
+                chapterID: "m4",
+                title: "Ch 4",
+                href: "https://www.dm5.com/m4/",
+              },
+              {
+                chapterID: "m3",
+                title: "Ch 3",
+                href: "https://www.dm5.com/m3/",
+              },
+              {
+                chapterID: "m1",
+                title: "Ch 1",
+                href: "https://www.dm5.com/m1/",
+              },
+            ],
+          },
+          {
+            site: "sf",
+            comicsID: "77",
+            title: "Remote Only",
+            cover: "",
+            url: "http://comic.sfacg.com/HTML/77/",
+            lastRead: "",
+            chapters: [
+              {
+                chapterID: "HTML/77/c7.html",
+                title: "Ch 7",
+                href: "http://comic.sfacg.com/HTML/77/c7.html",
+              },
+            ],
+          },
+        ],
+        subscriptions: [{ seriesKey: "dm5:m123" }, { seriesKey: "sf:77" }],
+        history: ["dm5:m123"],
+        updates: [{ seriesKey: "dm5:m123", chapterID: "m4" }],
+      }),
+    );
 
     await syncPersistence.applyLibrarySyncState(
       mergedState,
@@ -1393,6 +1427,12 @@ describe("library integration", () => {
       "m0",
     ]);
     expect(localState.series?.title).toBe("Remote Demo");
+    expect(localState.series?.read).toEqual(
+      expect.arrayContaining(["m1", "m0"]),
+    );
+    await expect(
+      queries.getSeriesSnapshot("dm5:orphan"),
+    ).resolves.toMatchObject({ title: "Cache only" });
     await expect(queries.getReaderSeriesState("sf:77")).resolves.toMatchObject({
       series: {
         title: "Remote Only",
@@ -1413,6 +1453,45 @@ describe("library integration", () => {
         { seriesKey: "sf:77", position: 1, checkedAt: 0 },
       ]),
     );
+
+    const syncService = await import("./sync");
+    chrome.storage.local.set({
+      librarySyncState: { enabled: true, deviceId: "integration-device" },
+    });
+    const remoteItems: Record<string, unknown> = {};
+    let failWrite = true;
+    const runtime = chrome.runtime as unknown as {
+      lastError?: { message: string };
+    };
+    Object.assign(chrome.storage, {
+      sync: {
+        get: (
+          _keys: unknown,
+          callback: (items: Record<string, unknown>) => void,
+        ) => callback(remoteItems),
+        set: (items: Record<string, unknown>, callback: () => void) => {
+          if (failWrite)
+            runtime.lastError = { message: "Chrome sync quota exceeded" };
+          else Object.assign(remoteItems, items);
+          try {
+            callback();
+          } finally {
+            delete runtime.lastError;
+          }
+        },
+        remove: (_keys: string[], callback: () => void) => callback(),
+      },
+    });
+    const rowsBeforeSync = await shared.readRowsFromDb();
+    await expect(syncService.syncLibraryNow()).resolves.toMatchObject({
+      lastError: "Chrome sync quota exceeded",
+    });
+    expect(await shared.readRowsFromDb()).toEqual(rowsBeforeSync);
+    failWrite = false;
+    await expect(syncService.syncLibraryNow()).resolves.toMatchObject({
+      lastError: "",
+    });
+    expect(await shared.readRowsFromDb()).toEqual(rowsBeforeSync);
   });
 
   it("migrates legacy chrome.storage data into IndexedDB on first repository query", async () => {

@@ -26,7 +26,7 @@ function formatPayloadSize(bytes?: number) {
   if (!bytes) {
     return "無遠端資料";
   }
-  return `${Math.ceil(bytes / 1024)} KB`;
+  return `${Math.ceil(bytes / 1024)} KiB（${bytes.toLocaleString("zh-TW")} bytes）`;
 }
 
 export function ManageDataPanel({
@@ -48,18 +48,41 @@ export function ManageDataPanel({
         <SwitchField
           id="manage-library-sync-toggle"
           label="同步精簡書庫"
-          description="使用 Chrome 帳號同步追蹤、閱讀紀錄與更新狀態；完整章節快取仍只保留在本機。"
+          description="使用 Chrome 帳號同步追蹤、最近 50 筆閱讀紀錄、最後閱讀位置與更新提醒；完整已讀明細與章節快取只保留在本機。"
           checked={librarySyncStatus.enabled}
           disabled={syncDisabled}
           onToggle={() => onSyncToggle(!librarySyncStatus.enabled)}
         />
+        <p className="manage-section-desc">
+          使用同步的所有裝置都需要更新擴充功能，才能讀取新的同步資料。
+        </p>
         <dl className="manage-sync-details">
           <dt>上次同步</dt>
           <dd>{formatSyncTime(librarySyncStatus.lastSyncedAt)}</dd>
           <dt>遠端更新</dt>
           <dd>{formatSyncTime(librarySyncStatus.remoteUpdatedAt)}</dd>
-          <dt>同步大小</dt>
+          <dt>上次成功的原始資料大小</dt>
           <dd>{formatPayloadSize(librarySyncStatus.payloadBytes)}</dd>
+          <dt>上次成功的同步儲存大小</dt>
+          <dd>{formatPayloadSize(librarySyncStatus.storageBytes)}</dd>
+          {librarySyncStatus.pendingPayloadBytes !== undefined ? (
+            <>
+              <dt>本次失敗的原始資料大小</dt>
+              <dd>{formatPayloadSize(librarySyncStatus.pendingPayloadBytes)}</dd>
+            </>
+          ) : null}
+          {librarySyncStatus.pendingStorageBytes !== undefined ? (
+            <>
+              <dt>本次失敗的同步儲存大小</dt>
+              <dd>{formatPayloadSize(librarySyncStatus.pendingStorageBytes)}</dd>
+            </>
+          ) : null}
+          {librarySyncStatus.quotaBytes !== undefined ? (
+            <>
+              <dt>同步儲存上限</dt>
+              <dd>{formatPayloadSize(librarySyncStatus.quotaBytes)}</dd>
+            </>
+          ) : null}
         </dl>
         {librarySyncStatus.lastError ? (
           <p

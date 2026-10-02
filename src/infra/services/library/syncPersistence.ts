@@ -12,7 +12,6 @@ import {
 import type {
   ChapterRow,
   HistoryRow,
-  ReadRow,
   SeriesRow,
   SubscriptionRow,
   UpdateRow,
@@ -43,7 +42,7 @@ export type LocalLibrarySyncState = {
   subscriptionCheckedAtByKey: Record<string, number>;
 };
 
-function groupChapterIDsBySeriesKey(rows: ReadRow[] | UpdateRow[]) {
+function groupChapterIDsBySeriesKey(rows: UpdateRow[]) {
   return rows.reduce<Record<string, string[]>>((acc, row) => {
     if (!row.seriesKey || !row.chapterID) {
       return acc;
@@ -64,7 +63,6 @@ function createProjectedSeries(
   row: SeriesRow,
   chapterIDs: string[],
   chaptersByKey: Record<string, ChapterRow>,
-  readChapterIDs: string[],
 ): LibrarySyncSeriesStateV1 {
   return {
     site: row.site,
@@ -74,7 +72,7 @@ function createProjectedSeries(
     url: row.url,
     latestChapterID: row.latestChapterID,
     lastReadChapterID: row.lastRead,
-    readChapterIDs: uniqueStrings([...readChapterIDs, row.lastRead]),
+    readChapterIDs: uniqueStrings([row.lastRead]),
     chapterSummaries: chapterIDs.reduce<
       Record<string, LibrarySyncChapterSummary>
     >((acc, chapterID) => {
@@ -102,15 +100,11 @@ export async function readLibrarySyncState(): Promise<LocalLibrarySyncState> {
   await ensureLibraryReady();
   const db = await openLibraryDb();
   const rowsTransaction = db.transaction(
-    [SERIES_STORE, READS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE],
+    [SERIES_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE],
     "readonly",
   );
   const rowsDone = transactionDone(rowsTransaction);
-  const [series, reads, subscriptions, history, updates] = await Promise.all([
-    requestToPromise<SeriesRow[]>(
-      rowsTransaction.objectStore(SERIES_STORE).getAll(),
-    ),
-    requestToPromise<ReadRow[]>(rowsTransaction.objectStore(READS_STORE).getAll()),
+  const [subscriptions, history, updates] = await Promise.all([
     loadRowsByPositionInTransaction<SubscriptionRow>(
       rowsTransaction.objectStore(SUBSCRIPTIONS_STORE),
     ),
@@ -119,16 +113,26 @@ export async function readLibrarySyncState(): Promise<LocalLibrarySyncState> {
     ),
     loadUpdatesInTransaction(rowsTransaction.objectStore(UPDATES_STORE)),
   ]);
+  const referencedKeys = uniqueStrings([
+    ...subscriptions.map((row) => row.seriesKey),
+    ...history.slice(0, HISTORY_LIMIT).map((row) => row.seriesKey),
+    ...updates.map((row) => row.seriesKey),
+  ]);
+  const seriesRows = await Promise.all(
+    referencedKeys.map((key) =>
+      requestToPromise<SeriesRow | undefined>(
+        rowsTransaction.objectStore(SERIES_STORE).get(key),
+      ),
+    ),
+  );
   await rowsDone;
-
-  const readsBySeriesKey = groupChapterIDsBySeriesKey(reads);
+  const series = seriesRows.filter((row): row is SeriesRow => Boolean(row));
   const updatesBySeriesKey = groupChapterIDsBySeriesKey(updates);
   const chapterIDsBySeriesKey = series.reduce<Record<string, string[]>>(
     (acc, row) => {
       acc[row.seriesKey] = uniqueStrings([
         row.latestChapterID,
         row.lastRead,
-        ...(readsBySeriesKey[row.seriesKey] || []),
         ...(updatesBySeriesKey[row.seriesKey] || []),
       ]);
       return acc;
@@ -167,7 +171,6 @@ export async function readLibrarySyncState(): Promise<LocalLibrarySyncState> {
       row,
       chapterIDsBySeriesKey[row.seriesKey] || [],
       chaptersByKey,
-      readsBySeriesKey[row.seriesKey] || [],
     );
   }
   const knownSeriesKeys = new Set(Object.keys(state.seriesByKey));
