@@ -119,13 +119,10 @@
     height: 100dvh;
   }
   .manage-topbar {
-    @apply flex flex-none flex-col gap-1 pb-5 pt-8;
+    @apply flex flex-none flex-col pb-5 pt-8;
   }
   .manage-title {
     @apply text-[28px] font-semibold leading-9 tracking-[-0.03em];
-  }
-  .manage-subtitle {
-    @apply text-sm leading-6 text-comic-muted;
   }
   .manage-tab-label {
     @apply inline-flex items-center gap-2;
@@ -358,9 +355,6 @@
   }
   .popup-title {
     @apply text-[18px] font-semibold leading-6 tracking-[-0.02em];
-  }
-  .popup-subtitle {
-    @apply text-[12px] leading-5 text-comic-muted;
   }
   .popup-list {
     @apply gap-6;

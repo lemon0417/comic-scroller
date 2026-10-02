@@ -107,6 +107,12 @@ describe("ManageApp", () => {
     );
 
     expect(requestPopupData).toHaveBeenCalledWith("manage");
+    expect(
+      screen.getByRole("heading", { level: 1, name: "書庫" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("追蹤、閱讀紀錄與資料管理。"),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "移除" }));
 
     expect(
@@ -608,8 +614,8 @@ describe("ManageApp", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "更新 1" }));
 
-    expect(
-      screen.getByRole("button", { name: "略過" }),
-    ).toHaveClass("ds-btn-secondary");
+    expect(screen.getByRole("button", { name: "略過" })).toHaveClass(
+      "ds-btn-secondary",
+    );
   });
 });

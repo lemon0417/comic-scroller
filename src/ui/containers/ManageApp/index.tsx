@@ -297,7 +297,6 @@ function ManageAppComponent(props: ManageAppProps) {
     <div className="manage-shell">
       <header className="manage-topbar">
         <h1 className="manage-title">書庫</h1>
-        <p className="manage-subtitle">追蹤、閱讀紀錄與資料管理。</p>
       </header>
 
       <Tabs

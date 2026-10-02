@@ -90,6 +90,10 @@ describe("PopupApp", () => {
     );
 
     expect(requestPopupData).toHaveBeenCalledWith("popup");
+    expect(
+      screen.getByRole("heading", { level: 1, name: "更新" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("繼續閱讀與新章節")).not.toBeInTheDocument();
     expect(screen.getByText("繼續閱讀")).toBeInTheDocument();
     expect(screen.getByText("最新更新")).toBeInTheDocument();
     expect(

@@ -73,10 +73,7 @@ function PopupAppComponent(props: PopupAppProps) {
   return (
     <div className="popup-shell">
       <header className="popup-header">
-        <div className="min-w-0">
-          <h1 className="popup-title">更新</h1>
-          <p className="popup-subtitle">繼續閱讀與新章節</p>
-        </div>
+        <h1 className="popup-title min-w-0">更新</h1>
         <Button variant="secondary" onClick={() => openManagePage("following")}>
           管理
         </Button>
