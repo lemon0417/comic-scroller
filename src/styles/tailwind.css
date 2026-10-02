@@ -137,7 +137,7 @@
     @apply flex min-h-0 flex-1 flex-col gap-4;
   }
   .manage-search-row {
-    @apply flex flex-none items-center gap-4;
+    @apply flex flex-none items-center gap-4 px-2;
   }
   .manage-search-field {
     @apply min-w-0 flex-1;
@@ -292,6 +292,10 @@
     @apply grid items-center gap-x-4 border-b border-comic-line py-4 transition-colors duration-150;
     grid-template-columns: 48px minmax(0, 1fr) auto;
     grid-template-areas: "cover copy actions";
+  }
+  .series-row--manage,
+  .loading-series-row--manage {
+    @apply px-2;
   }
   .series-row:hover {
     background: rgb(var(--cs-color-paper-hover));
