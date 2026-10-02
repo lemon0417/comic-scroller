@@ -499,7 +499,13 @@ let activeLibrarySignalBatch: LibrarySignalBatch | null = null;
 
 async function writeLibrarySignal(
   source = "library",
-  scopes: LibrarySignal["scopes"] = ["series", "subscriptions", "history", "updates"],
+  scopes: LibrarySignal["scopes"] = [
+    "series",
+    "chapters",
+    "subscriptions",
+    "history",
+    "updates",
+  ],
   seriesKeys?: string[],
 ) {
   const signal: LibrarySignal = {
@@ -515,7 +521,13 @@ async function writeLibrarySignal(
 
 export async function emitLibrarySignal(
   source = "library",
-  scopes: LibrarySignal["scopes"] = ["series", "subscriptions", "history", "updates"],
+  scopes: LibrarySignal["scopes"] = [
+    "series",
+    "chapters",
+    "subscriptions",
+    "history",
+    "updates",
+  ],
   seriesKeys?: string[],
 ) {
   const batch = activeLibrarySignalBatch;

@@ -65,6 +65,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - runtime `checkedAt` 永遠是數字，未輪詢使用 `0`；DB v7 upgrade 會修復舊 row
 - `updates` row 只保留 `seriesKey / chapterID / position`；runtime 不再保存 `createdAt`
 - `chrome.storage.local.librarySignal` 用於跨 context 通知資料已變更
+- `librarySignal.scopes` 使用 `chapters` 明確表示章節快取已替換；單純閱讀進度更新不發出此 scope
 - `chrome.storage.sync` 的 library sync payload 由 `library/sync.ts` 管理：
   - 遠端 manifest / chunks 存在 sync storage
   - 本機啟用狀態與同步 metadata 存在 local storage
@@ -136,8 +137,8 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - reader 圖片 record 會追蹤 request source、loading failure 與 retry 狀態；自動 / 手動重試由 epics 驅動，不放在 component 內自行排程
   - 是否允許向前預載章節，由 `canPreloadPreviousChapter` 顯式控制，不使用 sentinel index 表示流程狀態
   - reader 初始作品資料由 reader flow 的 `applyReaderSeriesState()` hydrate；後續 `librarySignal` 由 `readerSyncEpic` 單一訂閱，UI 不直接 query repository 或監聽 storage
-  - `readerSyncEpic` 收到相關 signal、只需確認作品是否存在與是否已追蹤時，使用 `getReaderSeriesSyncState()`；快速連續 signal 以最後一次 query 為準
-  - 只有真的需要完整 chapter list / read state 時，才使用 `getReaderSeriesState()`
+  - `readerSyncEpic` 收到相關 signal、只需確認作品是否存在與是否已追蹤時，使用 `getReaderSeriesSyncState()`；收到 `chapters` invalidation 時改用 `getReaderSeriesState()` 即時 hydrate 章節列表、已讀與追蹤狀態
+  - reader live hydrate 以 chapter ID 重映射目前章節與 preload frontier，不重設圖片窗口或捲動位置；完整章節同步與輕量狀態同步各自以最新一次 query 為準
   - `applyReadProgress()` 只更新閱讀進度與 updates，不應重寫章節快取；章節快取刷新由 metadata/background 流程負責
   - reader metadata mutation 只回傳 `seriesKey / readChapterIDs / subscribed / updatesCount`；需要完整作品資料時必須走 query interface
   - read progress mutation 不查 subscription，只回傳 `seriesKey / readChapterIDs / updatesCount`

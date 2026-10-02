@@ -6,7 +6,7 @@ import {
   UPDATE_READ,
   UPDATE_VISIBLE_IMAGE_RANGE,
 } from "@domain/actions/reader";
-import { buildSeriesKey } from "@domain/library";
+import { buildSeriesKey, uniqueStrings } from "@domain/library";
 import {
   clampReaderImageScale,
   getImageRenderMetrics,
@@ -59,6 +59,14 @@ export type LeadingEvictionRestoreRecord = {
   sequence: number;
   firstRetainedImageId: number;
   removedScrollHeight: number;
+};
+
+export type ReaderSeriesSyncPayload = {
+  title: string;
+  chapterList: string[];
+  chapters: Record<string, ComicsChapterRecord>;
+  read: string[];
+  subscribed: boolean;
 };
 
 export type ComicsState = {
@@ -121,6 +129,7 @@ type Action = {
   site?: string;
   stage?: ReaderImageFailureStage;
   gate?: PendingChapterGateRecord;
+  readerSeries?: ReaderSeriesSyncPayload;
   scaleDelta?: number;
   zoomTarget?: ReaderZoomTarget;
 };
@@ -168,6 +177,7 @@ const UPDATE_SUBSCRIBE = "UPDATE_SUBSCRIBE";
 const UPDATE_TITLE = "UPDATE_TITLE";
 const UPDATE_CHAPTERS = "UPDATE_CHAPTERS";
 const UPDATE_CHAPTER_LIST = "UPDATE_CHAPTER_LIST";
+const SYNC_READER_SERIES_STATE = "SYNC_READER_SERIES_STATE";
 const UPDATE_CHAPTER_LATEST_INDEX = "UPDATE_CHAPTER_LATEST_INDEX";
 export const UPDATE_CHAPTER_NOW_INDEX = "UPDATE_CHAPTER_NOW_INDEX";
 const UPDATE_CAN_PRELOAD_PREVIOUS_CHAPTER =
@@ -208,6 +218,87 @@ function buildChapterIndexMap(chapterList: string[]) {
     }
     return acc;
   }, {});
+}
+
+function syncReaderSeriesStateToState(
+  state: ComicsState,
+  payload: ReaderSeriesSyncPayload,
+): ComicsState {
+  const currentChapterID = state.chapterList[state.chapterNowIndex] || "";
+  const frontierChapterID =
+    state.chapterList[
+      state.chapterLatestIndex >= 0 ? state.chapterLatestIndex : 0
+    ] || "";
+  const loadedChapterIDs = new Set(
+    state.imageList.result
+      .map((imageID) => state.imageList.entity[imageID]?.chapter || "")
+      .filter(Boolean),
+  );
+  if (currentChapterID) {
+    loadedChapterIDs.add(currentChapterID);
+  }
+  if (state.pendingChapterGate?.chapterId) {
+    loadedChapterIDs.add(state.pendingChapterGate.chapterId);
+  }
+  if (state.pendingChapterGate?.blockingChapterId) {
+    loadedChapterIDs.add(state.pendingChapterGate.blockingChapterId);
+  }
+
+  const retainedChapterIDs = state.chapterList.filter(
+    (chapterID) =>
+      loadedChapterIDs.has(chapterID) &&
+      !payload.chapterList.includes(chapterID),
+  );
+  const chapterList = uniqueStrings([
+    ...payload.chapterList,
+    ...retainedChapterIDs,
+  ]);
+  const chapters = Object.fromEntries(
+    chapterList.flatMap((chapterID) => {
+      const chapter = payload.chapters[chapterID] || state.chapters[chapterID];
+      return chapter ? [[chapterID, chapter] as const] : [];
+    }),
+  );
+  const resolvedChapterNowIndex = currentChapterID
+    ? chapterList.indexOf(currentChapterID)
+    : -1;
+  const chapterNowIndex =
+    resolvedChapterNowIndex >= 0
+      ? resolvedChapterNowIndex
+      : Math.max(0, Math.min(state.chapterNowIndex, chapterList.length - 1));
+  const resolvedChapterLatestIndex = frontierChapterID
+    ? chapterList.indexOf(frontierChapterID)
+    : -1;
+  const chapterLatestIndex =
+    resolvedChapterLatestIndex >= 0
+      ? resolvedChapterLatestIndex
+      : Math.min(state.chapterLatestIndex, chapterList.length - 1);
+  const pendingChapterIndex = state.pendingChapterGate
+    ? chapterList.indexOf(state.pendingChapterGate.chapterId)
+    : -1;
+
+  return {
+    ...state,
+    title: payload.title,
+    subscribe: payload.subscribed,
+    read: uniqueStrings(payload.read),
+    chapters,
+    chapterList,
+    chapterNowIndex,
+    chapterLatestIndex,
+    currentChapterTitle: resolveCurrentChapterTitle({
+      chapterList,
+      chapters,
+      chapterNowIndex,
+    }),
+    pendingChapterGate:
+      state.pendingChapterGate && pendingChapterIndex >= 0
+        ? {
+            ...state.pendingChapterGate,
+            chapterIndex: pendingChapterIndex,
+          }
+        : state.pendingChapterGate,
+  };
 }
 
 function appendImageListToState(
@@ -965,6 +1056,9 @@ export default function comics(
         }),
       };
     }
+    case SYNC_READER_SERIES_STATE:
+      if (!action.readerSeries) return state;
+      return syncReaderSeriesStateToState(state, action.readerSeries);
     case UPDATE_COMICS_ID:
       if (typeof action.data !== "string") return state;
       return {
@@ -1156,6 +1250,10 @@ export function updateChapters(data: Record<string, ComicsChapterRecord>) {
 
 export function updateChapterList(data: string[]) {
   return { type: UPDATE_CHAPTER_LIST, data };
+}
+
+export function syncReaderSeriesState(readerSeries: ReaderSeriesSyncPayload) {
+  return { type: SYNC_READER_SERIES_STATE, readerSeries };
 }
 
 export function updateChapterLatestIndex(data: number) {

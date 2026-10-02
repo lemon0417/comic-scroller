@@ -160,7 +160,9 @@ export type LibrarySignal = {
   changedAt: number;
   source: string;
   dbSchemaVersion: number;
-  scopes: Array<"series" | "subscriptions" | "history" | "updates">;
+  scopes: Array<
+    "series" | "chapters" | "subscriptions" | "history" | "updates"
+  >;
   seriesKeys?: string[];
 };
 

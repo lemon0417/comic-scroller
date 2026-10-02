@@ -332,7 +332,7 @@ export async function applyLibrarySyncState(
   await done;
   await emitLibrarySignal(
     "library-sync",
-    ["series", "subscriptions", "history", "updates"],
+    ["series", "chapters", "subscriptions", "history", "updates"],
     Object.keys(state.seriesByKey),
   );
 }

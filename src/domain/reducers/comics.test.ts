@@ -19,6 +19,7 @@ import comics, {
   resetReaderImageScale,
   setChapterLoadFailed,
   setReaderZoomTarget,
+  syncReaderSeriesState,
   updateCanPreloadPreviousChapter,
   updateChapterList,
   updateChapterNowIndex,
@@ -395,6 +396,103 @@ describe("comics reducer", () => {
     );
 
     expect(nextState.currentChapterTitle).toBe("Chapter 1");
+  });
+
+  it("syncs refreshed chapters without moving the active reader chapter", () => {
+    const imageList = {
+      result: [10, 11],
+      entity: {
+        10: { chapter: "c3", type: "image" },
+        11: { chapter: "c3", type: "end" },
+      },
+    };
+    const prevState = {
+      ...(comics(undefined, { type: "@@INIT" } as any) as any),
+      title: "Old title",
+      subscribe: false,
+      chapterList: ["c3", "c2"],
+      chapters: {
+        c3: { title: "Chapter 3" },
+        c2: { title: "Chapter 2" },
+      },
+      chapterNowIndex: 0,
+      chapterLatestIndex: -1,
+      currentChapterTitle: "Chapter 3",
+      imageList,
+      pendingChapterGate: {
+        blockingChapterId: "c3",
+        chapterId: "c2",
+        chapterIndex: 1,
+        readerGeneration: 0,
+        status: "fetching",
+      },
+    };
+
+    const nextState = comics(
+      prevState,
+      syncReaderSeriesState({
+        title: "Series",
+        chapterList: ["c4", "c3", "c2"],
+        chapters: {
+          c4: { title: "Chapter 4" },
+          c3: { title: "Chapter 3" },
+          c2: { title: "Chapter 2" },
+        },
+        read: ["c3"],
+        subscribed: true,
+      }) as any,
+    );
+
+    expect(nextState).toEqual(
+      expect.objectContaining({
+        title: "Series",
+        subscribe: true,
+        read: ["c3"],
+        chapterList: ["c4", "c3", "c2"],
+        chapterNowIndex: 1,
+        chapterLatestIndex: 1,
+        currentChapterTitle: "Chapter 3",
+      }),
+    );
+    expect(nextState.imageList).toBe(imageList);
+    expect(nextState.pendingChapterGate).toEqual(
+      expect.objectContaining({ chapterId: "c2", chapterIndex: 2 }),
+    );
+  });
+
+  it("retains an active loaded chapter omitted by a live snapshot", () => {
+    const prevState = {
+      ...(comics(undefined, { type: "@@INIT" } as any) as any),
+      chapterList: ["c3", "c2"],
+      chapters: {
+        c3: { title: "Chapter 3" },
+        c2: { title: "Chapter 2" },
+      },
+      chapterNowIndex: 0,
+      currentChapterTitle: "Chapter 3",
+      imageList: {
+        result: [10],
+        entity: { 10: { chapter: "c3", type: "image" } },
+      },
+    };
+
+    const nextState = comics(
+      prevState,
+      syncReaderSeriesState({
+        title: "Series",
+        chapterList: ["c4", "c2"],
+        chapters: {
+          c4: { title: "Chapter 4" },
+          c2: { title: "Chapter 2" },
+        },
+        read: [],
+        subscribed: false,
+      }) as any,
+    );
+
+    expect(nextState.chapterList).toEqual(["c4", "c2", "c3"]);
+    expect(nextState.chapterNowIndex).toBe(2);
+    expect(nextState.currentChapterTitle).toBe("Chapter 3");
   });
 
   it("updates the visible chapter synchronously with read progress", () => {

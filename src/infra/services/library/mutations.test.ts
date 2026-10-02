@@ -558,7 +558,7 @@ describe("library mutations", () => {
     );
     expect(shared.emitLibrarySignal).toHaveBeenCalledWith(
       "backgroundRefresh",
-      ["series", "updates"],
+      ["series", "chapters", "updates"],
       ["dm5:m123"],
     );
     expect(result).toEqual({ updatesCount: 3 });

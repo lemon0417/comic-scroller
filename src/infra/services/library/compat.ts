@@ -175,7 +175,7 @@ export async function resetLibrary() {
     cleanupLegacy: true,
     emitSignal: true,
     signalSource: "resetLibrary",
-    scopes: ["series", "subscriptions", "history", "updates"],
+    scopes: ["series", "chapters", "subscriptions", "history", "updates"],
   });
 }
 
@@ -209,7 +209,7 @@ export async function importLibraryDump(raw: unknown) {
     cleanupLegacy: true,
     emitSignal: true,
     signalSource: "importLibrary",
-    scopes: ["series", "subscriptions", "history", "updates"],
+    scopes: ["series", "chapters", "subscriptions", "history", "updates"],
     seriesKeys: Object.keys(snapshot.seriesByKey || {}),
     subscriptionCheckedAtByKey:
       isLibraryDumpV2(parsed) || isLibraryDumpV1(parsed)

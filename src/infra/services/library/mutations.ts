@@ -164,6 +164,7 @@ async function persistSeriesRecordState(
     "seriesMutation",
     [
       "series",
+      ...(shouldPersistChapterCache ? ["chapters" as const] : []),
       ...(input.addHistory ? ["history" as const] : []),
       ...(input.dismissChapterID ? ["updates" as const] : []),
     ],
@@ -854,7 +855,11 @@ export async function applyBackgroundSeriesRefresh(
   await prependSeriesUpdatesInTransaction(updatesStore, seriesKey, newChapterIDs);
   const updatesCount = await requestToPromise<number>(updatesStore.count());
   await done;
-  await emitLibrarySignal("backgroundRefresh", ["series", "updates"], [seriesKey]);
+  await emitLibrarySignal(
+    "backgroundRefresh",
+    ["series", "chapters", "updates"],
+    [seriesKey],
+  );
   return {
     updatesCount: Number(updatesCount || 0),
   };
