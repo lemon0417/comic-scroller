@@ -1,4 +1,4 @@
-export const SITE_KEYS = ["dm5", "sf", "comicbus"] as const;
+export const SITE_KEYS = ["dm5", "sf", "comicbus", "manhuagui"] as const;
 
 export type SiteKey = (typeof SITE_KEYS)[number];
 export type SeriesKey = string;
@@ -24,7 +24,12 @@ export type SeriesRecord = {
 export type SeriesChapterSnapshot = Pick<
   SeriesRecord,
   "chapterList" | "chapters"
->;
+> & { chapterGroups?: ChapterGroup[] };
+
+export type ChapterGroup = {
+  id: string;
+  chapterList: string[];
+};
 
 export type LibraryUpdateRecord = {
   seriesKey: SeriesKey;

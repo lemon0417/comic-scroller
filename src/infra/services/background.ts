@@ -3,6 +3,7 @@ import type {
   BackgroundSummary,
 } from "@domain/developerTools";
 import type { BackgroundRefreshCandidate } from "@domain/library";
+import { validateChapterGroups } from "@domain/library";
 import {
   EXTENSION_RELEASE_CHECK_INTERVAL_MINUTES,
   reconcileStoredExtensionReleaseState,
@@ -176,6 +177,9 @@ function validateBackgroundChapterSnapshot(snapshot: SiteChapterSnapshot) {
     }
   }
 
+  if (snapshot.chapterGroups !== undefined) {
+    validateChapterGroups(snapshot.chapterList, snapshot.chapterGroups);
+  }
   return snapshot;
 }
 
@@ -219,7 +223,7 @@ async function checkSubscribedSeries(
 
     shouldCountChecked = true;
 
-    const { chapterList, chapters } = validateBackgroundChapterSnapshot(
+    const snapshot = validateBackgroundChapterSnapshot(
       await fetchLatestChapterSnapshot(
         site,
         url,
@@ -227,19 +231,38 @@ async function checkSubscribedSeries(
         options.timeoutMs,
       ),
     );
-    const checkpointIndex = latestChapterID
-      ? chapterList.indexOf(latestChapterID)
-      : -1;
-    const nextChapterIDs =
-      checkpointIndex > 0 ? chapterList.slice(0, checkpointIndex) : [];
+    const { chapterList, chapterGroups } = snapshot;
+    const newChapterIDs = new Set<string>();
+    if (chapterGroups) {
+      for (const group of chapterGroups) {
+        const checkpoints = candidate.latestChapterIDsByGroup;
+        const checkpoint =
+          checkpoints && Object.hasOwn(checkpoints, group.id)
+            ? checkpoints[group.id]
+            : "";
+        const index = checkpoint ? group.chapterList.indexOf(checkpoint) : -1;
+        if (index > 0) {
+          group.chapterList
+            .slice(0, index)
+            .forEach((id) => newChapterIDs.add(id));
+        }
+      }
+    } else {
+      const checkpointIndex = latestChapterID
+        ? chapterList.indexOf(latestChapterID)
+        : -1;
+      if (checkpointIndex > 0) {
+        chapterList
+          .slice(0, checkpointIndex)
+          .forEach((id) => newChapterIDs.add(id));
+      }
+    }
+    const nextChapterIDs = chapterList.filter((id) => newChapterIDs.has(id));
 
     await deps.applyBackgroundSeriesRefresh(
       site,
       comicsID,
-      {
-        chapterList,
-        chapters,
-      },
+      snapshot,
       nextChapterIDs,
     );
 
@@ -464,6 +487,16 @@ export function resolveReaderRedirect(
   const dm5PathMatch = /^\/(m\d+)\/?$/.exec(parsedUrl.pathname);
   if (isDm5Host && dm5PathMatch) {
     return `${getRuntimeUrl("app.html")}?site=dm5&chapter=${dm5PathMatch[1]}`;
+  }
+  if (
+    parsedUrl.origin === "https://www.manhuagui.com" &&
+    /^\/comic\/\d+\/\d+\.html$/.test(parsedUrl.pathname)
+  ) {
+    const params = new URLSearchParams({
+      site: "manhuagui",
+      chapter: parsedUrl.pathname.slice(1),
+    });
+    return `${getRuntimeUrl("app.html")}?${params.toString()}`;
   }
   return "";
 }

@@ -6,7 +6,7 @@ Codex 處理站點 / parser / manifest / DNR / redirect 類任務時，優先使
 
 ## 必查位置
 - Metadata adapter：`src/sites/<site>/adapter.ts`、`src/sites/<site>/meta.ts`
-- 背景章節來源：registry 呼叫 `fetchMeta(url, { includeCover: false })`，再投影成 `chapterList + chapters` 快照；各站仍可在 metadata fetcher 內選擇 RSS、API 或作品 HTML
+- 背景章節來源：registry 呼叫 `fetchMeta(url, { includeCover: false })`，再投影成 `chapterList + chapters` 快照，保留可選 `chapterGroups`；各站仍可在 metadata fetcher 內選擇 RSS、API 或作品 HTML
 - Metadata registry：`src/sites/registry.ts`
 - Reader epic：`src/epics/sites/<site>.ts`
 - Reader epic registry：`src/epics/sites/registry.ts`
@@ -19,7 +19,8 @@ Codex 處理站點 / parser / manifest / DNR / redirect 類任務時，優先使
 - `src/sites/**` 不得 import `src/epics/**`
 - 會在 MV3 background 執行的站點 parser 不得依賴 DOM；若同一 parser 也提供 DOM 路徑，兩種 runtime 行為都必須有測試
 - metadata fetcher 在 Observable unsubscribe 時必須中止尚未完成的 HTTP request，讓 background timeout 能釋放實際網路資源
-- background 只消費 `chapterList + chapters`；站點可使用 RSS、API 或作品 HTML，但不得藉此覆寫既有 title、cover、作品 URL 或閱讀狀態
+- background 消費 `chapterList + chapters` 與可選分組資訊；站點可使用 RSS、API 或作品 HTML，但不得藉此覆寫既有 title、cover、作品 URL 或閱讀狀態
+- 分組必須唯一、非空且完整對應平面章節順序；分組 key 不可依賴畫面位置。背景分組 checkpoint 是本機可重建資訊，應在同一 transaction 更新並在 progress / sync mutation 保留。
 - 新增跨站來源時，同步評估 production/dev manifest 的 `host_permissions`
 - 需要 Referer / Cookie / header 修改時，優先用 DNR，不新增 content script 或 webRequest
 - 付費、失敗、timeout 與 retry 狀態要明確回到 reader 流程，不讓 UI 永久卡在 loading

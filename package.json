@@ -98,6 +98,7 @@
     "@reduxjs/toolkit": "2.11.0",
     "fast-xml-parser": "^5.5.10",
     "lodash": "^4.17.5",
+    "lz-string": "1.5.0",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "react-redux": "9.2.0",

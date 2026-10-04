@@ -2,6 +2,7 @@ import { map } from "rxjs/operators";
 
 import comicbusAdapter from "./comicbus/adapter";
 import dm5Adapter from "./dm5/adapter";
+import manhuaguiAdapter from "./manhuagui/adapter";
 import sfAdapter from "./sf/adapter";
 import type {
   SiteAdapter,
@@ -13,6 +14,7 @@ const adapters: Record<string, SiteAdapter> = {
   dm5: dm5Adapter,
   sf: sfAdapter,
   comicbus: comicbusAdapter,
+  manhuagui: manhuaguiAdapter,
 };
 
 export function getSiteAdapter(site: string) {
@@ -22,8 +24,9 @@ export function getSiteAdapter(site: string) {
 function projectChapterSnapshot({
   chapterList,
   chapters,
+  chapterGroups,
 }: SiteChapterSnapshot): SiteChapterSnapshot {
-  return { chapterList, chapters };
+  return { chapterList, chapters, ...(chapterGroups ? { chapterGroups } : {}) };
 }
 
 export function getSiteChapterFetcher(

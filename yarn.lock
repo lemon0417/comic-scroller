@@ -4616,6 +4616,7 @@ __metadata:
     jest: "npm:29.7.0"
     jest-environment-jsdom: "npm:29.7.0"
     lodash: "npm:^4.17.5"
+    lz-string: "npm:1.5.0"
     postcss: "npm:^8.4.0"
     postcss-nested: "npm:^3.0.0"
     prettier: "npm:3.6.2"
@@ -9100,7 +9101,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lz-string@npm:^1.5.0":
+"lz-string@npm:1.5.0, lz-string@npm:^1.5.0":
   version: 1.5.0
   resolution: "lz-string@npm:1.5.0"
   bin:

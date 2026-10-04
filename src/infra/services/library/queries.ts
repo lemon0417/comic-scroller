@@ -43,6 +43,7 @@ const SITE_LABELS: Record<string, string> = {
   dm5: "DM5",
   sf: "SF",
   comicbus: "ComicBus",
+  manhuagui: "漫畫櫃",
 };
 
 function buildUpdateChapterKey(seriesKey: string, chapterID: string) {
@@ -390,6 +391,9 @@ export async function listBackgroundRefreshCandidates(
       comicsID,
       url: row?.url || "",
       latestChapterID: row?.latestChapterID || "",
+      ...(row?.latestChapterIDsByGroup
+        ? { latestChapterIDsByGroup: row.latestChapterIDsByGroup }
+        : {}),
     };
   });
 }

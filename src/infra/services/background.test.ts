@@ -1,3 +1,4 @@
+import type { SiteKey } from "@domain/library";
 import { NEVER, of } from "rxjs";
 
 import {
@@ -22,7 +23,7 @@ function createRefreshCandidate(
   const [site, ...comicsIDParts] = seriesKey.split(":");
   return {
     seriesKey,
-    site: site as "dm5" | "sf" | "comicbus",
+    site: site as SiteKey,
     comicsID: comicsIDParts.join(":"),
     url,
     latestChapterID,
@@ -58,6 +59,170 @@ function createBackgroundDeps(
 }
 
 describe("background service", () => {
+  function groupedSnapshot(groups: Array<[string, string[]]>) {
+    const chapterList = groups.flatMap(([, ids]) => ids);
+    return {
+      chapterList,
+      chapters: Object.fromEntries(
+        chapterList.map((id) => [
+          id,
+          {
+            title: id,
+            href: `https://www.manhuagui.com/comic/49169/${id}.html`,
+          },
+        ]),
+      ),
+      chapterGroups: groups.map(([id, ids]) => ({ id, chapterList: ids })),
+    };
+  }
+
+  it.each([
+    [
+      "new chapters in each group",
+      [
+        ["volume", ["v2", "v1"]],
+        ["extra", ["e2", "e1"]],
+        ["single", ["c2", "c1"]],
+      ],
+      { volume: "v1", extra: "e1", single: "c1" },
+      ["v2", "e2", "c2"],
+    ],
+    [
+      "group reordering",
+      [
+        ["single", ["c1"]],
+        ["volume", ["v1"]],
+      ],
+      { volume: "v1", single: "c1" },
+      [],
+    ],
+    [
+      "backfills after the checkpoint",
+      [["single", ["c2", "backfill", "c1"]]],
+      { single: "c2" },
+      [],
+    ],
+    [
+      "a new group establishes its baseline",
+      [
+        ["volume", ["v2", "v1"]],
+        ["extra", ["e1"]],
+      ],
+      { volume: "v1" },
+      ["v2"],
+    ],
+    [
+      "a missing checkpoint only resets its own group",
+      [
+        ["volume", ["v2"]],
+        ["single", ["c2", "c1"]],
+      ],
+      { volume: "missing", single: "c1" },
+      ["c2"],
+    ],
+    [
+      "the initial poll establishes all group baselines",
+      [
+        ["volume", ["v2", "v1"]],
+        ["single", ["c2", "c1"]],
+      ],
+      {},
+      [],
+    ],
+  ] as Array<
+    [string, Array<[string, string[]]>, Record<string, string>, string[]]
+  >)(
+    "handles %s for grouped providers",
+    async (_name, groups, checkpoints, expected) => {
+      const snapshot = groupedSnapshot(groups);
+      const applyBackgroundSeriesRefresh = jest.fn();
+      const summary = await runBackgroundUpdateSummary(
+        createBackgroundDeps({
+          applyBackgroundSeriesRefresh,
+          listBackgroundRefreshCandidates: jest.fn().mockResolvedValue([
+            {
+              ...createRefreshCandidate(
+                "manhuagui:49169",
+                "https://www.manhuagui.com/comic/49169/",
+                "v1",
+              ),
+              latestChapterIDsByGroup: checkpoints,
+            },
+          ]),
+          getFetchChapters: jest.fn(() => () => of(snapshot)),
+        }),
+      );
+      expect(summary.errors).toBe(0);
+      expect(summary.updated).toBe(expected.length);
+      expect(applyBackgroundSeriesRefresh).toHaveBeenCalledWith(
+        "manhuagui",
+        "49169",
+        snapshot,
+        expected,
+      );
+    },
+  );
+
+  it.each([
+    [
+      { id: "a", chapterList: ["v1"] },
+      { id: "a", chapterList: ["c1"] },
+    ],
+    [
+      { id: "a", chapterList: ["v1", "c1"] },
+      { id: "b", chapterList: ["c1"] },
+    ],
+    [{ id: "a", chapterList: ["v1"] }],
+    [{ id: "a", chapterList: ["c1", "v1"] }],
+    [{ id: "a", chapterList: [] }],
+  ])(
+    "rejects inconsistent chapter groups before persisting them (%#)",
+    async (...groups) => {
+      const snapshot = {
+        ...groupedSnapshot([
+          ["a", ["v1"]],
+          ["b", ["c1"]],
+        ]),
+        chapterGroups: groups,
+      };
+      const applyBackgroundSeriesRefresh = jest.fn();
+      const summary = await runBackgroundUpdateSummary(
+        createBackgroundDeps({
+          applyBackgroundSeriesRefresh,
+          listBackgroundRefreshCandidates: jest
+            .fn()
+            .mockResolvedValue([
+              createRefreshCandidate(
+                "manhuagui:49169",
+                "https://www.manhuagui.com/comic/49169/",
+              ),
+            ]),
+          getFetchChapters: jest.fn(() => () => of(snapshot)),
+        }),
+      );
+      expect(summary.errors).toBe(1);
+      expect(applyBackgroundSeriesRefresh).not.toHaveBeenCalled();
+    },
+  );
+
+  it("redirects only supported Manhuagui chapter URLs and respects the native bypass", () => {
+    const getURL = (path: string) => `chrome-extension://test/${path}`;
+    const redirect = resolveReaderRedirect(
+      "https://www.manhuagui.com/comic/49169/910633.html#p=2",
+      getURL,
+    );
+    const params = new URL(redirect).searchParams;
+    expect(params.get("site")).toBe("manhuagui");
+    expect(params.get("chapter")).toBe("comic/49169/910633.html");
+    for (const url of [
+      "https://www.manhuagui.com/comic/49169/",
+      "https://www.manhuagui.com/comic/49169/910633.html?cs_open_native=1",
+      "https://www.manhuagui.com.evil.test/comic/49169/910633.html",
+      "http://www.manhuagui.com/comic/49169/910633.html",
+    ])
+      expect(resolveReaderRedirect(url, getURL)).toBe("");
+  });
+
   it("preserves existing background alarm schedules", async () => {
     const createAlarm = jest.fn();
     const getAlarm = jest.fn(

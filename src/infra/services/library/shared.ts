@@ -88,6 +88,7 @@ type LegacyStore = {
   dm5?: Record<string, unknown>;
   sf?: Record<string, unknown>;
   comicbus?: Record<string, unknown>;
+  manhuagui?: Record<string, unknown>;
   schemaVersion?: number;
   seriesByKey?: Record<string, SeriesRecord>;
   subscriptions?: string[];

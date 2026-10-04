@@ -1,7 +1,4 @@
-import type {
-  ChapterRecord,
-  SeriesChapterSnapshot,
-} from "@domain/library";
+import type { SeriesChapterSnapshot } from "@domain/library";
 import type { Observable } from "rxjs";
 
 export type FetchMetaOptions = {
@@ -12,9 +9,7 @@ export type FetchMetaOptions = {
 export type SiteMeta = {
   title?: string;
   cover?: string;
-  chapterList: string[];
-  chapters: Record<string, ChapterRecord>;
-};
+} & SeriesChapterSnapshot;
 
 export type SiteChapterSnapshot = SeriesChapterSnapshot;
 

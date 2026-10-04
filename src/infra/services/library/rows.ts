@@ -194,8 +194,11 @@ export function createSeriesRow(
     latestChapterID?: string;
     previousRow?: SeriesRow | null;
     readChapterRow?: ChapterRow | null;
+    latestChapterIDsByGroup?: Record<string, string>;
   } = {},
 ): SeriesRow {
+  const latestChapterIDsByGroup =
+    input.latestChapterIDsByGroup ?? input.previousRow?.latestChapterIDsByGroup;
   return {
     seriesKey,
     site: record.site,
@@ -205,6 +208,7 @@ export function createSeriesRow(
     url: record.url,
     lastRead: record.lastRead,
     ...resolveSeriesRowSummary(record, input),
+    ...(latestChapterIDsByGroup ? { latestChapterIDsByGroup } : {}),
   };
 }
 

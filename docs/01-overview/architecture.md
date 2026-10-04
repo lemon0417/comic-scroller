@@ -156,8 +156,8 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
   - listener wiring 必須收斂非同步 rejection；需要保持 message channel 的 handler 在成功與失敗時都必須回覆
   - 更新檢查、安裝處理、通知點擊、ping 回應、reader redirect 解析集中在 `src/infra/services/background.ts`
   - 訂閱更新檢查會依 `subscriptions.checkedAt` 由舊到新取批次輪詢
-  - 更新比對以 `series.latestChapterID` 為 checkpoint，只將站點章節列表中位於 checkpoint 前方的章節視為新章
-  - checkpoint 缺失或找不到時只刷新 baseline，不把既有舊章節加入 updates
+  - 無分組站點以 `series.latestChapterID` 為 checkpoint；提供 `chapterGroups` 的站點改以本機 `series.latestChapterIDsByGroup` 逐組比對，只將各列表 checkpoint 前方的章節視為新章
+  - checkpoint 缺失或找不到時只刷新 baseline，不把既有舊章節加入 updates；分組站點只重建受影響組的 baseline，新增分組也先建立 baseline
   - 每次成功輪詢都刷新完整 `chapterList + chapters`；checkpoint 後方的 backfill 可更新 cache，但不加入 updates
   - chapter snapshot 必須提供非空、不重複且可解析 href 的章節列表；無效 payload 計入 errors 但仍推進 `checkedAt`，避免壞來源阻塞後續訂閱
   - 每輪 background refresh 使用固定上限並發與單筆 metadata fetch timeout；timeout unsubscribe 必須同步 abort 站點 HTTP request，避免慢站拖住 service worker 或殘留無人等待的網路工作

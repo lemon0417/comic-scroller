@@ -24,6 +24,7 @@
 ## 04 站點解析（商務邏輯）
 - `docs/04-sites/README.md`: 站點 adapter / parser 變更 checklist
 - `docs/04-sites/dm5.md`: DM5 解析流程（含 chapterfun.ashx）
+- `docs/04-sites/manhuagui.md`: 漫畫櫃章節分組、圖片解碼與更新流程
 
 ## 任務入口
 - Reader UI / 閱讀控制：`docs/01-overview/architecture.md`、`src/ui/containers/App/`、`src/ui/containers/ImageContainer/`

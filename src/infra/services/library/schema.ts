@@ -71,6 +71,7 @@ export type SeriesRow = {
   latestChapterID: string;
   latestChapterTitle: string;
   latestChapterHref: string;
+  latestChapterIDsByGroup?: Record<string, string>;
 };
 
 export type ChapterRow = {

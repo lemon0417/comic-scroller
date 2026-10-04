@@ -1,16 +1,17 @@
 import type {
   BackgroundSeriesRefreshResult,
+  ChapterGroup,
   ReaderSeriesMutationResult,
   ReadProgressMutationResult,
   SeriesChapterSnapshot,
   SeriesCleanupResult,
 } from "@domain/library";
-
 import {
-  openLibraryDb,
-  requestToPromise,
-  transactionDone,
-} from "./db";
+  getChapterGroupCheckpoints,
+  validateChapterGroups,
+} from "@domain/library";
+
+import { openLibraryDb, requestToPromise, transactionDone } from "./db";
 import {
   addReadChapterInTransaction,
   composeSeriesRecord,
@@ -56,6 +57,7 @@ async function persistSeriesRecordState(
     dismissChapterID?: string;
     includeSubscriptionState?: boolean;
     requireExistingSeries?: boolean;
+    chapterGroups?: ChapterGroup[];
   },
 ) {
   await ensureLibraryReady();
@@ -119,7 +121,15 @@ async function persistSeriesRecordState(
     ? composeSeriesRecord(previousRow, previousChapters, previousReadChapterIDs)
     : normalizeSeriesRecord(site, comicsID, {});
 
-  const mergedRecord = mergeSeriesRecord(site, comicsID, previousRecord, input.record);
+  const mergedRecord = mergeSeriesRecord(
+    site,
+    comicsID,
+    previousRecord,
+    input.record,
+  );
+  if (input.chapterGroups) {
+    validateChapterGroups(mergedRecord.chapterList, input.chapterGroups);
+  }
 
   if (input.readChapterID) {
     mergedRecord.lastRead = input.readChapterID;
@@ -131,6 +141,13 @@ async function persistSeriesRecordState(
       createSeriesRow(seriesKey, mergedRecord, {
         previousRow,
         readChapterRow,
+        ...(input.chapterGroups
+          ? {
+              latestChapterIDsByGroup: getChapterGroupCheckpoints(
+                input.chapterGroups,
+              ),
+            }
+          : {}),
       }),
     ),
   );
@@ -925,7 +942,10 @@ export async function applyReaderSeriesState(
   comicsID: string,
   record: Partial<SeriesRecord>,
   chapterID: string,
-  options: { requireExistingSeries?: boolean } = {},
+  options: {
+    requireExistingSeries?: boolean;
+    chapterGroups?: ChapterGroup[];
+  } = {},
 ): Promise<ReaderSeriesMutationResult> {
   return persistSeriesRecordState(site, comicsID, {
     record,
@@ -934,6 +954,7 @@ export async function applyReaderSeriesState(
     dismissChapterID: chapterID,
     includeSubscriptionState: true,
     requireExistingSeries: options.requireExistingSeries,
+    chapterGroups: options.chapterGroups,
   });
 }
 
@@ -959,6 +980,9 @@ export async function applyBackgroundSeriesRefresh(
   snapshot: SeriesChapterSnapshot,
   newChapterIDs: string[],
 ): Promise<BackgroundSeriesRefreshResult> {
+  if (snapshot.chapterGroups) {
+    validateChapterGroups(snapshot.chapterList, snapshot.chapterGroups);
+  }
   await ensureLibraryReady();
   const seriesKey = buildSeriesKey(site, comicsID);
   const db = await openLibraryDb();
@@ -996,6 +1020,13 @@ export async function applyBackgroundSeriesRefresh(
     seriesStore.put(
       createSeriesRow(seriesKey, mergedRecord, {
         previousRow,
+        ...(snapshot.chapterGroups
+          ? {
+              latestChapterIDsByGroup: getChapterGroupCheckpoints(
+                snapshot.chapterGroups,
+              ),
+            }
+          : {}),
       }),
     ),
   );

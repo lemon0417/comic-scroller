@@ -79,7 +79,12 @@ export type LibrarySyncWireRowsV2 = [
 ];
 
 // Wire codes must remain stable even if the domain's site registry is reordered.
-const SYNC_V2_SITES: readonly SiteKey[] = ["dm5", "sf", "comicbus"];
+const SYNC_V2_SITES: readonly SiteKey[] = [
+  "dm5",
+  "sf",
+  "comicbus",
+  "manhuagui",
+];
 
 type MergePreference = "local" | "remote";
 

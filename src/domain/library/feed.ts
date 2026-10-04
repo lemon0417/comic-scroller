@@ -51,6 +51,7 @@ export type BackgroundRefreshCandidate = {
   comicsID: string;
   url: string;
   latestChapterID: string;
+  latestChapterIDsByGroup?: Record<string, string>;
 };
 
 export function createEmptyPopupFeedSnapshot(): PopupFeedSnapshot {

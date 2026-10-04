@@ -1,5 +1,7 @@
 import "fake-indexeddb/auto";
 
+import { of } from "rxjs";
+
 import {
   CHAPTERS_STORE,
   HISTORY_STORE,
@@ -462,6 +464,124 @@ describe("library integration", () => {
       exists: false,
       subscribed: false,
     });
+  });
+
+  it("persists Manhuagui group checkpoints, detects all groups without replaying updates, and round-trips backup/sync", async () => {
+    const { runBackgroundUpdateSummary } = await import("../background");
+    const { buildSeriesKey, getChapterGroupCheckpoints } = await import(
+      "@domain/library"
+    );
+    const seriesKey = buildSeriesKey("manhuagui", "49169");
+    const makeSnapshot = (newChapters: boolean) => {
+      const chapterGroups = ["单话", "单行本", "番外篇"].map((id, index) => ({
+        id,
+        chapterList: (newChapters ? [2, 1] : [1]).map(
+          (number) => `comic/49169/${index + 1}${number}.html`,
+        ),
+      }));
+      const chapterList = chapterGroups.flatMap((group) => group.chapterList);
+      return {
+        chapterGroups,
+        chapterList,
+        chapters: Object.fromEntries(
+          chapterList.map((id) => [
+            id,
+            { title: id, href: `https://www.manhuagui.com/${id}` },
+          ]),
+        ),
+      };
+    };
+    const initial = makeSnapshot(false);
+    await mutations.applyReaderSeriesState(
+      "manhuagui",
+      "49169",
+      {
+        ...initial,
+        title: "Manhuagui Demo",
+        cover: "https://cf.mhgui.com/cpic/h/49169.jpg",
+        url: "https://www.manhuagui.com/comic/49169/",
+      },
+      initial.chapterList[0],
+      { chapterGroups: initial.chapterGroups },
+    );
+    await mutations.setSeriesSubscriptionByKey(seriesKey, true);
+    const next = makeSnapshot(true);
+    const noop = jest.fn();
+    const deps = {
+      applyBackgroundSeriesRefresh: mutations.applyBackgroundSeriesRefresh,
+      clearNotification: noop,
+      createNotification: noop,
+      getFetchChapters: () => () => of(next),
+      getManifestVersion: () => "4.4.0",
+      getRuntimeUrl: (path: string) => path,
+      getUpdateCount: queries.getUpdateCount,
+      listBackgroundRefreshCandidates: queries.listBackgroundRefreshCandidates,
+      markSubscriptionCheckedByKey: mutations.markSubscriptionCheckedByKey,
+      openTab: noop,
+      reconcileExtensionReleaseState: noop,
+      refreshExtensionReleaseState: noop,
+      resetLibrary: compat.resetLibrary,
+      setBadge: noop,
+      setLibraryVersion: compat.setLibraryVersion,
+      withBatchedLibrarySignals: shared.withBatchedLibrarySignals,
+    };
+    expect((await runBackgroundUpdateSummary(deps)).updated).toBe(3);
+    expect((await runBackgroundUpdateSummary(deps)).updated).toBe(0);
+    const expectedCheckpoints = getChapterGroupCheckpoints(next.chapterGroups);
+    expect(
+      (await queries.listBackgroundRefreshCandidates())[0]
+        .latestChapterIDsByGroup,
+    ).toEqual(expectedCheckpoints);
+    await mutations.applyReadProgress(
+      "manhuagui",
+      "49169",
+      next.chapterList[0],
+    );
+    expect(
+      (await queries.listBackgroundRefreshCandidates())[0]
+        .latestChapterIDsByGroup,
+    ).toEqual(expectedCheckpoints);
+    const feed = await queries.getPopupFeedSnapshot();
+    expect(feed.subscribe[0].siteLabel).toBe("漫畫櫃");
+    expect(feed.continueReading?.continueChapterID).toBe(next.chapterList[0]);
+    expect(feed.update.map((entry) => entry.updateChapterID)).toEqual(
+      next.chapterGroups.slice(1).map((group) => group.chapterList[0]),
+    );
+
+    const localSync = await syncPersistence.readLibrarySyncState();
+    const wire = syncModel.syncStateToIndexedRows(localSync.state);
+    expect(wire[0][0][0]).toBe(3);
+    await syncPersistence.applyLibrarySyncState(
+      syncModel.syncIndexedRowsToState(wire),
+      localSync.subscriptionCheckedAtByKey,
+    );
+    expect(
+      (await queries.listBackgroundRefreshCandidates())[0]
+        .latestChapterIDsByGroup,
+    ).toEqual(expectedCheckpoints);
+
+    // A new service-worker module instance must recover checkpoints from IndexedDB.
+    (await shared.openLibraryDb()).close();
+    jest.resetModules();
+    queries = await import("./queries");
+    shared = await import("./shared");
+    expect(
+      (await queries.listBackgroundRefreshCandidates())[0]
+        .latestChapterIDsByGroup,
+    ).toEqual(expectedCheckpoints);
+    compat = await import("./compat");
+    const dump = await compat.exportLibraryDump();
+    await compat.importLibraryDump(dump);
+    expect((await queries.getSeriesSnapshot(seriesKey))?.chapterList).toEqual(
+      next.chapterList,
+    );
+    expect(
+      (await queries.listBackgroundRefreshCandidates())[0]
+        .latestChapterIDsByGroup,
+    ).toBeUndefined();
+    expect((await queries.getPopupFeedSnapshot()).subscribe[0].siteLabel).toBe(
+      "漫畫櫃",
+    );
   });
 
   it("atomically clears subscription and reminders while preserving history and reads", async () => {

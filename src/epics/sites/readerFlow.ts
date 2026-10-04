@@ -428,6 +428,9 @@ export function createFetchChapterEpic(config: ReaderFlowConfig): AppEpic {
                         requireExistingSeries:
                           existingSeriesKey ===
                           buildSeriesKey(config.site, payload.seriesID),
+                        ...(meta.chapterGroups
+                          ? { chapterGroups: meta.chapterGroups }
+                          : {}),
                       },
                     ),
                   ).pipe(

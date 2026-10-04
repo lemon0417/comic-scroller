@@ -106,5 +106,24 @@
       "regexFilter": "http:\\/\\/.*\\.sfacg\\.com\\/.*",
       "resourceTypes": ["image", "xmlhttprequest"]
     }
+  },
+  {
+    "id": 7,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://www.manhuagui.com/"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "|https://i.hamreus.com/",
+      "requestDomains": ["i.hamreus.com"],
+      "resourceTypes": ["image", "xmlhttprequest"]
+    }
   }
 ]
