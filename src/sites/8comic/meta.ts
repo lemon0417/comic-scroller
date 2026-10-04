@@ -5,9 +5,9 @@ import {
 } from "@domain/library";
 import { map, timeout } from "rxjs/operators";
 
+import { htmlText, readHtmlAttribute } from "../html";
 import { fetchText$ } from "../http";
 import type { FetchMetaOptions, SiteMeta } from "../types";
-import { htmlText, readHtmlAttribute } from "./html";
 import {
   EIGHT_COMIC_BASE_URL,
   EIGHT_COMIC_READER_URL,

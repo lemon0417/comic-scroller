@@ -53,9 +53,20 @@ chrome.webNavigation.onBeforeNavigate.addListener(
     url: [
       {
         urlMatches:
+          "^https://www\\.(baozimh\\.com|twmanga\\.com)/comic/chapter/[a-z0-9_-]+/[0-9]+_[0-9]+(?:_[0-9]+)?\\.html(?:\\?.*)?(?:#.*)?$",
+      },
+      {
+        urlMatches:
+          "^https://www\\.(baozimh\\.com|twmanga\\.com)/user/page_direct\\?",
+      },
+      {
+        urlMatches:
           "^https://www\\.manhuagui\\.com/comic/\\d+/\\d+\\.html(?:\\?.*)?(?:#.*)?$",
       },
-      { urlMatches: "^https://articles\\.onemoreplace\\.tw/online/new-[1-9][0-9]*\\.html\\?" },
+      {
+        urlMatches:
+          "^https://articles\\.onemoreplace\\.tw/online/new-[1-9][0-9]*\\.html\\?",
+      },
       {
         urlMatches: "^https://www\\.dm5\\.com/m\\d+/?(?:\\?.*)?$",
       },

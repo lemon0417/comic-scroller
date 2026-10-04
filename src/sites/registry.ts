@@ -1,6 +1,7 @@
 import { map } from "rxjs/operators";
 
 import eightComicAdapter from "./8comic/adapter";
+import baozimhAdapter from "./baozimh/adapter";
 import dm5Adapter from "./dm5/adapter";
 import manhuaguiAdapter from "./manhuagui/adapter";
 import type {
@@ -13,6 +14,7 @@ const adapters: Record<string, SiteAdapter> = {
   dm5: dm5Adapter,
   "8comic": eightComicAdapter,
   manhuagui: manhuaguiAdapter,
+  baozimh: baozimhAdapter,
 };
 
 export function getSiteAdapter(site: string) {
@@ -34,7 +36,7 @@ export function getSiteChapterFetcher(
   if (!adapter) return undefined;
 
   return (url) =>
-    adapter.fetchMeta(url, { includeCover: false }).pipe(
-      map(projectChapterSnapshot),
-    );
+    adapter
+      .fetchMeta(url, { includeCover: false })
+      .pipe(map(projectChapterSnapshot));
 }

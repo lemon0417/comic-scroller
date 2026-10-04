@@ -43,6 +43,7 @@ const SITE_LABELS: Record<string, string> = {
   dm5: "DM5",
   "8comic": "8comic",
   manhuagui: "漫畫櫃",
+  baozimh: "包子漫畫",
 };
 
 function buildUpdateChapterKey(seriesKey: string, chapterID: string) {

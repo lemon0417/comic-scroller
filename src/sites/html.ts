@@ -41,3 +41,29 @@ export function htmlText(html: string) {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+export function stripHtmlScripts(html: string) {
+  return html.replace(
+    /<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi,
+    "",
+  );
+}
+
+/** Read a nested chapter container without DOM APIs in the service worker. */
+export function readHtmlDivContent(html: string, id: string) {
+  const tags = Array.from(html.matchAll(/<\/?div\b[^>]*>/gi));
+  let start = -1;
+  let depth = 0;
+  for (const tag of tags) {
+    if (start < 0) {
+      if (readHtmlAttribute(tag[0].slice(4, -1), "id") !== id) continue;
+      start = tag.index! + tag[0].length;
+      depth = 1;
+      continue;
+    }
+    depth += /^<\//.test(tag[0]) ? -1 : 1;
+    if (depth === 0) return html.slice(start, tag.index);
+  }
+  if (start >= 0) throw new Error(`Incomplete chapter container: ${id}.`);
+  return undefined;
+}

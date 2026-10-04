@@ -6,7 +6,7 @@ product
 
 ## Users
 
-Comic Scroller serves Chrome users who read manga on supported sites such as DM5, 8comic, and Manhuagui. They are usually in a reading flow, moving between chapters, checking followed titles, or returning to a previous place without wanting the source site chrome to interrupt the session.
+Comic Scroller serves Chrome users who read manga on supported sites such as DM5, 8comic, Manhuagui, and Baozimh. They are usually in a reading flow, moving between chapters, checking followed titles, or returning to a previous place without wanting the source site chrome to interrupt the session.
 
 ## Product Purpose
 

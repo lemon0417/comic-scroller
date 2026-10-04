@@ -34,6 +34,7 @@ It is maintained under the repository name `comic-scroller`, while the original 
 - DM5 / 動漫屋
 - 8comic / 無限動漫
 - Manhuagui / 漫畫櫃
+- Baozimh / 包子漫畫
 
 ## Installation for Users
 

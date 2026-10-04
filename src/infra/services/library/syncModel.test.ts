@@ -76,7 +76,7 @@ describe("library sync model", () => {
       [[], [1], [], []],
       [[], [], [0], []],
       [[], [], [], [[1, 1]]],
-      [[[5, "id", "", "", "", 0, 0, []]], [], [], []],
+      [[[6, "id", "", "", "", 0, 0, []]], [], [], []],
       [[[0, "id", 123, "", "", 0, 0, []]], [], [], []],
       [[[0, "id", "", "", "", 1, 0, []]], [], [], []],
       [[[0, "id", "", "", "", 0, -1, []]], [], [], []],
@@ -118,7 +118,7 @@ describe("library sync model", () => {
 
   it("keeps site codes stable and uses explicit missing checkpoints", () => {
     const state = createState();
-    for (const site of ["dm5", "8comic", "manhuagui"] as const) {
+    for (const site of ["dm5", "8comic", "manhuagui", "baozimh"] as const) {
       const key = buildSeriesKey(site, "123");
       state.seriesByKey[key] = createSeriesState({
         site,
@@ -127,13 +127,43 @@ describe("library sync model", () => {
       state.subscriptions.push(key);
     }
     const rows = syncStateToIndexedRows(state);
-    expect(rows[0].map((row) => row[0])).toEqual([0, 4, 3]);
+    expect(rows[0].map((row) => row[0])).toEqual([0, 4, 3, 5]);
     expect(rows[0].map((row) => row.slice(5, 7))).toEqual([
       [0, 0],
       [0, 0],
       [0, 0],
+      [0, 0],
     ]);
-    expect(rows[1]).toEqual([1, 2, 3]);
+    expect(rows[1]).toEqual([1, 2, 3, 4]);
+    expect(syncIndexedRowsToState(rows)).toEqual(state);
+  });
+
+  it("round-trips Baozimh slug identities, subscriptions, history and chapter checkpoints through v1 and v2", () => {
+    const slug = "zhongjiedechitianshi-jiyingshe";
+    const key = `baozimh:${slug}`;
+    const chapterID = `comic/chapter/${slug}/0_0.html`;
+    const state = createState();
+    state.seriesByKey[key] = createSeriesState({
+      site: "baozimh",
+      comicsID: slug,
+      title: "終結的熾天使",
+      url: `https://www.baozimh.com/comic/${slug}`,
+      latestChapterID: chapterID,
+      lastReadChapterID: chapterID,
+      readChapterIDs: [chapterID],
+      chapterSummaries: {
+        [chapterID]: {
+          title: "第1話",
+          href: `https://www.twmanga.com/${chapterID}`,
+        },
+      },
+    });
+    state.subscriptions = [key];
+    state.history = [key];
+    state.updates = [{ seriesKey: key, chapterID }];
+    expect(syncWireRowsToState(syncStateToWireRows(state))).toEqual(state);
+    const rows = syncStateToIndexedRows(state);
+    expect(rows[0][0][0]).toBe(5);
     expect(syncIndexedRowsToState(rows)).toEqual(state);
   });
 
@@ -165,11 +195,7 @@ describe("library sync model", () => {
       "dm5:m123",
       "8comic:123",
     ]);
-    expect(state.history).toEqual([
-      "dm5:m123",
-      "manhuagui:123",
-      "8comic:123",
-    ]);
+    expect(state.history).toEqual(["dm5:m123", "manhuagui:123", "8comic:123"]);
     expect(state.updates).toEqual([
       { seriesKey: "manhuagui:123", chapterID: "99" },
       { seriesKey: "8comic:123", chapterID: "c7" },

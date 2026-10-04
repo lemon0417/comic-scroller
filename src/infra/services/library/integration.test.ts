@@ -15,7 +15,10 @@ import {
   UPDATES_STORE,
 } from "./schema";
 
-type ChromeStorageListener = (changes: Record<string, any>, areaName: string) => void;
+type ChromeStorageListener = (
+  changes: Record<string, any>,
+  areaName: string,
+) => void;
 
 let compat: typeof import("./compat");
 let mutations: typeof import("./mutations");
@@ -30,7 +33,11 @@ if (typeof globalThis.structuredClone !== "function") {
 }
 
 if (typeof globalThis.CompressionStream !== "function") {
-  const { CompressionStream, DecompressionStream, ReadableStream } = require("stream/web");
+  const {
+    CompressionStream,
+    DecompressionStream,
+    ReadableStream,
+  } = require("stream/web");
   (globalThis as any).CompressionStream = CompressionStream;
   (globalThis as any).DecompressionStream = DecompressionStream;
   (globalThis as any).ReadableStream = ReadableStream;
@@ -83,8 +90,10 @@ function createChromeMock() {
     },
     storage: {
       onChanged: {
-        addListener: (listener: ChromeStorageListener) => listeners.add(listener),
-        removeListener: (listener: ChromeStorageListener) => listeners.delete(listener),
+        addListener: (listener: ChromeStorageListener) =>
+          listeners.add(listener),
+        removeListener: (listener: ChromeStorageListener) =>
+          listeners.delete(listener),
       },
       local: {
         get: (keys: any, cb?: (items: Record<string, any>) => void) =>
@@ -526,6 +535,7 @@ describe("library integration", () => {
         "dm5",
         "8comic",
         "manhuagui",
+        "baozimh",
       ]);
       await shared.ensureLibraryReady();
       expect(await shared.readRowsFromDb()).toEqual(rows);
@@ -684,21 +694,48 @@ describe("library integration", () => {
     });
   });
 
-  it.each(["manhuagui", "8comic"] as const)(
+  it.each(["manhuagui", "8comic", "baozimh"] as const)(
     "persists %s group checkpoints, detects all groups without replaying updates, and round-trips backup/sync",
     async (site) => {
-      const comicsID = site === "8comic" ? "105" : "49169";
-      const siteLabel = site === "8comic" ? "8comic" : "漫畫櫃";
-      const groupIDs =
-        site === "8comic" ? ["single", "volume"] : ["单话", "单行本", "番外篇"];
-      const seriesURL =
-        site === "8comic"
-          ? "https://www.8comic.com/html/105.html"
-          : "https://www.manhuagui.com/comic/49169/";
-      const readerURL =
-        site === "8comic"
-          ? "https://articles.onemoreplace.tw"
-          : "https://www.manhuagui.com";
+      const {
+        comicsID,
+        siteLabel,
+        groupIDs,
+        seriesURL,
+        readerURL,
+        cover,
+        syncCode,
+      } = {
+        "8comic": {
+          comicsID: "105",
+          siteLabel: "8comic",
+          groupIDs: ["single", "volume"],
+          seriesURL: "https://www.8comic.com/html/105.html",
+          readerURL: "https://articles.onemoreplace.tw",
+          cover: "https://www.8comic.com/pics/0/105m.jpg",
+          syncCode: 4,
+        },
+        manhuagui: {
+          comicsID: "49169",
+          siteLabel: "漫畫櫃",
+          groupIDs: ["单话", "单行本", "番外篇"],
+          seriesURL: "https://www.manhuagui.com/comic/49169/",
+          readerURL: "https://www.manhuagui.com",
+          cover: "https://cf.mhgui.com/cpic/h/49169.jpg",
+          syncCode: 3,
+        },
+        baozimh: {
+          comicsID: "zhongjiedechitianshi-jiyingshe",
+          siteLabel: "包子漫畫",
+          groupIDs: ["section:0", "section:1"],
+          seriesURL:
+            "https://www.baozimh.com/comic/zhongjiedechitianshi-jiyingshe",
+          readerURL: "https://www.twmanga.com",
+          cover:
+            "https://static-tw.baozimh.com/cover/zhongjiedechitianshi-jiyingshe.jpg",
+          syncCode: 5,
+        },
+      }[site];
       const { runBackgroundUpdateSummary } = await import("../background");
       const { buildSeriesKey, getChapterGroupCheckpoints } = await import(
         "@domain/library"
@@ -710,7 +747,9 @@ describe("library integration", () => {
           chapterList: (newChapters ? [2, 1] : [1]).map((number) =>
             site === "8comic"
               ? `online/new-105.html?ch=${index + 1}${number}`
-              : `comic/49169/${index + 1}${number}.html`,
+              : site === "baozimh"
+                ? `comic/chapter/${comicsID}/${index}_${number - 1}.html`
+                : `comic/49169/${index + 1}${number}.html`,
           ),
         }));
         const chapterList = chapterGroups.flatMap((group) => group.chapterList);
@@ -732,10 +771,7 @@ describe("library integration", () => {
         {
           ...initial,
           title: `${siteLabel} Demo`,
-          cover:
-            site === "8comic"
-              ? "https://www.8comic.com/pics/0/105m.jpg"
-              : "https://cf.mhgui.com/cpic/h/49169.jpg",
+          cover,
           url: seriesURL,
         },
         initial.chapterList[0],
@@ -788,7 +824,7 @@ describe("library integration", () => {
 
       const localSync = await syncPersistence.readLibrarySyncState();
       const wire = syncModel.syncStateToIndexedRows(localSync.state);
-      expect(wire[0][0][0]).toBe(site === "8comic" ? 4 : 3);
+      expect(wire[0][0][0]).toBe(syncCode);
       await syncPersistence.applyLibrarySyncState(
         syncModel.syncIndexedRowsToState(wire),
         localSync.subscriptionCheckedAtByKey,
@@ -1028,7 +1064,10 @@ describe("library integration", () => {
       rawTransaction.objectStore(SERIES_STORE).get("dm5:m123"),
     );
     const rawReadRows = await shared.requestToPromise(
-      rawTransaction.objectStore(READS_STORE).index("seriesKey").getAll("dm5:m123"),
+      rawTransaction
+        .objectStore(READS_STORE)
+        .index("seriesKey")
+        .getAll("dm5:m123"),
     );
     const rawUpdateRows = await shared.requestToPromise(
       rawTransaction.objectStore(UPDATES_STORE).getAll(),
@@ -1093,9 +1132,7 @@ describe("library integration", () => {
     expect(exported.formatVersion).toBe(2);
     expect(exported.data.series).toHaveLength(1);
     expect(exported.data.updates).toEqual([]);
-    expect(exported.data.subscriptions).toEqual([
-      { seriesKey: "dm5:m123" },
-    ]);
+    expect(exported.data.subscriptions).toEqual([{ seriesKey: "dm5:m123" }]);
     expect(exported.data.history).toEqual(["dm5:m123"]);
     expect(exported.data.series[0]).toEqual(
       expect.objectContaining({
@@ -1613,16 +1650,16 @@ describe("library integration", () => {
       },
     });
 
-    await expect(queries.getReaderSeriesState("dm5:m123")).resolves.toMatchObject({
+    await expect(
+      queries.getReaderSeriesState("dm5:m123"),
+    ).resolves.toMatchObject({
       series: {
         lastRead: "m1",
         read: ["m1"],
       },
     });
     const rows = await shared.readRowsFromDb();
-    expect(rows.reads).toEqual([
-      { seriesKey: "dm5:m123", chapterID: "m1" },
-    ]);
+    expect(rows.reads).toEqual([{ seriesKey: "dm5:m123", chapterID: "m1" }]);
   });
 
   it("rejects missing-series subscriptions and removes dangling references", async () => {
@@ -1792,7 +1829,9 @@ describe("library integration", () => {
     await expect(
       queries.getSeriesSnapshot("dm5:orphan"),
     ).resolves.toMatchObject({ title: "Cache only" });
-    await expect(queries.getReaderSeriesState("8comic:77")).resolves.toMatchObject({
+    await expect(
+      queries.getReaderSeriesState("8comic:77"),
+    ).resolves.toMatchObject({
       series: {
         title: "Remote Only",
         chapterList: ["online/new-77.html?ch=7"],
@@ -1896,7 +1935,9 @@ describe("library integration", () => {
   it("repairs read and polling invariants when upgrading database v6 to v7", async () => {
     await seedLibraryDbV6WithMissingInvariants();
 
-    await expect(queries.getReaderSeriesState("dm5:m123")).resolves.toMatchObject({
+    await expect(
+      queries.getReaderSeriesState("dm5:m123"),
+    ).resolves.toMatchObject({
       series: {
         chapterList: ["m2", "m1"],
         lastRead: "m1",
@@ -1906,15 +1947,11 @@ describe("library integration", () => {
     });
 
     const rows = await shared.readRowsFromDb();
-    expect(rows.reads).toEqual([
-      { seriesKey: "dm5:m123", chapterID: "m1" },
-    ]);
+    expect(rows.reads).toEqual([{ seriesKey: "dm5:m123", chapterID: "m1" }]);
     expect(rows.subscriptions).toEqual([
       { seriesKey: "dm5:m123", position: 0, checkedAt: 0 },
     ]);
-    expect(rows.history).toEqual([
-      { seriesKey: "dm5:m123", position: 0 },
-    ]);
+    expect(rows.history).toEqual([{ seriesKey: "dm5:m123", position: 0 }]);
     expect(rows.updates).toEqual([
       { seriesKey: "dm5:m123", chapterID: "m2", position: 0 },
     ]);
@@ -1924,12 +1961,21 @@ describe("library integration", () => {
     await seedLegacyLibraryDbV1();
 
     await expect(queries.getPopupFeedSnapshot()).resolves.toMatchObject({
-      subscribe: [expect.objectContaining({ comicsID: "m123", title: "Legacy Demo" })],
+      subscribe: [
+        expect.objectContaining({ comicsID: "m123", title: "Legacy Demo" }),
+      ],
     });
 
     const db = await shared.openLibraryDb();
     const transaction = db.transaction(
-      [SERIES_STORE, CHAPTERS_STORE, READS_STORE, SUBSCRIPTIONS_STORE, HISTORY_STORE, UPDATES_STORE],
+      [
+        SERIES_STORE,
+        CHAPTERS_STORE,
+        READS_STORE,
+        SUBSCRIPTIONS_STORE,
+        HISTORY_STORE,
+        UPDATES_STORE,
+      ],
       "readonly",
     );
     const seriesStore = transaction.objectStore(SERIES_STORE);
@@ -1943,7 +1989,12 @@ describe("library integration", () => {
       shared.requestToPromise<any[]>(seriesStore.getAll()),
       shared.requestToPromise<any[]>(chaptersStore.getAll()),
       shared.requestToPromise<any[]>(updatesStore.getAll()),
-      shared.requestToPromise<any>(db.transaction([META_STORE], "readonly").objectStore(META_STORE).get(LIBRARY_META_KEY)),
+      shared.requestToPromise<any>(
+        db
+          .transaction([META_STORE], "readonly")
+          .objectStore(META_STORE)
+          .get(LIBRARY_META_KEY),
+      ),
     ]);
 
     await shared.transactionDone(transaction);
@@ -1966,7 +2017,9 @@ describe("library integration", () => {
     ]);
     expect(readsStore.indexNames.contains("seriesKey")).toBe(true);
     expect(subscriptionsStore.indexNames.contains("position")).toBe(true);
-    expect(subscriptionsStore.indexNames.contains("checkedAtPosition")).toBe(true);
+    expect(subscriptionsStore.indexNames.contains("checkedAtPosition")).toBe(
+      true,
+    );
     expect(historyStore.indexNames.contains("position")).toBe(true);
     expect(updatesStore.indexNames.contains("position")).toBe(true);
     expect(updatesStore.indexNames.contains("createdAt")).toBe(false);

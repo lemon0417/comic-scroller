@@ -18,7 +18,15 @@ import {
   setLibraryVersion,
   withBatchedLibrarySignals,
 } from "@infra/services/library/background";
-import { EIGHT_COMIC_READER_URL, parseEightComicChapterID } from "@sites/8comic/url";
+import {
+  EIGHT_COMIC_READER_URL,
+  parseEightComicChapterID,
+} from "@sites/8comic/url";
+import {
+  BAOZIMH_BASE_URL,
+  BAOZIMH_READER_URL,
+  parseBaozimhChapterURL,
+} from "@sites/baozimh/url";
 import { getSiteChapterFetcher } from "@sites/registry";
 import type { SiteChapterFetcher, SiteChapterSnapshot } from "@sites/types";
 import { firstValueFrom, timeout } from "rxjs";
@@ -479,6 +487,19 @@ export function resolveReaderRedirect(
       );
       const params = new URLSearchParams({
         site: "8comic",
+        chapter: chapterID,
+      });
+      return `${getRuntimeUrl("app.html")}?${params.toString()}`;
+    } catch {
+      return "";
+    }
+  }
+
+  if ([BAOZIMH_BASE_URL, BAOZIMH_READER_URL].includes(parsedUrl.origin)) {
+    try {
+      const { chapterID } = parseBaozimhChapterURL(parsedUrl.href);
+      const params = new URLSearchParams({
+        site: "baozimh",
         chapter: chapterID,
       });
       return `${getRuntimeUrl("app.html")}?${params.toString()}`;

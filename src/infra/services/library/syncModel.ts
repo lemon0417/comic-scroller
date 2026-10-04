@@ -81,6 +81,7 @@ const SYNC_V2_SITES: readonly (SiteKey | null)[] = [
   null, // Retired ComicBus code; never reuse.
   "manhuagui",
   "8comic",
+  "baozimh",
 ];
 
 type MergePreference = "local" | "remote";
