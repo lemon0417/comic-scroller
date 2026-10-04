@@ -34,7 +34,7 @@ export const LEGACY_STORAGE_KEYS = [
   "dm5",
   // Retired provider bucket: remove it when migrating legacy storage.
   "sf",
-  "comicbus",
+  "comicbus", // Retired provider: remove old storage during legacy cleanup.
   "schemaVersion",
   "seriesByKey",
   "subscriptions",

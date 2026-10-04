@@ -50,8 +50,8 @@ it.each([
   {
     ...createEmptyLibrarySyncState(),
     seriesByKey: {
-      "comicbus:123": {
-        site: "comicbus" as const,
+      "8comic:123": {
+        site: "8comic" as const,
         comicsID: "123",
         title: '😀中文"\\\n',
         cover: "",
@@ -75,7 +75,7 @@ it.each([
         },
       },
     },
-    subscriptions: ["comicbus:123", "dm5:m123"],
+    subscriptions: ["8comic:123", "dm5:m123"],
   },
 ])(
   "round-trips empty or Unicode libraries without inventing latest checkpoints (%#)",

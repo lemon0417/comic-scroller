@@ -1,6 +1,6 @@
 import type { AppEpic } from "@epics/types";
 
-import * as comicbus from "./comicbus";
+import * as eightComic from "./8comic";
 import * as dm5 from "./dm5";
 import * as manhuagui from "./manhuagui";
 
@@ -24,11 +24,11 @@ const readerEpicsBySite: Record<string, SiteReaderEpics> = {
     fetchImgListEpic: dm5.fetchImgListEpic,
     updateReadEpic: dm5.updateReadEpic,
   },
-  comicbus: {
-    fetchChapterEpic: comicbus.fetchChapterEpic,
-    fetchImgSrcEpic: comicbus.fetchImgSrcEpic,
-    fetchImgListEpic: comicbus.fetchImgListEpic,
-    updateReadEpic: comicbus.updateReadEpic,
+  "8comic": {
+    fetchChapterEpic: eightComic.fetchChapterEpic,
+    fetchImgSrcEpic: eightComic.fetchImgSrcEpic,
+    fetchImgListEpic: eightComic.fetchImgListEpic,
+    updateReadEpic: eightComic.updateReadEpic,
   },
 };
 

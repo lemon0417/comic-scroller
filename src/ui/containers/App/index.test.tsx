@@ -1,8 +1,10 @@
+import comicsReducer from "@domain/reducers/comics";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ComponentType } from "react";
+import { connect } from "react-redux";
 
 jest.mock("react-redux", () => ({
-  connect: () => (Component: unknown) => Component,
+  connect: jest.fn(() => (Component: unknown) => Component),
 }));
 
 import App from "./index";
@@ -20,6 +22,24 @@ jest.mock("@containers/ChapterList", () => ({
 const TestApp = App as unknown as ComponentType<any>;
 
 describe("App", () => {
+  it("links the reader title to the actual 8comic series page", () => {
+    const mapStateToProps = (connect as jest.Mock).mock.calls[0][0];
+    const mapped = mapStateToProps({
+      comics: {
+        ...comicsReducer(undefined, { type: "@@INIT" }),
+        site: "8comic",
+        comicsID: "105",
+        title: "全職獵人",
+        baseURL: "https://www.8comic.com",
+        comicUrl: "https://www.8comic.com/html/105.html",
+      },
+    });
+    render(<TestApp {...subscriptionProps()} {...mapped} />);
+    expect(screen.getByRole("link", { name: "全職獵人" })).toHaveAttribute(
+      "href",
+      "https://www.8comic.com/html/105.html",
+    );
+  });
   const subscriptionProps = () => ({
     fetchChapter: jest.fn(),
     toggleSubscribe: jest.fn(),

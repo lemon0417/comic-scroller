@@ -516,6 +516,7 @@ function mapStateToProps({ comics }: { comics: ComicsState }): AppStateProps {
     comicsID,
     seriesKey,
     baseURL,
+    comicUrl,
   } = comics;
   const activeReaderZoomScale = getReaderZoomScaleForTarget(comics);
   return {
@@ -533,7 +534,7 @@ function mapStateToProps({ comics }: { comics: ComicsState }): AppStateProps {
     subscriptionPending,
     subscriptionNotice,
     persistenceInvalidated,
-    url: `${baseURL}/${comicsID}`,
+    url: comicUrl || `${baseURL}/${comicsID}`,
     canDecreaseReaderZoom: activeReaderZoomScale > READER_IMAGE_SCALE_MIN,
     canIncreaseReaderZoom: activeReaderZoomScale < READER_IMAGE_SCALE_MAX,
     canUseSelectedReaderZoom: typeof comics.selectedImageId === "number",

@@ -87,7 +87,7 @@ type LegacyStore = {
   subscribe?: Array<{ site?: string; comicsID?: string }>;
   update?: Array<{ site?: string; comicsID?: string; chapterID?: string }>;
   dm5?: Record<string, unknown>;
-  comicbus?: Record<string, unknown>;
+  "8comic"?: Record<string, unknown>;
   manhuagui?: Record<string, unknown>;
   schemaVersion?: number;
   seriesByKey?: Record<string, SeriesRecord>;

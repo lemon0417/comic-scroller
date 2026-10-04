@@ -86,6 +86,7 @@ export type ComicsState = {
   chapterNowIndex: number;
   canPreloadPreviousChapter: boolean;
   baseURL: string;
+  comicUrl: string;
   subscribe: boolean;
   subscriptionPending: boolean;
   subscriptionNotice: string;
@@ -133,6 +134,7 @@ type Action = {
   naturalWidth?: number;
   naturalHeight?: number;
   baseURL?: string;
+  comicUrl?: string;
   chapter?: string;
   site?: string;
   stage?: ReaderImageFailureStage;
@@ -160,6 +162,7 @@ const initialState: ComicsState = {
   chapterNowIndex: 0,
   canPreloadPreviousChapter: true,
   baseURL: "",
+  comicUrl: "",
   subscribe: false,
   subscriptionPending: false,
   subscriptionNotice: "",
@@ -1156,6 +1159,7 @@ export default function comics(
       return {
         ...state,
         comicsID: action.data,
+        comicUrl: action.data === state.comicsID ? state.comicUrl : "",
         seriesKey:
           state.site && typeof action.data === "string"
             ? buildSeriesKey(state.site, action.data)
@@ -1314,6 +1318,12 @@ export default function comics(
             : "",
         baseURL:
           typeof action.baseURL === "string" ? action.baseURL : state.baseURL,
+        comicUrl:
+          typeof action.comicUrl === "string"
+            ? action.comicUrl
+            : action.site && action.site !== state.site
+              ? ""
+              : state.comicUrl,
       };
     default:
       return state;
@@ -1409,8 +1419,17 @@ export function resetReaderImageScale(zoomTarget?: ReaderZoomTarget) {
   return { type: RESET_READER_IMAGE_SCALE, zoomTarget };
 }
 
-export function updateSiteInfo(site: string, baseURL: string) {
-  return { type: UPDATE_SITE_INFO, site, baseURL };
+export function updateSiteInfo(
+  site: string,
+  baseURL: string,
+  comicUrl?: string,
+) {
+  return {
+    type: UPDATE_SITE_INFO,
+    site,
+    baseURL,
+    ...(comicUrl !== undefined ? { comicUrl } : {}),
+  };
 }
 
 export function setChapterLoadFailed() {

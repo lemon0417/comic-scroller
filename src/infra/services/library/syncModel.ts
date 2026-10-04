@@ -78,8 +78,9 @@ export type LibrarySyncWireRowsV2 = [
 const SYNC_V2_SITES: readonly (SiteKey | null)[] = [
   "dm5",
   null, // Code 1 belonged to the retired provider and must never be reused.
-  "comicbus",
+  null, // Retired ComicBus code; never reuse.
   "manhuagui",
+  "8comic",
 ];
 
 type MergePreference = "local" | "remote";

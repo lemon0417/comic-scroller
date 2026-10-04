@@ -76,7 +76,7 @@ describe("library sync model", () => {
       [[], [1], [], []],
       [[], [], [0], []],
       [[], [], [], [[1, 1]]],
-      [[[4, "id", "", "", "", 0, 0, []]], [], [], []],
+      [[[5, "id", "", "", "", 0, 0, []]], [], [], []],
       [[[0, "id", 123, "", "", 0, 0, []]], [], [], []],
       [[[0, "id", "", "", "", 1, 0, []]], [], [], []],
       [[[0, "id", "", "", "", 0, -1, []]], [], [], []],
@@ -118,7 +118,7 @@ describe("library sync model", () => {
 
   it("keeps site codes stable and uses explicit missing checkpoints", () => {
     const state = createState();
-    for (const site of ["dm5", "comicbus", "manhuagui"] as const) {
+    for (const site of ["dm5", "8comic", "manhuagui"] as const) {
       const key = buildSeriesKey(site, "123");
       state.seriesByKey[key] = createSeriesState({
         site,
@@ -127,7 +127,7 @@ describe("library sync model", () => {
       state.subscriptions.push(key);
     }
     const rows = syncStateToIndexedRows(state);
-    expect(rows[0].map((row) => row[0])).toEqual([0, 2, 3]);
+    expect(rows[0].map((row) => row[0])).toEqual([0, 4, 3]);
     expect(rows[0].map((row) => row.slice(5, 7))).toEqual([
       [0, 0],
       [0, 0],
@@ -142,35 +142,37 @@ describe("library sync model", () => {
       [
         [0, "m123", "DM5", "", "", 1, 1, [["m1", "Ch 1", "dm5-url"]]],
         [1, "123", "Retired", "", "", 1, 1, [["c1", "Old", "old-url"]]],
-        [2, "123", "ComicBus", "", "", 1, 0, [["c7", "Ch 7", "bus-url"]]],
+        [2, "123", "ComicBus", "", "", 1, 0, [["c7", "Old", "bus-url"]]],
         [3, "123", "Manhuagui", "", "", 1, 1, [["99", "Ch 99", "gui-url"]]],
+        [4, "123", "8comic", "", "", 1, 0, [["c7", "Ch 7", "eight-url"]]],
       ],
-      [2, 4, 1, 3],
-      [3, 2, 1, 4],
+      [2, 4, 1, 3, 5],
+      [3, 2, 1, 4, 5],
       [
         [2, 1],
         [3, 1],
         [4, 1],
+        [5, 1],
       ],
     ]);
     expect(Object.keys(state.seriesByKey)).toEqual([
       "manhuagui:123",
       "dm5:m123",
-      "comicbus:123",
+      "8comic:123",
     ]);
     expect(state.subscriptions).toEqual([
       "manhuagui:123",
       "dm5:m123",
-      "comicbus:123",
+      "8comic:123",
     ]);
     expect(state.history).toEqual([
-      "comicbus:123",
       "dm5:m123",
       "manhuagui:123",
+      "8comic:123",
     ]);
     expect(state.updates).toEqual([
-      { seriesKey: "comicbus:123", chapterID: "c7" },
       { seriesKey: "manhuagui:123", chapterID: "99" },
+      { seriesKey: "8comic:123", chapterID: "c7" },
     ]);
     expect(syncIndexedRowsToState(syncStateToIndexedRows(state))).toEqual(
       state,
@@ -183,6 +185,10 @@ describe("library sync model", () => {
       [[[1, "123", "", "", "", 1, 0, []]], [], [], []],
       [[[1, "123", "", "", "", 0, 0, []]], [2], [], []],
       [[[1, "123", "", "", "", 0, 0, []]], [], [], [[1, 1]]],
+      [[[2, "123", 7, "", "", 0, 0, []]], [], [], []],
+      [[[2, "123", "", "", "", 1, 0, []]], [], [], []],
+      [[[2, "123", "", "", "", 0, 0, []]], [2], [], []],
+      [[[2, "123", "", "", "", 0, 0, []]], [], [], [[1, 1]]],
     ].map((rows) => [rows]),
   )("still validates retired rows and their references (%#)", (rows) => {
     expect(() => syncIndexedRowsToState(rows)).toThrow();
@@ -192,23 +198,32 @@ describe("library sync model", () => {
     const state = syncWireRowsToState({
       series: [
         { site: "sf", comicsID: "123", title: "Retired", chapters: [] },
-        { site: "comicbus", comicsID: "123", title: "Kept", chapters: [] },
+        { site: "comicbus", comicsID: "123", title: "Retired", chapters: [] },
+        { site: "8comic", comicsID: "123", title: "Kept", chapters: [] },
       ],
-      subscriptions: [{ seriesKey: "sf:123" }, { seriesKey: "comicbus:123" }],
+      subscriptions: [
+        { seriesKey: "sf:123" },
+        { seriesKey: "comicbus:123" },
+        { seriesKey: "8comic:123" },
+      ],
       history: [
-        ...Array.from({ length: 50 }, (_, index) => `sf:${index}`),
-        "comicbus:123",
+        ...Array.from(
+          { length: 50 },
+          (_, index) => `${index % 2 ? "sf" : "comicbus"}:${index}`,
+        ),
+        "8comic:123",
       ],
       updates: [
         { seriesKey: "sf:123", chapterID: "c1" },
         { seriesKey: "comicbus:123", chapterID: "c7" },
+        { seriesKey: "8comic:123", chapterID: "c7" },
       ],
     });
-    expect(Object.keys(state.seriesByKey)).toEqual(["comicbus:123"]);
-    expect(state.subscriptions).toEqual(["comicbus:123"]);
-    expect(state.history).toEqual(["comicbus:123"]);
+    expect(Object.keys(state.seriesByKey)).toEqual(["8comic:123"]);
+    expect(state.subscriptions).toEqual(["8comic:123"]);
+    expect(state.history).toEqual(["8comic:123"]);
     expect(state.updates).toEqual([
-      { seriesKey: "comicbus:123", chapterID: "c7" },
+      { seriesKey: "8comic:123", chapterID: "c7" },
     ]);
   });
 

@@ -18,12 +18,11 @@ import {
   setLibraryVersion,
   withBatchedLibrarySignals,
 } from "@infra/services/library/background";
+import { EIGHT_COMIC_READER_URL, parseEightComicChapterID } from "@sites/8comic/url";
 import { getSiteChapterFetcher } from "@sites/registry";
 import type { SiteChapterFetcher, SiteChapterSnapshot } from "@sites/types";
 import { firstValueFrom, timeout } from "rxjs";
 
-const comicbusRegex =
-  /http\:\/\/(www|v)\.comicbus.com\/online\/(comic-\d+\.html\?ch=.*$)/;
 const READER_REDIRECT_BYPASS_PARAM = "cs_open_native";
 const UPDATE_NOTIFICATION_ID = "Comics Scroller Update";
 const BACKGROUND_UPDATE_BATCH_SIZE = 20;
@@ -469,10 +468,23 @@ export function resolveReaderRedirect(
     return "";
   }
 
-  if (comicbusRegex.test(url)) {
-    const match = comicbusRegex.exec(url);
-    if (!match) return "";
-    return `${getRuntimeUrl("app.html")}?site=comicbus&chapter=${match[2]}`;
+  if (
+    parsedUrl.origin === EIGHT_COMIC_READER_URL &&
+    /^\/online\/new-[1-9]\d*\.html$/.test(parsedUrl.pathname)
+  ) {
+    if (parsedUrl.searchParams.getAll("ch").length !== 1) return "";
+    try {
+      const { chapterID } = parseEightComicChapterID(
+        `${parsedUrl.pathname.slice(1)}?ch=${parsedUrl.searchParams.get("ch")}`,
+      );
+      const params = new URLSearchParams({
+        site: "8comic",
+        chapter: chapterID,
+      });
+      return `${getRuntimeUrl("app.html")}?${params.toString()}`;
+    } catch {
+      return "";
+    }
   }
 
   const isDm5Host =

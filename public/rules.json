@@ -107,5 +107,24 @@
       "requestDomains": ["i.hamreus.com"],
       "resourceTypes": ["image", "xmlhttprequest"]
     }
+  },
+  {
+    "id": 8,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://www.8comic.com/"
+        }
+      ]
+    },
+    "condition": {
+      "regexFilter": "^https://articles\\.onemoreplace\\.tw/online/new-[1-9][0-9]*\\.html([?]|$)",
+      "requestDomains": ["articles.onemoreplace.tw"],
+      "resourceTypes": ["main_frame", "xmlhttprequest"]
+    }
   }
 ]

@@ -385,7 +385,7 @@ describe("library integration", () => {
   ];
 
   async function seedCleanupSeries(
-    site: "dm5" | "comicbus",
+    site: "dm5" | "8comic",
     comicsID: string,
     subscribed = false,
   ) {
@@ -448,90 +448,103 @@ describe("library integration", () => {
     await resetLibraryPersistence(true);
   });
 
-  it("cleans retired site rows on startup without rewriting supported rows", async () => {
-    const snapshot = shared.migrateLibrary({
-      dm5: {
-        "123": {
-          title: "Kept",
-          lastRead: "c1",
-          chapterList: ["c1"],
-          chapters: { c1: { title: "Chapter", href: "dm5-url" } },
+  it.each(["sf", "comicbus"])(
+    "cleans retired %s rows on startup without rewriting supported rows",
+    async (retiredSite) => {
+      const snapshot = shared.migrateLibrary({
+        dm5: {
+          "123": {
+            title: "Kept",
+            lastRead: "c1",
+            chapterList: ["c1"],
+            chapters: { c1: { title: "Chapter", href: "dm5-url" } },
+          },
         },
-      },
-      manhuagui: {
-        "123": {
-          title: "Grouped",
-          chapterList: ["c1"],
-          chapters: { c1: { title: "Chapter", href: "gui-url" } },
+        manhuagui: {
+          "123": {
+            title: "Grouped",
+            chapterList: ["c1"],
+            chapters: { c1: { title: "Chapter", href: "gui-url" } },
+          },
         },
-      },
-      subscribe: [
-        { site: "dm5", comicsID: "123" },
-        { site: "manhuagui", comicsID: "123" },
-      ],
-      history: [{ site: "dm5", comicsID: "123" }],
-      update: [{ site: "dm5", comicsID: "123", chapterID: "c1" }],
-    });
-    const rows = shared.snapshotToDbRows(snapshot, { "dm5:m123": 987 });
-    rows.series[1].latestChapterIDsByGroup = { single: "c1" };
-    const retiredRows = Object.fromEntries(
-      cleanupStores.map((store) => [
-        store,
-        rows[store].map((row) => ({
-          ...row,
-          seriesKey: "sf:123",
-          ...(store === SERIES_STORE ? { site: "sf", comicsID: "123" } : {}),
-        })),
-      ]),
-    );
-    const db = await shared.openLibraryDb();
-    const tx = db.transaction([META_STORE, ...cleanupStores], "readwrite");
-    const done = shared.transactionDone(tx);
-    for (const store of cleanupStores) {
-      for (const row of [...rows[store], ...retiredRows[store].slice(0, 1)]) {
-        await shared.requestToPromise(tx.objectStore(store).put(row));
+        subscribe: [
+          { site: "dm5", comicsID: "123" },
+          { site: "manhuagui", comicsID: "123" },
+        ],
+        history: [{ site: "dm5", comicsID: "123" }],
+        update: [{ site: "dm5", comicsID: "123", chapterID: "c1" }],
+      });
+      const rows = shared.snapshotToDbRows(snapshot, { "dm5:m123": 987 });
+      rows.series[1].latestChapterIDsByGroup = { single: "c1" };
+      const retiredRows = Object.fromEntries(
+        cleanupStores.map((store) => [
+          store,
+          rows[store].map((row) => ({
+            ...row,
+            seriesKey: `${retiredSite}:123`,
+            ...(store === SERIES_STORE
+              ? { site: retiredSite, comicsID: "123" }
+              : {}),
+          })),
+        ]),
+      );
+      const db = await shared.openLibraryDb();
+      const tx = db.transaction([META_STORE, ...cleanupStores], "readwrite");
+      const done = shared.transactionDone(tx);
+      for (const store of cleanupStores) {
+        for (const row of [...rows[store], ...retiredRows[store].slice(0, 1)]) {
+          await shared.requestToPromise(tx.objectStore(store).put(row));
+        }
       }
-    }
-    await shared.requestToPromise(
-      tx.objectStore(META_STORE).put({
-        key: LIBRARY_META_KEY,
-        value: {
-          initialized: true,
-          version: "4.4.0",
-          dbSchemaVersion: LIBRARY_DB_VERSION,
-        },
-      }),
-    );
-    await shared.requestToPromise(
-      tx
-        .objectStore(READS_STORE)
-        .put({ seriesKey: "sf:dangling", chapterID: "c1" }),
-    );
-    await done;
+      await shared.requestToPromise(
+        tx.objectStore(META_STORE).put({
+          key: LIBRARY_META_KEY,
+          value: {
+            initialized: true,
+            version: "4.4.0",
+            dbSchemaVersion: LIBRARY_DB_VERSION,
+            supportedSiteKeys: ["dm5", "comicbus", "manhuagui"],
+          },
+        }),
+      );
+      await shared.requestToPromise(
+        tx
+          .objectStore(READS_STORE)
+          .put({ seriesKey: `${retiredSite}:dangling`, chapterID: "c1" }),
+      );
+      await done;
 
-    await shared.ensureLibraryReady();
-    expect(await shared.readRowsFromDb()).toEqual(rows);
-    const metaTx = db.transaction([META_STORE], "readonly");
-    const metaDone = shared.transactionDone(metaTx);
-    const nextMeta = await shared.requestToPromise<any>(
-      metaTx.objectStore(META_STORE).get(LIBRARY_META_KEY),
-    );
-    await metaDone;
-    expect(nextMeta.value.supportedSiteKeys).toEqual([
-      "dm5",
-      "comicbus",
-      "manhuagui",
-    ]);
-    await shared.ensureLibraryReady();
-    expect(await shared.readRowsFromDb()).toEqual(rows);
-  });
+      await shared.ensureLibraryReady();
+      expect(await shared.readRowsFromDb()).toEqual(rows);
+      const metaTx = db.transaction([META_STORE], "readonly");
+      const metaDone = shared.transactionDone(metaTx);
+      const nextMeta = await shared.requestToPromise<any>(
+        metaTx.objectStore(META_STORE).get(LIBRARY_META_KEY),
+      );
+      await metaDone;
+      expect(nextMeta.value.supportedSiteKeys).toEqual([
+        "dm5",
+        "8comic",
+        "manhuagui",
+      ]);
+      await shared.ensureLibraryReady();
+      expect(await shared.readRowsFromDb()).toEqual(rows);
+    },
+  );
 
-  it.each(["legacy", "snapshot", "dump-v1", "dump-v2"])(
-    "ignores SF records and references when importing %s",
-    async (format) => {
+  it.each(
+    ["sf", "comicbus"].flatMap((site) =>
+      ["legacy", "snapshot", "dump-v1", "dump-v2"].map((format) => [
+        site,
+        format,
+      ]),
+    ),
+  )(
+    "ignores %s records and references when importing %s",
+    async (retiredSite, format) => {
       const retiredHistory = Array.from(
         { length: 50 },
-        (_, index) => `sf:${index}`,
+        (_, index) => `${retiredSite}:${index}`,
       );
       const record = {
         title: "Kept",
@@ -542,20 +555,20 @@ describe("library integration", () => {
       };
       const legacy = {
         dm5: { "123": record },
-        sf: { "123": { ...record, title: "Retired" } },
+        [retiredSite]: { "123": { ...record, title: "Retired" } },
         subscribe: [
-          { site: "sf", comicsID: "123" },
+          { site: retiredSite, comicsID: "123" },
           { site: "dm5", comicsID: "123" },
         ],
         history: [
           ...retiredHistory.map((key) => ({
-            site: "sf",
+            site: retiredSite,
             comicsID: key.split(":")[1],
           })),
           { site: "dm5", comicsID: "123" },
         ],
         update: [
-          { site: "sf", comicsID: "123", chapterID: "c1" },
+          { site: retiredSite, comicsID: "123", chapterID: "c1" },
           { site: "dm5", comicsID: "123", chapterID: "c1" },
         ],
       };
@@ -564,12 +577,16 @@ describe("library integration", () => {
         ...snapshot,
         seriesByKey: {
           ...snapshot.seriesByKey,
-          "sf:123": { ...record, site: "sf", comicsID: "123" },
+          [`${retiredSite}:123`]: {
+            ...record,
+            site: retiredSite,
+            comicsID: "123",
+          },
         },
-        subscriptions: ["sf:123", ...snapshot.subscriptions],
+        subscriptions: [`${retiredSite}:123`, ...snapshot.subscriptions],
         history: [...retiredHistory, ...snapshot.history],
         updates: [
-          { seriesKey: "sf:123", chapterID: "c1" },
+          { seriesKey: `${retiredSite}:123`, chapterID: "c1" },
           ...snapshot.updates,
         ],
       };
@@ -580,18 +597,18 @@ describe("library integration", () => {
           ...dumpRows.series,
           {
             ...dumpRows.series[0],
-            site: "sf",
-            seriesKey: "sf:123",
+            site: retiredSite,
+            seriesKey: `${retiredSite}:123`,
             comicsID: "123",
           },
         ],
         chapters: [
           ...dumpRows.chapters,
-          { ...dumpRows.chapters[0], seriesKey: "sf:123" },
+          { ...dumpRows.chapters[0], seriesKey: `${retiredSite}:123` },
         ],
         subscriptions: [
           ...dumpRows.subscriptions,
-          { seriesKey: "sf:123", position: 1 },
+          { seriesKey: `${retiredSite}:123`, position: 1 },
         ],
         history: [
           ...retiredHistory.map((seriesKey, position) => ({
@@ -602,7 +619,7 @@ describe("library integration", () => {
         ],
         updates: [
           ...dumpRows.updates,
-          { seriesKey: "sf:123", chapterID: "c1", position: 1 },
+          { seriesKey: `${retiredSite}:123`, chapterID: "c1", position: 1 },
         ],
       };
       const compactRows = shared.snapshotToCompactDumpRows(snapshot);
@@ -610,12 +627,15 @@ describe("library integration", () => {
         ...compactRows,
         series: [
           ...compactRows.series,
-          { ...compactRows.series[0], site: "sf", comicsID: "123" },
+          { ...compactRows.series[0], site: retiredSite, comicsID: "123" },
         ],
-        subscriptions: [{ seriesKey: "sf:123" }, ...compactRows.subscriptions],
+        subscriptions: [
+          { seriesKey: `${retiredSite}:123` },
+          ...compactRows.subscriptions,
+        ],
         history: [...retiredHistory, ...compactRows.history],
         updates: [
-          { seriesKey: "sf:123", chapterID: "c1" },
+          { seriesKey: `${retiredSite}:123`, chapterID: "c1" },
           ...compactRows.updates,
         ],
       };
@@ -640,14 +660,14 @@ describe("library integration", () => {
       expect(dump.data.series.map((series) => series.site)).toEqual(["dm5"]);
       expect(dump.data.series[0].read).toEqual(["c1"]);
       expect(JSON.stringify(await shared.readRowsFromDb())).not.toContain(
-        "sf:",
+        `${retiredSite}:`,
       );
     },
   );
 
   it("fully unsubscribes a series without deleting the same ID at another site", async () => {
     const target = await seedCleanupSeries("dm5", "123", true);
-    const other = await seedCleanupSeries("comicbus", "123", true);
+    const other = await seedCleanupSeries("8comic", "123", true);
     const before = await readCleanupRows();
     await expect(
       mutations.unsubscribeSeriesByKey(target, { clearSeriesData: true }),
@@ -664,123 +684,144 @@ describe("library integration", () => {
     });
   });
 
-  it("persists Manhuagui group checkpoints, detects all groups without replaying updates, and round-trips backup/sync", async () => {
-    const { runBackgroundUpdateSummary } = await import("../background");
-    const { buildSeriesKey, getChapterGroupCheckpoints } = await import(
-      "@domain/library"
-    );
-    const seriesKey = buildSeriesKey("manhuagui", "49169");
-    const makeSnapshot = (newChapters: boolean) => {
-      const chapterGroups = ["单话", "单行本", "番外篇"].map((id, index) => ({
-        id,
-        chapterList: (newChapters ? [2, 1] : [1]).map(
-          (number) => `comic/49169/${index + 1}${number}.html`,
-        ),
-      }));
-      const chapterList = chapterGroups.flatMap((group) => group.chapterList);
-      return {
-        chapterGroups,
-        chapterList,
-        chapters: Object.fromEntries(
-          chapterList.map((id) => [
-            id,
-            { title: id, href: `https://www.manhuagui.com/${id}` },
-          ]),
-        ),
+  it.each(["manhuagui", "8comic"] as const)(
+    "persists %s group checkpoints, detects all groups without replaying updates, and round-trips backup/sync",
+    async (site) => {
+      const comicsID = site === "8comic" ? "105" : "49169";
+      const siteLabel = site === "8comic" ? "8comic" : "漫畫櫃";
+      const groupIDs =
+        site === "8comic" ? ["single", "volume"] : ["单话", "单行本", "番外篇"];
+      const seriesURL =
+        site === "8comic"
+          ? "https://www.8comic.com/html/105.html"
+          : "https://www.manhuagui.com/comic/49169/";
+      const readerURL =
+        site === "8comic"
+          ? "https://articles.onemoreplace.tw"
+          : "https://www.manhuagui.com";
+      const { runBackgroundUpdateSummary } = await import("../background");
+      const { buildSeriesKey, getChapterGroupCheckpoints } = await import(
+        "@domain/library"
+      );
+      const seriesKey = buildSeriesKey(site, comicsID);
+      const makeSnapshot = (newChapters: boolean) => {
+        const chapterGroups = groupIDs.map((id, index) => ({
+          id,
+          chapterList: (newChapters ? [2, 1] : [1]).map((number) =>
+            site === "8comic"
+              ? `online/new-105.html?ch=${index + 1}${number}`
+              : `comic/49169/${index + 1}${number}.html`,
+          ),
+        }));
+        const chapterList = chapterGroups.flatMap((group) => group.chapterList);
+        return {
+          chapterGroups,
+          chapterList,
+          chapters: Object.fromEntries(
+            chapterList.map((id) => [
+              id,
+              { title: id, href: `${readerURL}/${id}` },
+            ]),
+          ),
+        };
       };
-    };
-    const initial = makeSnapshot(false);
-    await mutations.applyReaderSeriesState(
-      "manhuagui",
-      "49169",
-      {
-        ...initial,
-        title: "Manhuagui Demo",
-        cover: "https://cf.mhgui.com/cpic/h/49169.jpg",
-        url: "https://www.manhuagui.com/comic/49169/",
-      },
-      initial.chapterList[0],
-      { chapterGroups: initial.chapterGroups },
-    );
-    await mutations.setSeriesSubscriptionByKey(seriesKey, true);
-    const next = makeSnapshot(true);
-    const noop = jest.fn();
-    const deps = {
-      applyBackgroundSeriesRefresh: mutations.applyBackgroundSeriesRefresh,
-      clearNotification: noop,
-      createNotification: noop,
-      getFetchChapters: () => () => of(next),
-      getManifestVersion: () => "4.4.0",
-      getRuntimeUrl: (path: string) => path,
-      getUpdateCount: queries.getUpdateCount,
-      listBackgroundRefreshCandidates: queries.listBackgroundRefreshCandidates,
-      markSubscriptionCheckedByKey: mutations.markSubscriptionCheckedByKey,
-      openTab: noop,
-      reconcileExtensionReleaseState: noop,
-      refreshExtensionReleaseState: noop,
-      resetLibrary: compat.resetLibrary,
-      setBadge: noop,
-      setLibraryVersion: compat.setLibraryVersion,
-      withBatchedLibrarySignals: shared.withBatchedLibrarySignals,
-    };
-    expect((await runBackgroundUpdateSummary(deps)).updated).toBe(3);
-    expect((await runBackgroundUpdateSummary(deps)).updated).toBe(0);
-    const expectedCheckpoints = getChapterGroupCheckpoints(next.chapterGroups);
-    expect(
-      (await queries.listBackgroundRefreshCandidates())[0]
-        .latestChapterIDsByGroup,
-    ).toEqual(expectedCheckpoints);
-    await mutations.applyReadProgress(
-      "manhuagui",
-      "49169",
-      next.chapterList[0],
-    );
-    expect(
-      (await queries.listBackgroundRefreshCandidates())[0]
-        .latestChapterIDsByGroup,
-    ).toEqual(expectedCheckpoints);
-    const feed = await queries.getPopupFeedSnapshot();
-    expect(feed.subscribe[0].siteLabel).toBe("漫畫櫃");
-    expect(feed.continueReading?.continueChapterID).toBe(next.chapterList[0]);
-    expect(feed.update.map((entry) => entry.updateChapterID)).toEqual(
-      next.chapterGroups.slice(1).map((group) => group.chapterList[0]),
-    );
+      const initial = makeSnapshot(false);
+      await mutations.applyReaderSeriesState(
+        site,
+        comicsID,
+        {
+          ...initial,
+          title: `${siteLabel} Demo`,
+          cover:
+            site === "8comic"
+              ? "https://www.8comic.com/pics/0/105m.jpg"
+              : "https://cf.mhgui.com/cpic/h/49169.jpg",
+          url: seriesURL,
+        },
+        initial.chapterList[0],
+        { chapterGroups: initial.chapterGroups },
+      );
+      await mutations.setSeriesSubscriptionByKey(seriesKey, true);
+      const next = makeSnapshot(true);
+      const noop = jest.fn();
+      const deps = {
+        applyBackgroundSeriesRefresh: mutations.applyBackgroundSeriesRefresh,
+        clearNotification: noop,
+        createNotification: noop,
+        getFetchChapters: () => () => of(next),
+        getManifestVersion: () => "4.4.0",
+        getRuntimeUrl: (path: string) => path,
+        getUpdateCount: queries.getUpdateCount,
+        listBackgroundRefreshCandidates:
+          queries.listBackgroundRefreshCandidates,
+        markSubscriptionCheckedByKey: mutations.markSubscriptionCheckedByKey,
+        openTab: noop,
+        reconcileExtensionReleaseState: noop,
+        refreshExtensionReleaseState: noop,
+        resetLibrary: compat.resetLibrary,
+        setBadge: noop,
+        setLibraryVersion: compat.setLibraryVersion,
+        withBatchedLibrarySignals: shared.withBatchedLibrarySignals,
+      };
+      expect((await runBackgroundUpdateSummary(deps)).updated).toBe(
+        groupIDs.length,
+      );
+      expect((await runBackgroundUpdateSummary(deps)).updated).toBe(0);
+      const expectedCheckpoints = getChapterGroupCheckpoints(
+        next.chapterGroups,
+      );
+      expect(
+        (await queries.listBackgroundRefreshCandidates())[0]
+          .latestChapterIDsByGroup,
+      ).toEqual(expectedCheckpoints);
+      await mutations.applyReadProgress(site, comicsID, next.chapterList[0]);
+      expect(
+        (await queries.listBackgroundRefreshCandidates())[0]
+          .latestChapterIDsByGroup,
+      ).toEqual(expectedCheckpoints);
+      const feed = await queries.getPopupFeedSnapshot();
+      expect(feed.subscribe[0].siteLabel).toBe(siteLabel);
+      expect(feed.continueReading?.continueChapterID).toBe(next.chapterList[0]);
+      expect(feed.update.map((entry) => entry.updateChapterID)).toEqual(
+        next.chapterGroups.slice(1).map((group) => group.chapterList[0]),
+      );
 
-    const localSync = await syncPersistence.readLibrarySyncState();
-    const wire = syncModel.syncStateToIndexedRows(localSync.state);
-    expect(wire[0][0][0]).toBe(3);
-    await syncPersistence.applyLibrarySyncState(
-      syncModel.syncIndexedRowsToState(wire),
-      localSync.subscriptionCheckedAtByKey,
-    );
-    expect(
-      (await queries.listBackgroundRefreshCandidates())[0]
-        .latestChapterIDsByGroup,
-    ).toEqual(expectedCheckpoints);
+      const localSync = await syncPersistence.readLibrarySyncState();
+      const wire = syncModel.syncStateToIndexedRows(localSync.state);
+      expect(wire[0][0][0]).toBe(site === "8comic" ? 4 : 3);
+      await syncPersistence.applyLibrarySyncState(
+        syncModel.syncIndexedRowsToState(wire),
+        localSync.subscriptionCheckedAtByKey,
+      );
+      expect(
+        (await queries.listBackgroundRefreshCandidates())[0]
+          .latestChapterIDsByGroup,
+      ).toEqual(expectedCheckpoints);
 
-    // A new service-worker module instance must recover checkpoints from IndexedDB.
-    (await shared.openLibraryDb()).close();
-    jest.resetModules();
-    queries = await import("./queries");
-    shared = await import("./shared");
-    expect(
-      (await queries.listBackgroundRefreshCandidates())[0]
-        .latestChapterIDsByGroup,
-    ).toEqual(expectedCheckpoints);
-    compat = await import("./compat");
-    const dump = await compat.exportLibraryDump();
-    await compat.importLibraryDump(dump);
-    expect((await queries.getSeriesSnapshot(seriesKey))?.chapterList).toEqual(
-      next.chapterList,
-    );
-    expect(
-      (await queries.listBackgroundRefreshCandidates())[0]
-        .latestChapterIDsByGroup,
-    ).toBeUndefined();
-    expect((await queries.getPopupFeedSnapshot()).subscribe[0].siteLabel).toBe(
-      "漫畫櫃",
-    );
-  });
+      // A new service-worker module instance must recover checkpoints from IndexedDB.
+      (await shared.openLibraryDb()).close();
+      jest.resetModules();
+      queries = await import("./queries");
+      shared = await import("./shared");
+      expect(
+        (await queries.listBackgroundRefreshCandidates())[0]
+          .latestChapterIDsByGroup,
+      ).toEqual(expectedCheckpoints);
+      compat = await import("./compat");
+      const dump = await compat.exportLibraryDump();
+      await compat.importLibraryDump(dump);
+      expect((await queries.getSeriesSnapshot(seriesKey))?.chapterList).toEqual(
+        next.chapterList,
+      );
+      expect(
+        (await queries.listBackgroundRefreshCandidates())[0]
+          .latestChapterIDsByGroup,
+      ).toBeUndefined();
+      expect(
+        (await queries.getPopupFeedSnapshot()).subscribe[0].siteLabel,
+      ).toBe(siteLabel);
+    },
+  );
 
   it("atomically clears subscription and reminders while preserving history and reads", async () => {
     const target = await seedCleanupSeries("dm5", "123", true);
@@ -815,9 +856,9 @@ describe("library integration", () => {
 
   it("cleans untracked history, never-tracked series, orphan cache and dangling child rows", async () => {
     const tracked = await seedCleanupSeries("dm5", "123", true);
-    const formerlyTracked = await seedCleanupSeries("comicbus", "123", true);
+    const formerlyTracked = await seedCleanupSeries("8comic", "123", true);
     await mutations.setSeriesSubscriptionByKey(formerlyTracked, false);
-    await seedCleanupSeries("comicbus", "never-tracked");
+    await seedCleanupSeries("8comic", "never-tracked");
     const orphan = await seedCleanupSeries("dm5", "orphan");
     const db = await shared.openLibraryDb();
     const tx = db.transaction(
@@ -832,7 +873,7 @@ describe("library integration", () => {
     await shared.requestToPromise(
       tx
         .objectStore(READS_STORE)
-        .put({ seriesKey: "comicbus:dangling", chapterID: "c1" }),
+        .put({ seriesKey: "8comic:dangling", chapterID: "c1" }),
     );
     await done;
     const before = await readCleanupRows();
@@ -856,7 +897,7 @@ describe("library integration", () => {
   });
 
   it("preserves a subscription committed before batch cleanup starts", async () => {
-    const target = await seedCleanupSeries("comicbus", "123");
+    const target = await seedCleanupSeries("8comic", "123");
     const subscribe = mutations.setSeriesSubscriptionByKey(target, true);
     const cleanup = mutations.cleanupUnsubscribedSeries();
     await subscribe;
@@ -872,7 +913,7 @@ describe("library integration", () => {
 
   it("rolls back the whole batch when deletion fails after some rows were removed", async () => {
     await seedCleanupSeries("dm5", "123");
-    await seedCleanupSeries("comicbus", "123");
+    await seedCleanupSeries("8comic", "123");
     const before = await readCleanupRows();
     const originalDelete = IDBObjectStore.prototype.delete;
     const deleteSpy = jest
@@ -1710,22 +1751,22 @@ describe("library integration", () => {
             ],
           },
           {
-            site: "comicbus",
+            site: "8comic",
             comicsID: "77",
             title: "Remote Only",
             cover: "",
-            url: "http://www.comicbus.com/html/77.html",
+            url: "https://www.8comic.com/html/77.html",
             lastRead: "",
             chapters: [
               {
-                chapterID: "comic-77.html?ch=7",
+                chapterID: "online/new-77.html?ch=7",
                 title: "Ch 7",
-                href: "http://www.comicbus.com/online/comic-77.html?ch=7",
+                href: "https://articles.onemoreplace.tw/online/new-77.html?ch=7",
               },
             ],
           },
         ],
-        subscriptions: [{ seriesKey: "dm5:m123" }, { seriesKey: "comicbus:77" }],
+        subscriptions: [{ seriesKey: "dm5:m123" }, { seriesKey: "8comic:77" }],
         history: ["dm5:m123"],
         updates: [{ seriesKey: "dm5:m123", chapterID: "m4" }],
       }),
@@ -1751,10 +1792,10 @@ describe("library integration", () => {
     await expect(
       queries.getSeriesSnapshot("dm5:orphan"),
     ).resolves.toMatchObject({ title: "Cache only" });
-    await expect(queries.getReaderSeriesState("comicbus:77")).resolves.toMatchObject({
+    await expect(queries.getReaderSeriesState("8comic:77")).resolves.toMatchObject({
       series: {
         title: "Remote Only",
-        chapterList: ["comic-77.html?ch=7"],
+        chapterList: ["online/new-77.html?ch=7"],
       },
       subscribed: true,
     });
@@ -1768,7 +1809,7 @@ describe("library integration", () => {
     expect(subscriptionRows).toEqual(
       expect.arrayContaining([
         { seriesKey: "dm5:m123", position: 0, checkedAt: 111 },
-        { seriesKey: "comicbus:77", position: 1, checkedAt: 0 },
+        { seriesKey: "8comic:77", position: 1, checkedAt: 0 },
       ]),
     );
 

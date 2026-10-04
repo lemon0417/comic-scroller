@@ -794,4 +794,38 @@ describe("background service", () => {
       ),
     ).toBe("");
   });
+
+  it.each(["420", "420a", "420a-2"])(
+    "redirects public 8comic chapters and normalizes page suffixes (%s)",
+    (chapter) => {
+      const redirect = resolveReaderRedirect(
+        `https://articles.onemoreplace.tw/online/new-105.html?ch=${chapter}`,
+        (path) => `chrome-extension:///${path}`,
+      );
+      const result = new URL(redirect);
+      expect(result.searchParams.get("site")).toBe("8comic");
+      expect(result.searchParams.get("chapter")).toBe(
+        `online/new-105.html?ch=${chapter.split("-")[0]}`,
+      );
+    },
+  );
+
+  it.each([
+    "https://www.8comic.com/html/105.html",
+    "https://www.8comic.com/view/105.html?ch=420",
+    "http://articles.onemoreplace.tw/online/new-105.html?ch=420",
+    "https://articles.onemoreplace.tw.evil.test/online/new-105.html?ch=420",
+    "https://articles.onemoreplace.tw:8443/online/new-105.html?ch=420",
+    "https://articles.onemoreplace.tw/online/new-105.html?ch=420&cs_open_native=1",
+    "https://articles.onemoreplace.tw/online/new-105.html?ch=0",
+    "https://articles.onemoreplace.tw/online/new-105.html?ch=420&ch=419",
+    "https://articles.onemoreplace.tw/online/new-105.html",
+    "http://www.comicbus.com/online/comic-105.html?ch=420",
+    "https://www.comicbus.com/online/comic-105.html?ch=420",
+  ])(
+    "keeps unsupported or bypassed 8comic/ComicBus URLs native (%s)",
+    (url) => {
+      expect(resolveReaderRedirect(url)).toBe("");
+    },
+  );
 });

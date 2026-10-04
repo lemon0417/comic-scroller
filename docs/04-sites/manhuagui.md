@@ -31,7 +31,7 @@ Production/dev manifest 覆蓋主站、`cf.mhgui.com` 封面與 `i.hamreus.com` 
 - `latestChapterIDsByGroup` 是 IndexedDB series row 的本機可重建欄位，與章節快取一同更新。閱讀進度與 sync merge 保留它；備份匯入及新裝置首次輪詢重新建立基準，不更改 DB 或 dump 版本。
 - Metadata 和章節請求使用 30 秒 timeout；背景輪詢仍受既有 15 秒總期限限制。Unsubscribe 會 abort request。
 - 初始章節錯誤進入既有可重試失敗狀態，預載錯誤清除 gate，不提前推進 frontier；圖片沿用共用重試流程。
-- Chrome Sync v2 追加站點代碼 3，既有 0–2 不變。接收含漫畫櫃作品的裝置需使用支援此 provider 的版本。
+- Chrome Sync v2 使用站點代碼 3；0 保留給 DM5，1（SF）與 2（ComicBus）已永久停用。接收含漫畫櫃作品的裝置需使用支援此 provider 的版本。
 
 ## 測試
 

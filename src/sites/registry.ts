@@ -1,6 +1,6 @@
 import { map } from "rxjs/operators";
 
-import comicbusAdapter from "./comicbus/adapter";
+import eightComicAdapter from "./8comic/adapter";
 import dm5Adapter from "./dm5/adapter";
 import manhuaguiAdapter from "./manhuagui/adapter";
 import type {
@@ -11,7 +11,7 @@ import type {
 
 const adapters: Record<string, SiteAdapter> = {
   dm5: dm5Adapter,
-  comicbus: comicbusAdapter,
+  "8comic": eightComicAdapter,
   manhuagui: manhuaguiAdapter,
 };
 

@@ -18,7 +18,7 @@
 
 ## 更新語意
 - 每輪最多處理 20 本，站點 HTTP concurrency 固定為 4，單筆 request 有 timeout
-- DM5 使用 RSS-first 章節來源；ComicBus／漫畫櫃目前由作品 HTML 投影章節快照
+- DM5 使用 RSS-first 章節來源；8comic／漫畫櫃目前由作品 HTML 投影章節快照
 - 背景只刷新完整章節快照與 updates，不更動 title、cover、作品 URL 或閱讀進度
 - 同一輪 repository invalidation 會合併成一個 library signal
 

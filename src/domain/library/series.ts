@@ -1,4 +1,4 @@
-export const SITE_KEYS = ["dm5", "comicbus", "manhuagui"] as const;
+export const SITE_KEYS = ["dm5", "8comic", "manhuagui"] as const;
 
 export type SiteKey = (typeof SITE_KEYS)[number];
 export type SeriesKey = string;

@@ -33,6 +33,29 @@ import comics, {
 } from "./comics";
 
 describe("comics reducer", () => {
+  it("keeps the actual series URL across chapters and clears it when the series or site changes", () => {
+    const initial = comics(undefined, { type: "@@INIT" });
+    const withID = comics(initial, updateComicsID("105"));
+    const withURL = comics(
+      withID,
+      updateSiteInfo(
+        "8comic",
+        "https://www.8comic.com",
+        "https://www.8comic.com/html/105.html",
+      ),
+    );
+    expect(comics(withURL, updateComicsID("105")).comicUrl).toBe(
+      "https://www.8comic.com/html/105.html",
+    );
+    expect(comics(withURL, updateComicsID("1551")).comicUrl).toBe("");
+    expect(
+      comics(withURL, updateSiteInfo("dm5", "https://www.dm5.com")).comicUrl,
+    ).toBe("");
+    expect(
+      comics(withURL, updateSiteInfo("8comic", "https://www.8comic.com"))
+        .comicUrl,
+    ).toBe(withURL.comicUrl);
+  });
   it("invalidates old reader requests for full cleanup and restores persistence after failure", () => {
     const initial = {
       ...comics(undefined, { type: "@@INIT" }),
@@ -46,7 +69,7 @@ describe("comics reducer", () => {
     expect(comics(pending, requestUnsubscribeSeries("dm5:m123", true))).toBe(
       pending,
     );
-    expect(comics(pending, finishReaderSubscription("comicbus:123"))).toBe(pending);
+    expect(comics(pending, finishReaderSubscription("8comic:123"))).toBe(pending);
     const failed = comics(
       pending,
       finishReaderSubscription("dm5:m123", "失敗", true),

@@ -100,7 +100,7 @@ UI → Actions → Epics → Services → IndexedDB/Network → Actions
 - `comicsID` 使用站點原生 canonical 格式：
   - DM5 作品系列可使用 `manhua-*` slug
   - DM5 若傳入純數字或 `m123` 章節型 ID，才 canonical 成 `m123`
-  - ComicBus / 漫畫櫃維持原站點 ID
+  - 8comic / 漫畫櫃維持原站點 ID
 - 舊版 storage schema 會在載入時自動 migration 到 IndexedDB
 - 匯出預設為 compact dump v2，並下載為 gzip archive
 - 匯入同時支援：

@@ -205,7 +205,7 @@ function buildMetadataActions(input: {
     (item) => item === payload.chapterID,
   );
   const actions: EpicAction[] = [
-    updateSiteInfo(site, baseURL),
+    updateSiteInfo(site, baseURL, payload.comicUrl),
     updateComicsID(payload.seriesID),
     updateSubscribe(subscribed),
     updateTitle(meta.title || ""),

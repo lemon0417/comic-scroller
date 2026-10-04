@@ -72,20 +72,20 @@ describe("library queries", () => {
         latestChapterTitle: "Ch 1",
         latestChapterHref: "https://www.dm5.com/m123/1.html",
       },
-      "comicbus:77": {
-        seriesKey: "comicbus:77",
-        site: "comicbus",
+      "8comic:77": {
+        seriesKey: "8comic:77",
+        site: "8comic",
         comicsID: "77",
         title: "Unreferenced",
         cover: "",
-        url: "http://www.comicbus.com/html/77.html",
+        url: "https://www.8comic.com/html/77.html",
         lastRead: "",
         read: [],
         lastReadTitle: "",
         lastReadHref: "",
         latestChapterID: "c1",
         latestChapterTitle: "Extra Chapter",
-        latestChapterHref: "http://www.comicbus.com/online/comic-77.html?ch=1",
+        latestChapterHref: "https://articles.onemoreplace.tw/online/new-77.html?ch=1",
       },
     };
 

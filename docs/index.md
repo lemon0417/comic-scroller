@@ -24,6 +24,7 @@
 ## 04 站點解析（商務邏輯）
 - `docs/04-sites/README.md`: 站點 adapter / parser 變更 checklist
 - `docs/04-sites/dm5.md`: DM5 解析流程（含 chapterfun.ashx）
+- `docs/04-sites/8comic.md`: 8comic 公開閱讀、圖片解碼與 ComicBus 資料清理
 - `docs/04-sites/manhuagui.md`: 漫畫櫃章節分組、圖片解碼與更新流程
 
 ## 任務入口
