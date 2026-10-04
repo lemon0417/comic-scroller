@@ -395,7 +395,11 @@ export function createFetchChapterEpic(config: ReaderFlowConfig): AppEpic {
               return EMPTY;
             }
             if (!payload) {
-              return of(setChapterLoadFailed());
+              // Native chapter links also need site identity before metadata exists.
+              return of(
+                updateSiteInfo(config.site, config.baseURL),
+                setChapterLoadFailed(),
+              );
             }
             return merge(
               of(...buildInitialChapterActions(payload)),

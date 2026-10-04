@@ -31,6 +31,30 @@ describe("background navigation listener", () => {
   beforeEach(() => updateTab.mockClear());
 
   it.each([
+    "https://mycomic.com/chapters/790421",
+    "https://mycomic.com/cn/chapters/790421/?from=reader#page2",
+  ])(
+    "routes MyComic entrances through the registered navigation filter: %s",
+    (url) => {
+      const [listener, filter] = addListener.mock.calls[0];
+      expect(
+        filter.url.some(({ urlMatches }: { urlMatches: string }) =>
+          new RegExp(urlMatches).test(url),
+        ),
+      ).toBe(true);
+      listener({ tabId: 7, url });
+      expect(updateTab).toHaveBeenCalledWith(7, {
+        url: "chrome-extension://test/app.html?site=mycomic&chapter=chapters%2F790421",
+      });
+      updateTab.mockClear();
+      const native = new URL(url);
+      native.searchParams.set("cs_open_native", "1");
+      listener({ tabId: 7, url: native.href });
+      expect(updateTab).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
     "https://www.manhuagui.com/comic/49169/910633.html",
     "https://www.manhuagui.com/comic/28004/844724.html?from=chapter#page1",
   ])("routes a matched chapter into the reader: %s", (url) => {
@@ -84,6 +108,8 @@ describe("background navigation listener", () => {
     "https://www.manhuagui.com.evil.test/comic/49169/910633.html",
     "https://www.baozimh.com/comic/zhongjiedechitianshi-jiyingshe",
     "https://www.twmanga.com.evil.test/comic/chapter/zhongjiedechitianshi-jiyingshe/0_0.html",
+    "https://mycomic.com/comics/1759",
+    "https://mycomic.com.evil.test/chapters/790421",
   ])("does not match other URLs: %s", (url) => {
     const [, filter] = addListener.mock.calls[0];
     expect(

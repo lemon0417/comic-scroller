@@ -3,7 +3,7 @@ import { Observable } from "rxjs";
 export function fetchText$(
   url: string,
   source: string,
-  options: Pick<RequestInit, "redirect"> = {},
+  options: Pick<RequestInit, "redirect" | "credentials" | "headers"> = {},
 ) {
   return new Observable<string>((subscriber) => {
     const controller = new AbortController();

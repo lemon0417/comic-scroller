@@ -29,3 +29,7 @@ export function parseEightComicSeriesURL(url: string) {
 export function eightComicSeriesURL(seriesID: string) {
   return `${EIGHT_COMIC_BASE_URL}/html/${seriesID}.html`;
 }
+
+export function eightComicChapterURL(chapterID: string) {
+  return `${EIGHT_COMIC_READER_URL}/${parseEightComicChapterID(chapterID).chapterID}`;
+}

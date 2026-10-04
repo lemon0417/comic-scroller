@@ -43,6 +43,7 @@ type ImageContainerProps = {
     removedScrollHeight: number;
   } | null;
   requestedChapter: string;
+  nativeChapterURL?: string;
   updateVisibleImageRange: jest.Mock;
 };
 
@@ -151,6 +152,37 @@ describe("ImageContainer", () => {
 
     expect(screen.getByText("載入失敗")).toBeInTheDocument();
     expect(fetchChapter).toHaveBeenCalledWith("m100");
+    expect(
+      screen.queryByRole("link", { name: "開啟原站" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers native verification without losing the failed chapter retry", () => {
+    const fetchChapter = jest.fn();
+    render(
+      <TestImageContainer
+        chapterLoadStatus="failed"
+        clearLeadingEvictionRestore={jest.fn()}
+        fetchChapter={fetchChapter}
+        hasPendingChapterGate={false}
+        imageListKey="reader-list"
+        imageResult={[]}
+        innerHeight={900}
+        leadingEvictionRestore={null}
+        requestedChapter="chapters/790421"
+        nativeChapterURL="https://mycomic.com/chapters/790421?cs_open_native=1"
+        updateVisibleImageRange={jest.fn()}
+      />,
+    );
+    const link = screen.getByRole("link", { name: "開啟原站" });
+    expect(link).toHaveAttribute(
+      "href",
+      "https://mycomic.com/chapters/790421?cs_open_native=1",
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    fireEvent.click(screen.getByRole("button", { name: "重試" }));
+    expect(fetchChapter).toHaveBeenCalledWith("chapters/790421");
   });
 
   it("detects leading trims only when the next list is a suffix of the previous list", () => {

@@ -4,6 +4,7 @@ import * as eightComic from "./8comic";
 import * as baozimh from "./baozimh";
 import * as dm5 from "./dm5";
 import * as manhuagui from "./manhuagui";
+import * as myComic from "./mycomic";
 
 type SiteReaderEpics = {
   fetchChapterEpic: AppEpic;
@@ -13,6 +14,12 @@ type SiteReaderEpics = {
 };
 
 const readerEpicsBySite: Record<string, SiteReaderEpics> = {
+  mycomic: {
+    fetchChapterEpic: myComic.fetchChapterEpic,
+    fetchImgSrcEpic: myComic.fetchImgSrcEpic,
+    fetchImgListEpic: myComic.fetchImgListEpic,
+    updateReadEpic: myComic.updateReadEpic,
+  },
   baozimh: {
     fetchChapterEpic: baozimh.fetchChapterEpic,
     fetchImgSrcEpic: baozimh.fetchImgSrcEpic,

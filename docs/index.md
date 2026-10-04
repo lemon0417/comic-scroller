@@ -27,6 +27,7 @@
 - `docs/04-sites/8comic.md`: 8comic 公開閱讀、圖片解碼與 ComicBus 資料清理
 - `docs/04-sites/manhuagui.md`: 漫畫櫃章節分組、圖片解碼與更新流程
 - `docs/04-sites/baozimh.md`: 包子漫畫資料來源、目錄分組與多頁章節合併
+- `docs/04-sites/mycomic.md`: MYCOMIC 目錄分組、圖片來源與原站驗證／重試
 
 ## 任務入口
 - Reader UI / 閱讀控制：`docs/01-overview/architecture.md`、`src/ui/containers/App/`、`src/ui/containers/ImageContainer/`

@@ -1,4 +1,4 @@
-import Button from "@components/Button";
+import Button, { ButtonLink } from "@components/Button";
 import ConnectedComicImage from "@components/ComicImage";
 import Loading from "@components/Loading";
 import ReaderStateCard from "@components/ReaderStateCard";
@@ -14,6 +14,7 @@ import {
   getReaderImageRowHeight,
   READER_IMAGE_GAP,
 } from "@domain/utils/readerLayout";
+import { getNativeChapterURL } from "@sites/registry";
 import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { connect } from "react-redux";
 import {
@@ -33,6 +34,7 @@ type ImageContainerProps = {
   innerWidth?: number;
   leadingEvictionRestore: ComicsState["leadingEvictionRestore"];
   requestedChapter: string;
+  nativeChapterURL?: string;
   clearLeadingEvictionRestore: typeof clearLeadingEvictionRestore;
   updateVisibleImageRange: typeof updateVisibleImageRange;
 };
@@ -158,6 +160,7 @@ function ReaderImageRow({
 
 function ImageContainer({
   chapterLoadStatus,
+  nativeChapterURL = "",
   clearLeadingEvictionRestore: clearLeadingEvictionRestoreProp,
   fetchChapter: fetchChapterProp,
   hasPendingChapterGate,
@@ -428,13 +431,31 @@ function ImageContainer({
     if (chapterLoadStatus === "failed" && requestedChapter) {
       return (
         <main className="reader-canvas reader-loading" aria-label="漫畫頁面">
-          <ReaderStateCard title="載入失敗">
-            <Button
-              variant="secondary"
-              onClick={() => fetchChapterProp(requestedChapter)}
-            >
-              重試
-            </Button>
+          <ReaderStateCard
+            title="載入失敗"
+            description={
+              nativeChapterURL
+                ? "可開啟原站確認是否需要驗證，再回來重試。"
+                : undefined
+            }
+          >
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => fetchChapterProp(requestedChapter)}
+              >
+                重試
+              </Button>
+              {nativeChapterURL ? (
+                <ButtonLink
+                  href={nativeChapterURL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  開啟原站
+                </ButtonLink>
+              ) : null}
+            </div>
           </ReaderStateCard>
         </main>
       );
@@ -520,6 +541,7 @@ function mapStateToProps(state: { comics: ComicsState }) {
     leadingEvictionRestore: comics.leadingEvictionRestore,
     chapterLoadStatus: comics.chapterLoadStatus,
     requestedChapter: comics.requestedChapter,
+    nativeChapterURL: getNativeChapterURL(comics.site, comics.requestedChapter),
   };
 }
 

@@ -26,4 +26,5 @@ export type SiteAdapter = {
   key: string;
   baseURL: string;
   fetchMeta: SiteMetaFetcher;
+  getChapterURL: (chapterID: string) => string;
 };

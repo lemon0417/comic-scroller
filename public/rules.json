@@ -126,5 +126,24 @@
       "requestDomains": ["articles.onemoreplace.tw"],
       "resourceTypes": ["main_frame", "xmlhttprequest"]
     }
+  },
+  {
+    "id": 9,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://mycomic.com/"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "|https://biccam.com/",
+      "requestDomains": ["biccam.com"],
+      "resourceTypes": ["image", "xmlhttprequest"]
+    }
   }
 ]

@@ -29,7 +29,7 @@ Metadata／章節請求 timeout 為 30 秒，unsubscribe 會 abort；背景輪�
 
 ComicBus provider、reader、註冊、跳轉及 HTTP 權限已移除，不做資料遷移。啟動時由既有 supportedSiteKeys 清理機制移除 ComicBus 的作品、章節快取、已讀、訂閱、歷史與提醒。Legacy storage、snapshot、dump 與 sync 匯入同樣略過停用站點；其他站點資料保留。
 
-Chrome Sync v2 代碼固定為 `0: dm5`、`3: manhuagui`、`4: 8comic`、`5: baozimh`；`1: SF` 與 `2: ComicBus` 永久停用。解析舊 wire rows 保留原始參照索引並驗證格式，略過停用列與參照，不將 code 2 解讀成 8comic。不變更 DB、dump 或 sync format 版本。
+Chrome Sync v2 代碼固定為 `0: dm5`、`3: manhuagui`、`4: 8comic`、`5: baozimh`、`6: mycomic`；`1: SF` 與 `2: ComicBus` 永久停用。解析舊 wire rows 保留原始參照索引並驗證格式，略過停用列與參照，不將 code 2 解讀成 8comic。不變更 DB、dump 或 sync format 版本。
 
 ## 測試
 

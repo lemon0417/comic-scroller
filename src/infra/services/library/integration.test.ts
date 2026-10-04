@@ -536,6 +536,7 @@ describe("library integration", () => {
         "8comic",
         "manhuagui",
         "baozimh",
+        "mycomic",
       ]);
       await shared.ensureLibraryReady();
       expect(await shared.readRowsFromDb()).toEqual(rows);
@@ -694,7 +695,7 @@ describe("library integration", () => {
     });
   });
 
-  it.each(["manhuagui", "8comic", "baozimh"] as const)(
+  it.each(["manhuagui", "8comic", "baozimh", "mycomic"] as const)(
     "persists %s group checkpoints, detects all groups without replaying updates, and round-trips backup/sync",
     async (site) => {
       const {
@@ -735,6 +736,15 @@ describe("library integration", () => {
             "https://static-tw.baozimh.com/cover/zhongjiedechitianshi-jiyingshe.jpg",
           syncCode: 5,
         },
+        mycomic: {
+          comicsID: "1759",
+          siteLabel: "MYCOMIC",
+          groupIDs: ["single", "volume", "extra"],
+          seriesURL: "https://mycomic.com/comics/1759",
+          readerURL: "https://mycomic.com",
+          cover: "https://biccam.com/comics/1759-89ffbf.jpg",
+          syncCode: 6,
+        },
       }[site];
       const { runBackgroundUpdateSummary } = await import("../background");
       const { buildSeriesKey, getChapterGroupCheckpoints } = await import(
@@ -749,7 +759,9 @@ describe("library integration", () => {
               ? `online/new-105.html?ch=${index + 1}${number}`
               : site === "baozimh"
                 ? `comic/chapter/${comicsID}/${index}_${number - 1}.html`
-                : `comic/49169/${index + 1}${number}.html`,
+                : site === "mycomic"
+                  ? `chapters/${index + 1}${number}`
+                  : `comic/49169/${index + 1}${number}.html`,
           ),
         }));
         const chapterList = chapterGroups.flatMap((group) => group.chapterList);

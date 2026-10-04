@@ -27,11 +27,12 @@ import {
   BAOZIMH_READER_URL,
   parseBaozimhChapterURL,
 } from "@sites/baozimh/url";
+import { MYCOMIC_BASE_URL, parseMyComicChapterURL } from "@sites/mycomic/url";
+import { READER_REDIRECT_BYPASS_PARAM } from "@sites/native";
 import { getSiteChapterFetcher } from "@sites/registry";
 import type { SiteChapterFetcher, SiteChapterSnapshot } from "@sites/types";
 import { firstValueFrom, timeout } from "rxjs";
 
-const READER_REDIRECT_BYPASS_PARAM = "cs_open_native";
 const UPDATE_NOTIFICATION_ID = "Comics Scroller Update";
 const BACKGROUND_UPDATE_BATCH_SIZE = 20;
 const BACKGROUND_UPDATE_CONCURRENCY = 4;
@@ -474,6 +475,16 @@ export function resolveReaderRedirect(
   }
   if (!parsedUrl) {
     return "";
+  }
+
+  if (parsedUrl.origin === MYCOMIC_BASE_URL) {
+    try {
+      const chapter = parseMyComicChapterURL(parsedUrl.href);
+      const params = new URLSearchParams({ site: "mycomic", chapter });
+      return `${getRuntimeUrl("app.html")}?${params.toString()}`;
+    } catch {
+      return "";
+    }
   }
 
   if (

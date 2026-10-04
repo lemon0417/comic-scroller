@@ -3,6 +3,7 @@ import {
   clearPendingChapterGate,
   setChapterLoadFailed,
   updateChapterLatestIndex,
+  updateSiteInfo,
 } from "@domain/reducers/comics";
 import { applyReaderSeriesState } from "@infra/services/library/reader";
 import { BAOZIMH_REQUEST_TIMEOUT_MS } from "@sites/baozimh/url";
@@ -153,7 +154,10 @@ describe("Baozimh reader", () => {
     const actions = await lastValueFrom(
       fetchChapterEpic(of(fetchChapter(chapterID)), {} as any).pipe(toArray()),
     );
-    expect(actions).toEqual([setChapterLoadFailed()]);
+    expect(actions).toEqual([
+      updateSiteInfo("baozimh", "https://www.baozimh.com"),
+      setChapterLoadFailed(),
+    ]);
     expect(applyReaderSeriesState).not.toHaveBeenCalled();
     mockFixtureFetch();
     await expect(
@@ -225,7 +229,10 @@ describe("Baozimh reader", () => {
       fetchChapterEpic(of(fetchChapter(chapterID)), {} as any).pipe(toArray()),
     );
     await jest.advanceTimersByTimeAsync(BAOZIMH_REQUEST_TIMEOUT_MS);
-    await expect(output).resolves.toEqual([setChapterLoadFailed()]);
+    await expect(output).resolves.toEqual([
+      updateSiteInfo("baozimh", "https://www.baozimh.com"),
+      setChapterLoadFailed(),
+    ]);
     expect(signal?.aborted).toBe(true);
     expect(applyReaderSeriesState).not.toHaveBeenCalled();
   });

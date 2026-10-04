@@ -90,6 +90,7 @@ type LegacyStore = {
   "8comic"?: Record<string, unknown>;
   manhuagui?: Record<string, unknown>;
   baozimh?: Record<string, unknown>;
+  mycomic?: Record<string, unknown>;
   schemaVersion?: number;
   seriesByKey?: Record<string, SeriesRecord>;
   subscriptions?: string[];

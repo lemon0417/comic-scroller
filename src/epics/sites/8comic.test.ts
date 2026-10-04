@@ -3,6 +3,7 @@ import {
   clearPendingChapterGate,
   setChapterLoadFailed,
   updateChapterLatestIndex,
+  updateSiteInfo,
 } from "@domain/reducers/comics";
 import { applyReaderSeriesState } from "@infra/services/library/reader";
 import { EIGHT_COMIC_REQUEST_TIMEOUT_MS } from "@sites/8comic/url";
@@ -123,7 +124,10 @@ describe("8comic reader", () => {
       fetchChapterEpic(of(fetchChapter(chapterID)), {} as any).pipe(toArray()),
     );
     await jest.advanceTimersByTimeAsync(EIGHT_COMIC_REQUEST_TIMEOUT_MS);
-    await expect(output).resolves.toEqual([setChapterLoadFailed()]);
+    await expect(output).resolves.toEqual([
+      updateSiteInfo("8comic", "https://www.8comic.com"),
+      setChapterLoadFailed(),
+    ]);
     expect(signal?.aborted).toBe(true);
   });
 

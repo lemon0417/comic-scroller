@@ -4,7 +4,7 @@ import {
   fetchImgSrc,
   updateRead,
 } from "@domain/actions/reader";
-import {
+import comicsReducer, {
   clearPendingChapterGate,
   concatImageList,
   receivePendingChapterGate,
@@ -14,11 +14,13 @@ import {
   updateChapterLatestIndex,
   updateChapterList,
   updateChapterNowIndex,
+  updateSiteInfo,
 } from "@domain/reducers/comics";
 import {
   applyReaderSeriesState,
   applyReadProgress,
 } from "@infra/services/library/reader";
+import { getNativeChapterURL } from "@sites/registry";
 import { lastValueFrom, of, Subject, throwError } from "rxjs";
 import { toArray } from "rxjs/operators";
 
@@ -129,22 +131,49 @@ describe("readerFlow", () => {
     );
   });
 
-  it("marks the chapter as failed when the initial chapter request yields no payload", async () => {
-    const fetchChapterImages$ = jest.fn(() => of());
-    const fetchMeta$ = jest.fn();
+  it.each([
+    ["dm5", "https://www.dm5.com", "m100"],
+    ["8comic", "https://www.8comic.com", "online/new-105.html?ch=420"],
+    ["manhuagui", "https://www.manhuagui.com", "comic/49169/910633.html"],
+    ["baozimh", "https://www.baozimh.com", "comic/chapter/demo/0_0.html"],
+    ["mycomic", "https://mycomic.com", "chapters/790421"],
+  ] as const)(
+    "keeps a native link on the first failed %s request",
+    async (site, baseURL, chapterID) => {
+      const fetchChapterImages$ = jest.fn(() => of());
+      const fetchMeta$ = jest.fn();
+      const initialState = comicsReducer(
+        undefined,
+        fetchChapter(chapterID),
+      );
 
-    const output = await lastValueFrom(
-      createFetchChapterEpic({
-        site: "dm5",
-        baseURL: "https://www.dm5.com",
-        fetchChapterImages$,
-        fetchMeta$,
-      })(of(fetchChapter("c2")), {} as any).pipe(toArray()),
-    );
+      const output = await lastValueFrom(
+        createFetchChapterEpic({
+          site,
+          baseURL,
+          fetchChapterImages$,
+          fetchMeta$,
+        })(of(fetchChapter(chapterID)), {
+          value: { comics: initialState },
+        } as any).pipe(toArray()),
+      );
 
-    expect(fetchMeta$).not.toHaveBeenCalled();
-    expect(output).toEqual([setChapterLoadFailed()]);
-  });
+      expect(fetchMeta$).not.toHaveBeenCalled();
+      expect(output).toEqual([
+        updateSiteInfo(site, baseURL),
+        setChapterLoadFailed(),
+      ]);
+      const failedState = output.reduce(
+        (state, action) => comicsReducer(state, action as any),
+        initialState,
+      );
+      expect(failedState.chapterLoadStatus).toBe("failed");
+      expect(failedState.imageList.result).toEqual([]);
+      expect(
+        getNativeChapterURL(failedState.site, failedState.requestedChapter),
+      ).toContain("cs_open_native=1");
+    },
+  );
 
   it("discards metadata that arrives after cleanup invalidates the reader", () => {
     const metadata = new Subject<any>();
@@ -230,7 +259,12 @@ describe("readerFlow", () => {
     action$.complete();
 
     const output = await outputPromise;
-    expect(output).toEqual(expect.arrayContaining([setChapterLoadFailed()]));
+    expect(output).toEqual(
+      expect.arrayContaining([
+        updateSiteInfo("dm5", "https://www.dm5.com"),
+        setChapterLoadFailed(),
+      ]),
+    );
     expect(output).toEqual(expect.arrayContaining([updateChapterList(["c1"])]));
     expect(fetchChapterImages$).toHaveBeenCalledTimes(2);
   });

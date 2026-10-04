@@ -53,6 +53,10 @@ chrome.webNavigation.onBeforeNavigate.addListener(
     url: [
       {
         urlMatches:
+          "^https://mycomic\\.com/(?:cn/)?chapters/[1-9][0-9]*/?(?:\\?.*)?(?:#.*)?$",
+      },
+      {
+        urlMatches:
           "^https://www\\.(baozimh\\.com|twmanga\\.com)/comic/chapter/[a-z0-9_-]+/[0-9]+_[0-9]+(?:_[0-9]+)?\\.html(?:\\?.*)?(?:#.*)?$",
       },
       {

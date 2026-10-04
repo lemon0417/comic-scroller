@@ -7,6 +7,7 @@ import comicsReducer, {
   loadImgSrc,
   setChapterLoadFailed,
   updateCanPreloadPreviousChapter,
+  updateSiteInfo,
 } from "@domain/reducers/comics";
 import {
   applyReaderSeriesState,
@@ -183,7 +184,10 @@ describe("dm5 fetchImgSrcEpic", () => {
 
       await jest.advanceTimersByTimeAsync(DM5_CHAPTER_REQUEST_TIMEOUT_MS);
 
-      await expect(outputPromise).resolves.toEqual([setChapterLoadFailed()]);
+      await expect(outputPromise).resolves.toEqual([
+        updateSiteInfo("dm5", "https://www.dm5.com"),
+        setChapterLoadFailed(),
+      ]);
     } finally {
       jest.useRealTimers();
     }

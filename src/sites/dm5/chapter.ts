@@ -1,5 +1,7 @@
+import { withNativeReaderBypass } from "../native";
+import { dm5ChapterURL } from "./url";
+
 const baseURL = "https://www.dm5.com";
-const READER_REDIRECT_BYPASS_PARAM = "cs_open_native";
 
 export { resolveDm5ImageUrl } from "./imageResolver";
 
@@ -59,9 +61,7 @@ const extractDm5InputKey = (html: string) => {
 };
 
 const buildDm5PaywallHref = (chapterID: string) => {
-  const paywallUrl = new URL(`/${chapterID}/`, baseURL);
-  paywallUrl.searchParams.set(READER_REDIRECT_BYPASS_PARAM, "1");
-  return paywallUrl.toString();
+  return withNativeReaderBypass(dm5ChapterURL(chapterID));
 };
 
 const normalizeSlug = (value: string) => value.replace(/^\/+|\/+$/g, "");

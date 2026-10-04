@@ -82,6 +82,7 @@ const SYNC_V2_SITES: readonly (SiteKey | null)[] = [
   "manhuagui",
   "8comic",
   "baozimh",
+  "mycomic",
 ];
 
 type MergePreference = "local" | "remote";

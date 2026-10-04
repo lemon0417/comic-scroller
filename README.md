@@ -35,6 +35,7 @@ It is maintained under the repository name `comic-scroller`, while the original 
 - 8comic / 無限動漫
 - Manhuagui / 漫畫櫃
 - Baozimh / 包子漫畫
+- MYCOMIC / 我的漫畫
 
 ## Installation for Users
 
@@ -169,6 +170,7 @@ Key docs:
 - [Release Guide](docs/02-dev/release.md)
 - [Library Data Model](docs/03-features/library.md)
 - [DM5 Parsing Flow](docs/04-sites/dm5.md)
+- [MYCOMIC Provider](docs/04-sites/mycomic.md)
 
 ## Contributing
 

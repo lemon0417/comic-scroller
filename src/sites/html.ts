@@ -25,8 +25,9 @@ export function decodeHtmlText(text: string) {
 }
 
 export function readHtmlAttribute(attributes: string, name: string) {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = new RegExp(
-    `(?:^|\\s)${name}\\s*=\\s*(["'])([\\s\\S]*?)\\1`,
+    `(?:^|\\s)${escapedName}\\s*=\\s*(["'])([\\s\\S]*?)\\1`,
     "i",
   ).exec(attributes);
   return match ? decodeHtmlText(match[2]) : "";
@@ -50,6 +51,24 @@ export function stripHtmlScripts(html: string) {
 }
 
 /** Read a nested chapter container without DOM APIs in the service worker. */
+export function readHtmlDivContentAt(html: string, offset: number) {
+  let start = -1;
+  let depth = 0;
+  for (const tag of Array.from(
+    html.slice(offset).matchAll(/<\/?div\b(?:"[^"]*"|'[^']*'|[^'">])*>/gi),
+  )) {
+    if (start < 0) {
+      if (tag.index !== 0 || /^<\//.test(tag[0])) break;
+      start = offset + tag[0].length;
+      depth = 1;
+      continue;
+    }
+    depth += /^<\//.test(tag[0]) ? -1 : 1;
+    if (depth === 0) return html.slice(start, offset + tag.index!);
+  }
+  throw new Error("Incomplete HTML chapter container.");
+}
+
 export function readHtmlDivContent(html: string, id: string) {
   const tags = Array.from(html.matchAll(/<\/?div\b[^>]*>/gi));
   let start = -1;

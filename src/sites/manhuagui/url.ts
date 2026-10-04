@@ -15,3 +15,8 @@ export function parseManhuaguiSeriesURL(url: string) {
   }
   return match[1];
 }
+
+export function manhuaguiChapterURL(chapterID: string) {
+  parseManhuaguiChapterID(chapterID);
+  return `${MANHUAGUI_BASE_URL}/${chapterID}`;
+}

@@ -9,6 +9,7 @@ Codex 處理站點 / parser / manifest / DNR / redirect 類任務時，優先使
 - 背景章節來源：registry 呼叫 `fetchMeta(url, { includeCover: false })`，再投影成 `chapterList + chapters` 快照，保留可選 `chapterGroups`；各站仍可在 metadata fetcher 內選擇 RSS、API 或作品 HTML
 - Metadata registry：`src/sites/registry.ts`
 - Reader epic：`src/epics/sites/<site>.ts`
+- 原站章節連結：adapter 的 `getChapterURL` 與 registry 的 `getNativeChapterURL`；共用失敗畫面使用帶 `cs_open_native=1` 的原站連結
 - Reader epic registry：`src/epics/sites/registry.ts`
 - Pure parser / resolver：`src/sites/<site>/`
 - Manifest host permissions：`src/manifest/manifest.json`、`src/manifest/manifest.dev.json`
@@ -44,4 +45,4 @@ Codex 處理站點 / parser / manifest / DNR / redirect 類任務時，優先使
 - 採精簡真實片段：保留 parser 所需的標題、封面、章節／分頁結構、付費標記與完整壓縮 payload；移除廣告、推薦內容與無關腳本，不保存登入 cookie 或帳號資料。
 - 預期輸出須明確列出，不能由受測 parser 自行產生。短小的錯誤／邊界模擬資料可留在測試中；人工加工或合成的案例要註記。
 - 測試不得下載圖片、執行 fixture 腳本或依賴簽章有效期限；HTTP 一律 mock。fixture 腳本排除 lint，testUtils 排除 TypeScript emit；正式 runtime 不得 import fixtures 或讀取 helper。
-- DM5、8comic、漫畫櫃與包子漫畫皆採用本規範。
+- DM5、8comic、漫畫櫃、包子漫畫與 MYCOMIC 皆採用本規範。

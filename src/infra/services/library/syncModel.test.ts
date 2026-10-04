@@ -76,7 +76,7 @@ describe("library sync model", () => {
       [[], [1], [], []],
       [[], [], [0], []],
       [[], [], [], [[1, 1]]],
-      [[[6, "id", "", "", "", 0, 0, []]], [], [], []],
+      [[[7, "id", "", "", "", 0, 0, []]], [], [], []],
       [[[0, "id", 123, "", "", 0, 0, []]], [], [], []],
       [[[0, "id", "", "", "", 1, 0, []]], [], [], []],
       [[[0, "id", "", "", "", 0, -1, []]], [], [], []],
@@ -118,7 +118,13 @@ describe("library sync model", () => {
 
   it("keeps site codes stable and uses explicit missing checkpoints", () => {
     const state = createState();
-    for (const site of ["dm5", "8comic", "manhuagui", "baozimh"] as const) {
+    for (const site of [
+      "dm5",
+      "8comic",
+      "manhuagui",
+      "baozimh",
+      "mycomic",
+    ] as const) {
       const key = buildSeriesKey(site, "123");
       state.seriesByKey[key] = createSeriesState({
         site,
@@ -127,14 +133,15 @@ describe("library sync model", () => {
       state.subscriptions.push(key);
     }
     const rows = syncStateToIndexedRows(state);
-    expect(rows[0].map((row) => row[0])).toEqual([0, 4, 3, 5]);
+    expect(rows[0].map((row) => row[0])).toEqual([0, 4, 3, 5, 6]);
     expect(rows[0].map((row) => row.slice(5, 7))).toEqual([
       [0, 0],
       [0, 0],
       [0, 0],
       [0, 0],
+      [0, 0],
     ]);
-    expect(rows[1]).toEqual([1, 2, 3, 4]);
+    expect(rows[1]).toEqual([1, 2, 3, 4, 5]);
     expect(syncIndexedRowsToState(rows)).toEqual(state);
   });
 

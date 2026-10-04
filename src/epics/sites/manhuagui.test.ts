@@ -3,6 +3,7 @@ import {
   clearPendingChapterGate,
   setChapterLoadFailed,
   updateChapterLatestIndex,
+  updateSiteInfo,
 } from "@domain/reducers/comics";
 import { applyReaderSeriesState } from "@infra/services/library/reader";
 import { MANHUAGUI_REQUEST_TIMEOUT_MS } from "@sites/manhuagui/url";
@@ -110,7 +111,10 @@ describe("Manhuagui reader", () => {
       fetchChapterEpic(of(fetchChapter(chapterID)), {} as any).pipe(toArray()),
     );
     await jest.advanceTimersByTimeAsync(MANHUAGUI_REQUEST_TIMEOUT_MS);
-    await expect(output).resolves.toEqual([setChapterLoadFailed()]);
+    await expect(output).resolves.toEqual([
+      updateSiteInfo("manhuagui", "https://www.manhuagui.com"),
+      setChapterLoadFailed(),
+    ]);
     expect(signal?.aborted).toBe(true);
   });
 

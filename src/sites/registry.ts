@@ -4,6 +4,8 @@ import eightComicAdapter from "./8comic/adapter";
 import baozimhAdapter from "./baozimh/adapter";
 import dm5Adapter from "./dm5/adapter";
 import manhuaguiAdapter from "./manhuagui/adapter";
+import myComicAdapter from "./mycomic/adapter";
+import { withNativeReaderBypass } from "./native";
 import type {
   SiteAdapter,
   SiteChapterFetcher,
@@ -15,10 +17,22 @@ const adapters: Record<string, SiteAdapter> = {
   "8comic": eightComicAdapter,
   manhuagui: manhuaguiAdapter,
   baozimh: baozimhAdapter,
+  mycomic: myComicAdapter,
 };
 
 export function getSiteAdapter(site: string) {
-  return adapters[site];
+  return Object.hasOwn(adapters, site) ? adapters[site] : undefined;
+}
+
+export function getNativeChapterURL(site: string, chapterID: string) {
+  try {
+    const adapter = getSiteAdapter(site);
+    return adapter
+      ? withNativeReaderBypass(adapter.getChapterURL(chapterID))
+      : "";
+  } catch {
+    return "";
+  }
 }
 
 function projectChapterSnapshot({
