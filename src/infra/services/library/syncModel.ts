@@ -1,8 +1,4 @@
-import type {
-  LibraryUpdateRecord,
-  SeriesKey,
-  SiteKey,
-} from "@domain/library";
+import type { LibraryUpdateRecord, SeriesKey, SiteKey } from "@domain/library";
 import {
   buildSeriesKey,
   parseSeriesKey,
@@ -79,9 +75,9 @@ export type LibrarySyncWireRowsV2 = [
 ];
 
 // Wire codes must remain stable even if the domain's site registry is reordered.
-const SYNC_V2_SITES: readonly SiteKey[] = [
+const SYNC_V2_SITES: readonly (SiteKey | null)[] = [
   "dm5",
-  "sf",
+  null, // Code 1 belonged to the retired provider and must never be reused.
   "comicbus",
   "manhuagui",
 ];
@@ -151,13 +147,23 @@ export function compactLibrarySyncState(
   state: LibrarySyncStateV1,
 ): LibrarySyncStateV1 {
   const subscriptions = uniqueStrings(state.subscriptions);
-  const history = uniqueStrings(state.history, HISTORY_LIMIT);
+  const history = uniqueStrings(state.history)
+    .filter(
+      (key) =>
+        Object.hasOwn(state.seriesByKey, key) &&
+        SITE_KEYS.includes(state.seriesByKey[key].site),
+    )
+    .slice(0, HISTORY_LIMIT);
   const updates = mergeUpdates(state.updates, []);
   const seriesKeys = uniqueStrings([
     ...subscriptions,
     ...history,
     ...updates.map((update) => update.seriesKey),
-  ]).filter((key) => Object.hasOwn(state.seriesByKey, key));
+  ]).filter(
+    (key) =>
+      Object.hasOwn(state.seriesByKey, key) &&
+      SITE_KEYS.includes(state.seriesByKey[key].site),
+  );
   const knownSeriesKeys = new Set(seriesKeys);
   const updatesBySeriesKey = new Map<string, string[]>();
   for (const update of updates) {
@@ -265,8 +271,7 @@ function mergeSeriesState(
     title: primary.title || secondary.title,
     cover: primary.cover || secondary.cover,
     url: primary.url || secondary.url,
-    latestChapterID:
-      primary.latestChapterID || secondary.latestChapterID,
+    latestChapterID: primary.latestChapterID || secondary.latestChapterID,
     lastReadChapterID,
     readChapterIDs: uniqueStrings([
       ...secondary.readChapterIDs,
@@ -372,9 +377,9 @@ export function syncWireRowsToState(input: unknown): LibrarySyncStateV1 {
   result.subscriptions = uniqueStrings(
     subscriptions.map((item) => String(toRecord(item).seriesKey || "")),
   ).filter((seriesKey) => knownSeriesKeys.has(seriesKey));
-  result.history = uniqueStrings(source.history, HISTORY_LIMIT).filter(
-    (seriesKey) => knownSeriesKeys.has(seriesKey),
-  );
+  result.history = uniqueStrings(source.history)
+    .filter((seriesKey) => knownSeriesKeys.has(seriesKey))
+    .slice(0, HISTORY_LIMIT);
   result.updates = (Array.isArray(source.updates) ? source.updates : [])
     .map((item) => {
       const update = toRecord(item);
@@ -384,8 +389,7 @@ export function syncWireRowsToState(input: unknown): LibrarySyncStateV1 {
       };
     })
     .filter(
-      (item) =>
-        Boolean(item.chapterID) && knownSeriesKeys.has(item.seriesKey),
+      (item) => Boolean(item.chapterID) && knownSeriesKeys.has(item.seriesKey),
     );
 
   return result;
@@ -522,7 +526,7 @@ export function syncIndexedRowsToState(input: unknown): LibrarySyncStateV1 {
   if (!root.every(Array.isArray)) throw new Error("同步 v2 清單格式不正確。");
   const [seriesRows, subscriptions, history, updates] = root as unknown[][];
   const result = createEmptyLibrarySyncState();
-  const keys: string[] = [];
+  const keys: Array<string | null> = [];
   const chapterIDsBySeries: string[][] = [];
   const knownKeys = new Set<string>();
 
@@ -532,15 +536,17 @@ export function syncIndexedRowsToState(input: unknown): LibrarySyncStateV1 {
     if (
       typeof siteCode !== "number" ||
       !Number.isInteger(siteCode) ||
-      !SYNC_V2_SITES[siteCode]
+      siteCode < 0 ||
+      siteCode >= SYNC_V2_SITES.length
     ) {
       throw new Error("同步 v2 站點代碼不正確。");
     }
     const site = SYNC_V2_SITES[siteCode];
     const comicsID = requireString(fields[1], true);
-    const key = buildSeriesKey(site, comicsID);
-    if (knownKeys.has(key)) throw new Error("同步 v2 作品索引重複。");
-    knownKeys.add(key);
+    const key = site ? buildSeriesKey(site, comicsID) : null;
+    const identity = key || `${siteCode}:${comicsID}`;
+    if (knownKeys.has(identity)) throw new Error("同步 v2 作品索引重複。");
+    knownKeys.add(identity);
     if (!Array.isArray(fields[7])) throw new Error("同步 v2 章節清單不正確。");
     const chapterIDs: string[] = [];
     const summaries = new Map<string, LibrarySyncChapterSummary>();
@@ -557,35 +563,41 @@ export function syncIndexedRowsToState(input: unknown): LibrarySyncStateV1 {
     const latestRef = requireRef(fields[5], chapterIDs.length, true);
     const lastReadRef = requireRef(fields[6], chapterIDs.length, true);
     const lastReadChapterID = lastReadRef ? chapterIDs[lastReadRef - 1] : "";
-    result.seriesByKey[key] = {
-      site,
-      comicsID: parseSeriesKey(key).comicsID,
-      title: requireString(fields[2]),
-      cover: requireString(fields[3]),
-      url: requireString(fields[4]),
-      latestChapterID: latestRef ? chapterIDs[latestRef - 1] : "",
-      lastReadChapterID,
-      readChapterIDs: uniqueStrings([lastReadChapterID]),
-      chapterSummaries: Object.fromEntries(summaries),
-    };
+    const title = requireString(fields[2]);
+    const cover = requireString(fields[3]);
+    const url = requireString(fields[4]);
+    if (site && key) {
+      result.seriesByKey[key] = {
+        site,
+        comicsID: parseSeriesKey(key).comicsID,
+        title,
+        cover,
+        url,
+        latestChapterID: latestRef ? chapterIDs[latestRef - 1] : "",
+        lastReadChapterID,
+        readChapterIDs: uniqueStrings([lastReadChapterID]),
+        chapterSummaries: Object.fromEntries(summaries),
+      };
+    }
     keys.push(key);
     chapterIDsBySeries.push(chapterIDs);
   }
 
-  result.subscriptions = subscriptions.map(
-    (ref) => keys[requireRef(ref, keys.length) - 1],
-  );
-  result.history = history.map((ref) => keys[requireRef(ref, keys.length) - 1]);
-  result.updates = updates.map((row) => {
+  result.subscriptions = subscriptions
+    .map((ref) => keys[requireRef(ref, keys.length) - 1])
+    .filter((key): key is string => key !== null);
+  result.history = history
+    .map((ref) => keys[requireRef(ref, keys.length) - 1])
+    .filter((key): key is string => key !== null);
+  result.updates = updates.flatMap((row) => {
     const [seriesRef, chapterRef] = requireTuple(row, 2);
     const index = requireRef(seriesRef, keys.length) - 1;
-    return {
-      seriesKey: keys[index],
-      chapterID:
-        chapterIDsBySeries[index][
-          requireRef(chapterRef, chapterIDsBySeries[index].length) - 1
-        ],
-    };
+    const chapterID =
+      chapterIDsBySeries[index][
+        requireRef(chapterRef, chapterIDsBySeries[index].length) - 1
+      ];
+    const seriesKey = keys[index];
+    return seriesKey === null ? [] : [{ seriesKey, chapterID }];
   });
   return compactLibrarySyncState(result);
 }

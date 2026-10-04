@@ -22,7 +22,6 @@ import { getSiteChapterFetcher } from "@sites/registry";
 import type { SiteChapterFetcher, SiteChapterSnapshot } from "@sites/types";
 import { firstValueFrom, timeout } from "rxjs";
 
-const sfRegex = /http\:\/\/comic\.sfacg\.com\/(HTML\/[^\/]+\/.+)$/;
 const comicbusRegex =
   /http\:\/\/(www|v)\.comicbus.com\/online\/(comic-\d+\.html\?ch=.*$)/;
 const READER_REDIRECT_BYPASS_PARAM = "cs_open_native";
@@ -474,11 +473,6 @@ export function resolveReaderRedirect(
     const match = comicbusRegex.exec(url);
     if (!match) return "";
     return `${getRuntimeUrl("app.html")}?site=comicbus&chapter=${match[2]}`;
-  }
-  if (sfRegex.test(url)) {
-    const match = sfRegex.exec(url);
-    if (!match) return "";
-    return `${getRuntimeUrl("app.html")}?site=sf&chapter=${match[1]}`;
   }
 
   const isDm5Host =

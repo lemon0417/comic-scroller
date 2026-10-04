@@ -7,6 +7,7 @@ import {
   HISTORY_STORE,
   LIBRARY_DB_VERSION,
   LIBRARY_META_KEY,
+  type LibraryDbRows,
   META_STORE,
   READS_STORE,
   SERIES_STORE,
@@ -374,7 +375,7 @@ async function seedLibraryDbV6WithMissingInvariants() {
 describe("library integration", () => {
   let chromeEnv: ReturnType<typeof createChromeMock>;
 
-  const cleanupStores = [
+  const cleanupStores: Array<keyof LibraryDbRows> = [
     SERIES_STORE,
     CHAPTERS_STORE,
     READS_STORE,
@@ -384,7 +385,7 @@ describe("library integration", () => {
   ];
 
   async function seedCleanupSeries(
-    site: "dm5" | "sf",
+    site: "dm5" | "comicbus",
     comicsID: string,
     subscribed = false,
   ) {
@@ -447,9 +448,206 @@ describe("library integration", () => {
     await resetLibraryPersistence(true);
   });
 
+  it("cleans retired site rows on startup without rewriting supported rows", async () => {
+    const snapshot = shared.migrateLibrary({
+      dm5: {
+        "123": {
+          title: "Kept",
+          lastRead: "c1",
+          chapterList: ["c1"],
+          chapters: { c1: { title: "Chapter", href: "dm5-url" } },
+        },
+      },
+      manhuagui: {
+        "123": {
+          title: "Grouped",
+          chapterList: ["c1"],
+          chapters: { c1: { title: "Chapter", href: "gui-url" } },
+        },
+      },
+      subscribe: [
+        { site: "dm5", comicsID: "123" },
+        { site: "manhuagui", comicsID: "123" },
+      ],
+      history: [{ site: "dm5", comicsID: "123" }],
+      update: [{ site: "dm5", comicsID: "123", chapterID: "c1" }],
+    });
+    const rows = shared.snapshotToDbRows(snapshot, { "dm5:m123": 987 });
+    rows.series[1].latestChapterIDsByGroup = { single: "c1" };
+    const retiredRows = Object.fromEntries(
+      cleanupStores.map((store) => [
+        store,
+        rows[store].map((row) => ({
+          ...row,
+          seriesKey: "sf:123",
+          ...(store === SERIES_STORE ? { site: "sf", comicsID: "123" } : {}),
+        })),
+      ]),
+    );
+    const db = await shared.openLibraryDb();
+    const tx = db.transaction([META_STORE, ...cleanupStores], "readwrite");
+    const done = shared.transactionDone(tx);
+    for (const store of cleanupStores) {
+      for (const row of [...rows[store], ...retiredRows[store].slice(0, 1)]) {
+        await shared.requestToPromise(tx.objectStore(store).put(row));
+      }
+    }
+    await shared.requestToPromise(
+      tx.objectStore(META_STORE).put({
+        key: LIBRARY_META_KEY,
+        value: {
+          initialized: true,
+          version: "4.4.0",
+          dbSchemaVersion: LIBRARY_DB_VERSION,
+        },
+      }),
+    );
+    await shared.requestToPromise(
+      tx
+        .objectStore(READS_STORE)
+        .put({ seriesKey: "sf:dangling", chapterID: "c1" }),
+    );
+    await done;
+
+    await shared.ensureLibraryReady();
+    expect(await shared.readRowsFromDb()).toEqual(rows);
+    const metaTx = db.transaction([META_STORE], "readonly");
+    const metaDone = shared.transactionDone(metaTx);
+    const nextMeta = await shared.requestToPromise<any>(
+      metaTx.objectStore(META_STORE).get(LIBRARY_META_KEY),
+    );
+    await metaDone;
+    expect(nextMeta.value.supportedSiteKeys).toEqual([
+      "dm5",
+      "comicbus",
+      "manhuagui",
+    ]);
+    await shared.ensureLibraryReady();
+    expect(await shared.readRowsFromDb()).toEqual(rows);
+  });
+
+  it.each(["legacy", "snapshot", "dump-v1", "dump-v2"])(
+    "ignores SF records and references when importing %s",
+    async (format) => {
+      const retiredHistory = Array.from(
+        { length: 50 },
+        (_, index) => `sf:${index}`,
+      );
+      const record = {
+        title: "Kept",
+        lastRead: "c1",
+        read: ["c1"],
+        chapterList: ["c1"],
+        chapters: { c1: { title: "Chapter", href: "chapter-url" } },
+      };
+      const legacy = {
+        dm5: { "123": record },
+        sf: { "123": { ...record, title: "Retired" } },
+        subscribe: [
+          { site: "sf", comicsID: "123" },
+          { site: "dm5", comicsID: "123" },
+        ],
+        history: [
+          ...retiredHistory.map((key) => ({
+            site: "sf",
+            comicsID: key.split(":")[1],
+          })),
+          { site: "dm5", comicsID: "123" },
+        ],
+        update: [
+          { site: "sf", comicsID: "123", chapterID: "c1" },
+          { site: "dm5", comicsID: "123", chapterID: "c1" },
+        ],
+      };
+      const snapshot = shared.migrateLibrary(legacy);
+      const oldSnapshot = {
+        ...snapshot,
+        seriesByKey: {
+          ...snapshot.seriesByKey,
+          "sf:123": { ...record, site: "sf", comicsID: "123" },
+        },
+        subscriptions: ["sf:123", ...snapshot.subscriptions],
+        history: [...retiredHistory, ...snapshot.history],
+        updates: [
+          { seriesKey: "sf:123", chapterID: "c1" },
+          ...snapshot.updates,
+        ],
+      };
+      const dumpRows = shared.snapshotToRows(snapshot);
+      const oldDumpRows = {
+        ...dumpRows,
+        series: [
+          ...dumpRows.series,
+          {
+            ...dumpRows.series[0],
+            site: "sf",
+            seriesKey: "sf:123",
+            comicsID: "123",
+          },
+        ],
+        chapters: [
+          ...dumpRows.chapters,
+          { ...dumpRows.chapters[0], seriesKey: "sf:123" },
+        ],
+        subscriptions: [
+          ...dumpRows.subscriptions,
+          { seriesKey: "sf:123", position: 1 },
+        ],
+        history: [
+          ...retiredHistory.map((seriesKey, position) => ({
+            seriesKey,
+            position,
+          })),
+          ...dumpRows.history.map((row) => ({ ...row, position: 50 })),
+        ],
+        updates: [
+          ...dumpRows.updates,
+          { seriesKey: "sf:123", chapterID: "c1", position: 1 },
+        ],
+      };
+      const compactRows = shared.snapshotToCompactDumpRows(snapshot);
+      const oldCompactRows = {
+        ...compactRows,
+        series: [
+          ...compactRows.series,
+          { ...compactRows.series[0], site: "sf", comicsID: "123" },
+        ],
+        subscriptions: [{ seriesKey: "sf:123" }, ...compactRows.subscriptions],
+        history: [...retiredHistory, ...compactRows.history],
+        updates: [
+          { seriesKey: "sf:123", chapterID: "c1" },
+          ...compactRows.updates,
+        ],
+      };
+      const payload =
+        format === "legacy"
+          ? legacy
+          : format === "snapshot"
+            ? oldSnapshot
+            : {
+                format: "comic-scroller-db-dump",
+                formatVersion: format === "dump-v1" ? 1 : 2,
+                data: format === "dump-v1" ? oldDumpRows : oldCompactRows,
+              };
+      await compat.importLibraryDump(payload);
+      const feed = await queries.getPopupFeedSnapshot();
+      for (const category of [feed.subscribe, feed.history, feed.update]) {
+        expect(category).toEqual([
+          expect.objectContaining({ site: "dm5", comicsID: "m123" }),
+        ]);
+      }
+      const dump = await compat.exportLibraryDump();
+      expect(dump.data.series.map((series) => series.site)).toEqual(["dm5"]);
+      expect(dump.data.series[0].read).toEqual(["c1"]);
+      expect(JSON.stringify(await shared.readRowsFromDb())).not.toContain(
+        "sf:",
+      );
+    },
+  );
+
   it("fully unsubscribes a series without deleting the same ID at another site", async () => {
     const target = await seedCleanupSeries("dm5", "123", true);
-    const other = await seedCleanupSeries("sf", "123", true);
+    const other = await seedCleanupSeries("comicbus", "123", true);
     const before = await readCleanupRows();
     await expect(
       mutations.unsubscribeSeriesByKey(target, { clearSeriesData: true }),
@@ -617,9 +815,9 @@ describe("library integration", () => {
 
   it("cleans untracked history, never-tracked series, orphan cache and dangling child rows", async () => {
     const tracked = await seedCleanupSeries("dm5", "123", true);
-    const formerlyTracked = await seedCleanupSeries("sf", "123", true);
+    const formerlyTracked = await seedCleanupSeries("comicbus", "123", true);
     await mutations.setSeriesSubscriptionByKey(formerlyTracked, false);
-    await seedCleanupSeries("sf", "never-tracked");
+    await seedCleanupSeries("comicbus", "never-tracked");
     const orphan = await seedCleanupSeries("dm5", "orphan");
     const db = await shared.openLibraryDb();
     const tx = db.transaction(
@@ -634,7 +832,7 @@ describe("library integration", () => {
     await shared.requestToPromise(
       tx
         .objectStore(READS_STORE)
-        .put({ seriesKey: "sf:dangling", chapterID: "c1" }),
+        .put({ seriesKey: "comicbus:dangling", chapterID: "c1" }),
     );
     await done;
     const before = await readCleanupRows();
@@ -658,7 +856,7 @@ describe("library integration", () => {
   });
 
   it("preserves a subscription committed before batch cleanup starts", async () => {
-    const target = await seedCleanupSeries("sf", "123");
+    const target = await seedCleanupSeries("comicbus", "123");
     const subscribe = mutations.setSeriesSubscriptionByKey(target, true);
     const cleanup = mutations.cleanupUnsubscribedSeries();
     await subscribe;
@@ -674,7 +872,7 @@ describe("library integration", () => {
 
   it("rolls back the whole batch when deletion fails after some rows were removed", async () => {
     await seedCleanupSeries("dm5", "123");
-    await seedCleanupSeries("sf", "123");
+    await seedCleanupSeries("comicbus", "123");
     const before = await readCleanupRows();
     const originalDelete = IDBObjectStore.prototype.delete;
     const deleteSpy = jest
@@ -1512,22 +1710,22 @@ describe("library integration", () => {
             ],
           },
           {
-            site: "sf",
+            site: "comicbus",
             comicsID: "77",
             title: "Remote Only",
             cover: "",
-            url: "http://comic.sfacg.com/HTML/77/",
+            url: "http://www.comicbus.com/html/77.html",
             lastRead: "",
             chapters: [
               {
-                chapterID: "HTML/77/c7.html",
+                chapterID: "comic-77.html?ch=7",
                 title: "Ch 7",
-                href: "http://comic.sfacg.com/HTML/77/c7.html",
+                href: "http://www.comicbus.com/online/comic-77.html?ch=7",
               },
             ],
           },
         ],
-        subscriptions: [{ seriesKey: "dm5:m123" }, { seriesKey: "sf:77" }],
+        subscriptions: [{ seriesKey: "dm5:m123" }, { seriesKey: "comicbus:77" }],
         history: ["dm5:m123"],
         updates: [{ seriesKey: "dm5:m123", chapterID: "m4" }],
       }),
@@ -1553,10 +1751,10 @@ describe("library integration", () => {
     await expect(
       queries.getSeriesSnapshot("dm5:orphan"),
     ).resolves.toMatchObject({ title: "Cache only" });
-    await expect(queries.getReaderSeriesState("sf:77")).resolves.toMatchObject({
+    await expect(queries.getReaderSeriesState("comicbus:77")).resolves.toMatchObject({
       series: {
         title: "Remote Only",
-        chapterList: ["HTML/77/c7.html"],
+        chapterList: ["comic-77.html?ch=7"],
       },
       subscribed: true,
     });
@@ -1570,7 +1768,7 @@ describe("library integration", () => {
     expect(subscriptionRows).toEqual(
       expect.arrayContaining([
         { seriesKey: "dm5:m123", position: 0, checkedAt: 111 },
-        { seriesKey: "sf:77", position: 1, checkedAt: 0 },
+        { seriesKey: "comicbus:77", position: 1, checkedAt: 0 },
       ]),
     );
 

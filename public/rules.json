@@ -90,24 +90,6 @@
     }
   },
   {
-    "id": 6,
-    "priority": 1,
-    "action": {
-      "type": "modifyHeaders",
-      "requestHeaders": [
-        {
-          "header": "Referer",
-          "operation": "set",
-          "value": "http://comic.sfacg.com/HTML/"
-        }
-      ]
-    },
-    "condition": {
-      "regexFilter": "http:\\/\\/.*\\.sfacg\\.com\\/.*",
-      "resourceTypes": ["image", "xmlhttprequest"]
-    }
-  },
-  {
     "id": 7,
     "priority": 1,
     "action": {

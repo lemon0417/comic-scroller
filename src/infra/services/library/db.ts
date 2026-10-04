@@ -18,6 +18,7 @@ export type LibraryMetaRow = {
     version?: string;
     schemaVersion?: number;
     dbSchemaVersion?: number;
+    supportedSiteKeys?: string[];
     updatedAt?: number;
   };
 };

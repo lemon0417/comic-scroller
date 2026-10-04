@@ -46,7 +46,7 @@ describe("comics reducer", () => {
     expect(comics(pending, requestUnsubscribeSeries("dm5:m123", true))).toBe(
       pending,
     );
-    expect(comics(pending, finishReaderSubscription("sf:123"))).toBe(pending);
+    expect(comics(pending, finishReaderSubscription("comicbus:123"))).toBe(pending);
     const failed = comics(
       pending,
       finishReaderSubscription("dm5:m123", "失敗", true),

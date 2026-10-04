@@ -68,8 +68,10 @@
   - `history`
   - `subscribe`
   - `update`
-  - `dm5 / sf / comicbus`
+  - `dm5 / comicbus / manhuagui`
 - 匯入時會先 migration 成 current snapshot，再寫入 IndexedDB
+- SF 支援已移除；初始化會以單一 transaction 清除停用站點在 series、chapters、reads、subscriptions、history、updates 的紀錄，並記錄目前支援站點。其他站點的 row、輪詢時間與分組 checkpoint 保持原值。
+- 舊 storage、dump v1 / v2 與同步 v1 / v2 中的 SF 作品及關聯參照會略過，不會重新加入書庫；legacy `sf` bucket 僅保留作為清理 key。
 
 ## 匯入匯出相容性
 - 匯入支援：
@@ -106,7 +108,7 @@
   - series：`[siteCode, comicsID, title, cover, url, latestRef, lastReadRef, chapterRows]`
   - chapter：`[chapterID, title, href]`
   - update：`[seriesRef, chapterRef]`
-  - site code 固定為 `0: dm5 / 1: sf / 2: comicbus`；參照從 1 起算，latest / lastRead 的 `0` 表示缺少 checkpoint
+  - site code 固定為 `0: dm5 / 2: comicbus / 3: manhuagui`（代碼 `1` 永久停用，讀取舊 SF 資料時略過其作品與參照）；參照從 1 起算，latest / lastRead 的 `0` 表示缺少 checkpoint
   - 作品與章節 ID 各存一次；保留清單排序及全部追蹤、更新
 - 新版讀取 v1 / v2，寫入僅使用 v2；v1 遠端 payload 先精簡再合併，合併後再次精簡，不需要 DB migration
 - 使用同步的所有裝置都必須升級；舊客戶端不能讀取 v2，且可能再次寫回 v1

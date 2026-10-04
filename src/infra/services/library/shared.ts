@@ -1,5 +1,6 @@
 import { storageGetAll, storageRemove, storageSet } from "../storage";
 import {
+  type LibraryMetaRow,
   openLibraryDb,
   readLibraryMeta,
   requestToPromise,
@@ -86,7 +87,6 @@ type LegacyStore = {
   subscribe?: Array<{ site?: string; comicsID?: string }>;
   update?: Array<{ site?: string; comicsID?: string; chapterID?: string }>;
   dm5?: Record<string, unknown>;
-  sf?: Record<string, unknown>;
   comicbus?: Record<string, unknown>;
   manhuagui?: Record<string, unknown>;
   schemaVersion?: number;
@@ -262,6 +262,7 @@ export function rowsToSnapshot(input: {
 
   for (const row of input.series) {
     const seriesRow = row as LibraryDumpSeriesRow;
+    if (!SITE_KEYS.includes(seriesRow.site)) continue;
     const key = buildSeriesKey(seriesRow.site, seriesRow.comicsID);
     snapshot.seriesByKey[key] = {
       site: seriesRow.site,
@@ -320,7 +321,7 @@ export function compactDumpRowsToSnapshot(data: LibraryDumpRowsV2) {
   for (const series of Array.isArray(data.series) ? data.series : []) {
     const site = series?.site;
     const comicsID = String(series?.comicsID || "");
-    if (!site || !comicsID) {
+    if (!SITE_KEYS.includes(site) || !comicsID) {
       continue;
     }
 
@@ -363,9 +364,9 @@ export function compactDumpRowsToSnapshot(data: LibraryDumpRowsV2) {
     ),
   ).filter((seriesKey) => !!snapshot.seriesByKey[seriesKey]);
 
-  snapshot.history = uniqueStrings(data.history, HISTORY_LIMIT).filter(
+  snapshot.history = uniqueStrings(data.history).filter(
     (seriesKey) => !!snapshot.seriesByKey[seriesKey],
-  );
+  ).slice(0, HISTORY_LIMIT);
 
   snapshot.updates = (Array.isArray(data.updates) ? data.updates : [])
     .map((item) => ({
@@ -445,6 +446,7 @@ async function writeRowsToDb(
         version,
         schemaVersion: LIBRARY_SCHEMA_VERSION,
         dbSchemaVersion: LIBRARY_DB_VERSION,
+        supportedSiteKeys: [...SITE_KEYS],
         updatedAt: Date.now(),
       },
     }),
@@ -624,12 +626,55 @@ export async function persistSnapshot(
   return normalized;
 }
 
+async function cleanupUnsupportedSiteRows(meta: LibraryMetaRow) {
+  const db = await openLibraryDb();
+  const stores = [
+    SERIES_STORE,
+    CHAPTERS_STORE,
+    READS_STORE,
+    SUBSCRIPTIONS_STORE,
+    HISTORY_STORE,
+    UPDATES_STORE,
+  ];
+  const transaction = db.transaction([META_STORE, ...stores], "readwrite");
+  const done = transactionDone(transaction);
+
+  await Promise.all(
+    stores.map(
+      (name) =>
+        new Promise<void>((resolve, reject) => {
+          const request = transaction.objectStore(name).openCursor();
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => {
+            const cursor = request.result;
+            if (!cursor) {
+              resolve();
+              return;
+            }
+            const { site } = parseSeriesKey(cursor.value.seriesKey);
+            if (!SITE_KEYS.includes(site)) cursor.delete();
+            cursor.continue();
+          };
+        }),
+    ),
+  );
+  await requestToPromise(
+    transaction.objectStore(META_STORE).put({
+      ...meta,
+      value: { ...meta.value, supportedSiteKeys: [...SITE_KEYS] },
+    }),
+  );
+  await done;
+}
+
 export async function ensureLibraryReady() {
   if (!libraryReadyPromise) {
     libraryReadyPromise = (async () => {
       const meta = await readLibraryMeta(LIBRARY_META_KEY);
-      const initialized = Boolean(meta?.value?.initialized);
-      if (initialized) {
+      if (meta?.value?.initialized) {
+        if (meta?.value?.supportedSiteKeys?.join(",") !== SITE_KEYS.join(",")) {
+          await cleanupUnsupportedSiteRows(meta);
+        }
         if (Number(meta?.value?.dbSchemaVersion || 0) < LIBRARY_DB_VERSION) {
           const rows = await readRowsFromDb();
           await writeRowsToDb(
@@ -675,9 +720,9 @@ function migrateV2(raw: LegacyStore): LibrarySnapshotV2 {
   next.subscriptions = uniqueStrings(raw.subscriptions).filter(
     (seriesKey) => !!next.seriesByKey[seriesKey],
   );
-  next.history = uniqueStrings(raw.history, HISTORY_LIMIT).filter(
+  next.history = uniqueStrings(raw.history).filter(
     (seriesKey) => !!next.seriesByKey[seriesKey],
-  );
+  ).slice(0, HISTORY_LIMIT);
   next.updates = (Array.isArray(raw.updates) ? raw.updates : [])
     .map((item) => ({
       seriesKey: String(item?.seriesKey || ""),
@@ -711,8 +756,7 @@ function migrateLegacy(raw: LegacyStore): LibrarySnapshotV2 {
         ? item
         : buildSeriesKey(String(item?.site || ""), String(item?.comicsID || "")),
     ),
-    HISTORY_LIMIT,
-  ).filter((seriesKey) => !!seriesByKey[seriesKey]);
+  ).filter((seriesKey) => !!seriesByKey[seriesKey]).slice(0, HISTORY_LIMIT);
 
   const subscriptions = uniqueStrings(
     (raw.subscribe || []).map((item) =>

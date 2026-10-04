@@ -41,7 +41,6 @@ import {
 
 const SITE_LABELS: Record<string, string> = {
   dm5: "DM5",
-  sf: "SF",
   comicbus: "ComicBus",
   manhuagui: "漫畫櫃",
 };

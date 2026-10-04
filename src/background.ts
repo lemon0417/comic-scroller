@@ -56,7 +56,6 @@ chrome.webNavigation.onBeforeNavigate.addListener(
           "^https://www\\.manhuagui\\.com/comic/\\d+/\\d+\\.html(?:\\?.*)?(?:#.*)?$",
       },
       { urlMatches: "comicbus.com/online/.*$" },
-      { urlMatches: "comic.sfacg.com/HTML/[^/]+/.+$" },
       {
         urlMatches: "^https://www\\.dm5\\.com/m\\d+/?(?:\\?.*)?$",
       },

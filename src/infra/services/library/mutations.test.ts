@@ -122,7 +122,7 @@ describe("library mutations", () => {
     dbModule.openLibraryDb.mockResolvedValue(db);
     rows.loadUpdatesInTransaction.mockResolvedValue([
       { seriesKey: "dm5:m123", chapterID: "m2", position: 0 },
-      { seriesKey: "sf:77", chapterID: "c7", position: 1 },
+      { seriesKey: "comicbus:77", chapterID: "c7", position: 1 },
     ]);
 
     const result = await removeSeriesCascade("dm5", "m123");
@@ -192,7 +192,7 @@ describe("library mutations", () => {
     dbModule.openLibraryDb.mockResolvedValue(db);
     rows.loadOrderedSubscriptionRowsInTransaction.mockResolvedValue([
       { seriesKey: "dm5:m123", position: 0, checkedAt: 200 },
-      { seriesKey: "sf:77", position: 1, checkedAt: 100 },
+      { seriesKey: "comicbus:77", position: 1, checkedAt: 100 },
     ]);
 
     await expect(toggleSeriesSubscriptionByKey("dm5:m123")).resolves.toBe(false);
@@ -208,7 +208,7 @@ describe("library mutations", () => {
 
     dbModule.openLibraryDb.mockResolvedValue(db);
     rows.loadOrderedSubscriptionRowsInTransaction.mockResolvedValue([
-      { seriesKey: "sf:77", position: 0, checkedAt: 100 },
+      { seriesKey: "comicbus:77", position: 0, checkedAt: 100 },
     ]);
     seriesStore.get.mockReturnValue({
       seriesKey: "dm5:m123",
@@ -331,7 +331,7 @@ describe("library mutations", () => {
     dbModule.openLibraryDb.mockResolvedValue(db);
     rows.loadRowsByPositionInTransaction.mockResolvedValue([
       { seriesKey: "dm5:m123", position: 0 },
-      { seriesKey: "sf:77", position: 1 },
+      { seriesKey: "comicbus:77", position: 1 },
     ]);
 
     await removeSeriesFromHistory("dm5", "m123");
@@ -496,7 +496,7 @@ describe("library mutations", () => {
 
     dbModule.openLibraryDb.mockResolvedValue(db);
     rows.loadUpdatesInTransaction.mockResolvedValue([
-      { seriesKey: "sf:77", chapterID: "c9", position: 0 },
+      { seriesKey: "comicbus:77", chapterID: "c9", position: 0 },
       { seriesKey: "dm5:m123", chapterID: "m2", position: 1 },
     ]);
 
@@ -621,12 +621,12 @@ describe("library mutations", () => {
     dbModule.openLibraryDb.mockResolvedValue(db);
     rows.loadUpdatesInTransaction
       .mockResolvedValueOnce([
-        { seriesKey: "sf:77", chapterID: "c9", position: -1023 },
+        { seriesKey: "comicbus:77", chapterID: "c9", position: -1023 },
         { seriesKey: "dm5:m123", chapterID: "m1", position: -1022 },
       ])
       .mockResolvedValueOnce([
         { seriesKey: "dm5:m123", chapterID: "m2", position: -1024 },
-        { seriesKey: "sf:77", chapterID: "c9", position: -1023 },
+        { seriesKey: "comicbus:77", chapterID: "c9", position: -1023 },
         { seriesKey: "dm5:m123", chapterID: "m1", position: -1022 },
       ]);
 
@@ -661,7 +661,7 @@ describe("library mutations", () => {
     expect(updatesStore.put).toHaveBeenNthCalledWith(
       3,
       expect.objectContaining({
-        seriesKey: "sf:77",
+        seriesKey: "comicbus:77",
         chapterID: "c9",
         position: 1,
       }),

@@ -69,54 +69,56 @@ describe("library sync model", () => {
     expect(syncWireRowsToState(syncStateToWireRows(remote))).toEqual(remote);
   });
 
-  it.each([
-    null,
-    [[], [], []],
-    [[], [1], [], []],
-    [[], [], [0], []],
-    [[], [], [], [[1, 1]]],
-    [[[4, "id", "", "", "", 0, 0, []]], [], [], []],
-    [[[0, "id", 123, "", "", 0, 0, []]], [], [], []],
-    [[[0, "id", "", "", "", 1, 0, []]], [], [], []],
-    [[[0, "id", "", "", "", 0, -1, []]], [], [], []],
+  it.each(
     [
+      null,
+      [[], [], []],
+      [[], [1], [], []],
+      [[], [], [0], []],
+      [[], [], [], [[1, 1]]],
+      [[[4, "id", "", "", "", 0, 0, []]], [], [], []],
+      [[[0, "id", 123, "", "", 0, 0, []]], [], [], []],
+      [[[0, "id", "", "", "", 1, 0, []]], [], [], []],
+      [[[0, "id", "", "", "", 0, -1, []]], [], [], []],
       [
         [
-          0,
-          "id",
-          "",
-          "",
-          "",
-          0,
-          0,
           [
-            ["c1", "", ""],
-            ["c1", "", ""],
+            0,
+            "id",
+            "",
+            "",
+            "",
+            0,
+            0,
+            [
+              ["c1", "", ""],
+              ["c1", "", ""],
+            ],
           ],
         ],
+        [],
+        [],
+        [],
       ],
-      [],
-      [],
-      [],
-    ],
-    [
       [
-        [0, "id", "", "", "", 0, 0, []],
-        [0, "id", "", "", "", 0, 0, []],
+        [
+          [0, "id", "", "", "", 0, 0, []],
+          [0, "id", "", "", "", 0, 0, []],
+        ],
+        [],
+        [],
+        [],
       ],
-      [],
-      [],
-      [],
-    ],
-    [[[0, "id", "", "", "", 0, 0, [["c1", "", ""]]]], [], [], [[1, 2]]],
-    [[[0, "id", "", "", "", 0, 0, []]], [1.5], [], []],
-  ])("rejects malformed indexed rows instead of dropping data (%#)", (rows) => {
+      [[[0, "id", "", "", "", 0, 0, [["c1", "", ""]]]], [], [], [[1, 2]]],
+      [[[0, "id", "", "", "", 0, 0, []]], [1.5], [], []],
+    ].map((rows) => [rows]),
+  )("rejects malformed indexed rows instead of dropping data (%#)", (rows) => {
     expect(() => syncIndexedRowsToState(rows)).toThrow();
   });
 
   it("keeps site codes stable and uses explicit missing checkpoints", () => {
     const state = createState();
-    for (const site of ["dm5", "sf", "comicbus", "manhuagui"] as const) {
+    for (const site of ["dm5", "comicbus", "manhuagui"] as const) {
       const key = buildSeriesKey(site, "123");
       state.seriesByKey[key] = createSeriesState({
         site,
@@ -125,15 +127,89 @@ describe("library sync model", () => {
       state.subscriptions.push(key);
     }
     const rows = syncStateToIndexedRows(state);
-    expect(rows[0].map((row) => row[0])).toEqual([0, 1, 2, 3]);
+    expect(rows[0].map((row) => row[0])).toEqual([0, 2, 3]);
     expect(rows[0].map((row) => row.slice(5, 7))).toEqual([
       [0, 0],
       [0, 0],
       [0, 0],
-      [0, 0],
     ]);
-    expect(rows[1]).toEqual([1, 2, 3, 4]);
+    expect(rows[1]).toEqual([1, 2, 3]);
     expect(syncIndexedRowsToState(rows)).toEqual(state);
+  });
+
+  it("drops retired v2 rows without shifting surviving series or chapter references", () => {
+    const state = syncIndexedRowsToState([
+      [
+        [0, "m123", "DM5", "", "", 1, 1, [["m1", "Ch 1", "dm5-url"]]],
+        [1, "123", "Retired", "", "", 1, 1, [["c1", "Old", "old-url"]]],
+        [2, "123", "ComicBus", "", "", 1, 0, [["c7", "Ch 7", "bus-url"]]],
+        [3, "123", "Manhuagui", "", "", 1, 1, [["99", "Ch 99", "gui-url"]]],
+      ],
+      [2, 4, 1, 3],
+      [3, 2, 1, 4],
+      [
+        [2, 1],
+        [3, 1],
+        [4, 1],
+      ],
+    ]);
+    expect(Object.keys(state.seriesByKey)).toEqual([
+      "manhuagui:123",
+      "dm5:m123",
+      "comicbus:123",
+    ]);
+    expect(state.subscriptions).toEqual([
+      "manhuagui:123",
+      "dm5:m123",
+      "comicbus:123",
+    ]);
+    expect(state.history).toEqual([
+      "comicbus:123",
+      "dm5:m123",
+      "manhuagui:123",
+    ]);
+    expect(state.updates).toEqual([
+      { seriesKey: "comicbus:123", chapterID: "c7" },
+      { seriesKey: "manhuagui:123", chapterID: "99" },
+    ]);
+    expect(syncIndexedRowsToState(syncStateToIndexedRows(state))).toEqual(
+      state,
+    );
+  });
+
+  it.each(
+    [
+      [[[1, "123", 7, "", "", 0, 0, []]], [], [], []],
+      [[[1, "123", "", "", "", 1, 0, []]], [], [], []],
+      [[[1, "123", "", "", "", 0, 0, []]], [2], [], []],
+      [[[1, "123", "", "", "", 0, 0, []]], [], [], [[1, 1]]],
+    ].map((rows) => [rows]),
+  )("still validates retired rows and their references (%#)", (rows) => {
+    expect(() => syncIndexedRowsToState(rows)).toThrow();
+  });
+
+  it("drops retired v1 series and references while keeping supported records", () => {
+    const state = syncWireRowsToState({
+      series: [
+        { site: "sf", comicsID: "123", title: "Retired", chapters: [] },
+        { site: "comicbus", comicsID: "123", title: "Kept", chapters: [] },
+      ],
+      subscriptions: [{ seriesKey: "sf:123" }, { seriesKey: "comicbus:123" }],
+      history: [
+        ...Array.from({ length: 50 }, (_, index) => `sf:${index}`),
+        "comicbus:123",
+      ],
+      updates: [
+        { seriesKey: "sf:123", chapterID: "c1" },
+        { seriesKey: "comicbus:123", chapterID: "c7" },
+      ],
+    });
+    expect(Object.keys(state.seriesByKey)).toEqual(["comicbus:123"]);
+    expect(state.subscriptions).toEqual(["comicbus:123"]);
+    expect(state.history).toEqual(["comicbus:123"]);
+    expect(state.updates).toEqual([
+      { seriesKey: "comicbus:123", chapterID: "c7" },
+    ]);
   });
 
   it("keeps every subscription and update, the latest 50 history entries, and only checkpoint summaries", () => {

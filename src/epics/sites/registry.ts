@@ -3,7 +3,6 @@ import type { AppEpic } from "@epics/types";
 import * as comicbus from "./comicbus";
 import * as dm5 from "./dm5";
 import * as manhuagui from "./manhuagui";
-import * as sf from "./sf";
 
 type SiteReaderEpics = {
   fetchChapterEpic: AppEpic;
@@ -24,12 +23,6 @@ const readerEpicsBySite: Record<string, SiteReaderEpics> = {
     fetchImgSrcEpic: dm5.fetchImgSrcEpic,
     fetchImgListEpic: dm5.fetchImgListEpic,
     updateReadEpic: dm5.updateReadEpic,
-  },
-  sf: {
-    fetchChapterEpic: sf.fetchChapterEpic,
-    fetchImgSrcEpic: sf.fetchImgSrcEpic,
-    fetchImgListEpic: sf.fetchImgListEpic,
-    updateReadEpic: sf.updateReadEpic,
   },
   comicbus: {
     fetchChapterEpic: comicbus.fetchChapterEpic,

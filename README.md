@@ -32,7 +32,6 @@ It is maintained under the repository name `comic-scroller`, while the original 
 ## Supported Sites
 
 - DM5 / 動漫屋
-- SFACG
 - ComicBus / 無限動漫
 - Manhuagui / 漫畫櫃
 

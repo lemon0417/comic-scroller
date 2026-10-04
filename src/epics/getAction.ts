@@ -6,7 +6,6 @@ const inferSite = (siteParam: string, chapterParam: string) => {
   if (siteParam) return siteParam;
   if (/^m\d+$/i.test(chapterParam)) return "dm5";
   if (/^comic-\d+\.html\?ch=/i.test(chapterParam)) return "comicbus";
-  if (chapterParam.startsWith("HTML/")) return "sf";
   if (/^comic\/\d+\/\d+\.html$/.test(chapterParam)) return "manhuagui";
   return "";
 };

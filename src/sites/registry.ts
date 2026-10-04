@@ -3,7 +3,6 @@ import { map } from "rxjs/operators";
 import comicbusAdapter from "./comicbus/adapter";
 import dm5Adapter from "./dm5/adapter";
 import manhuaguiAdapter from "./manhuagui/adapter";
-import sfAdapter from "./sf/adapter";
 import type {
   SiteAdapter,
   SiteChapterFetcher,
@@ -12,7 +11,6 @@ import type {
 
 const adapters: Record<string, SiteAdapter> = {
   dm5: dm5Adapter,
-  sf: sfAdapter,
   comicbus: comicbusAdapter,
   manhuagui: manhuaguiAdapter,
 };

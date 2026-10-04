@@ -777,6 +777,15 @@ describe("background service", () => {
     ).toBe("");
   });
 
+  it.each(["http", "https"])(
+    "leaves retired SF URLs in the native reader (%s)",
+    (protocol) => {
+      expect(
+        resolveReaderRedirect(`${protocol}://comic.sfacg.com/HTML/123/c1.html`),
+      ).toBe("");
+    },
+  );
+
   it("does not redirect DM5 chapter links with the native-reader bypass marker", () => {
     expect(
       resolveReaderRedirect(
