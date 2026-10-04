@@ -1,14 +1,56 @@
-import { readFileSync } from "fs";
 import { compressToBase64 } from "lz-string";
-import { join } from "path";
 import { firstValueFrom } from "rxjs";
 
+import { readSiteFixture } from "../../testUtils/siteFixtures";
 import { fetchMeta$, parseManhuaguiMeta } from "../manhuagui/meta";
 import { MANHUAGUI_REQUEST_TIMEOUT_MS } from "../manhuagui/url";
 import { getSiteChapterFetcher } from "../registry";
 
 const fixture = (id: string) =>
-  readFileSync(join(__dirname, "../manhuagui/fixtures", `${id}.html`), "utf8");
+  readSiteFixture("manhuagui", `${id}.series.html`);
+
+const expectedChapterNumbers: Record<string, string[]> = {
+  "49169": [
+    "910633",
+    "910632",
+    "760171",
+    "760170",
+    "760169",
+    "760168",
+    "760086",
+    "760085",
+    "766748",
+    "760084",
+    "760078",
+    "705046",
+    "760077",
+  ],
+  "28004": [
+    "844724",
+    "833736",
+    "528964",
+    "569206",
+    "796021",
+    "701835",
+    "390446",
+    "379497",
+    "778267",
+    "777161",
+    "631833",
+    "630677",
+    "628277",
+    "627065",
+    "477573",
+    "475810",
+    "475809",
+    "472938",
+    "370447",
+    "370153",
+    "370061",
+    "369737",
+    "369532",
+  ],
+};
 
 describe("Manhuagui metadata", () => {
   const originalFetch = globalThis.fetch;
@@ -20,16 +62,24 @@ describe("Manhuagui metadata", () => {
   });
 
   it.each([
-    ["49169", 185, ["单话", "单行本", "番外篇"], "comic/49169/910633.html"],
-    ["28004", 317, ["单行本", "番外篇", "单话"], "comic/28004/844724.html"],
+    ["49169", 13, ["单话", "单行本", "番外篇"], "comic/49169/910633.html"],
+    ["28004", 23, ["单行本", "番外篇", "单话"], "comic/28004/844724.html"],
   ])(
     "parses the actual %s response without DOM, including all hidden chapter pages",
     (id, count, groups, first) => {
       (globalThis as any).DOMParser = undefined;
       const meta = parseManhuaguiMeta(fixture(id), id);
       expect(meta.chapterList).toHaveLength(count);
+      expect(meta.chapterList).toEqual(
+        expectedChapterNumbers[id].map(
+          (number) => `comic/${id}/${number}.html`,
+        ),
+      );
       expect(meta.chapterList[0]).toBe(first);
       expect(meta.chapterGroups?.map((group) => group.id)).toEqual(groups);
+      expect(
+        meta.chapterGroups?.map((group) => group.chapterList.length),
+      ).toEqual(id === "49169" ? [8, 4, 1] : [4, 4, 15]);
       expect(new Set(meta.chapterList).size).toBe(count);
       expect(meta.cover).toBe(`https://cf.mhgui.com/cpic/h/${id}.jpg`);
       expect(meta.chapterList).not.toContain(`comic/${id}/999999.html`);
@@ -62,7 +112,7 @@ describe("Manhuagui metadata", () => {
       `${html.slice(0, start)}<input id="__VIEWSTATE" value="${compressed}" /></body></html>`,
       "49169",
     );
-    expect(meta.chapterList).toHaveLength(185);
+    expect(meta.chapterList).toHaveLength(13);
     expect(meta.chapterList[0]).toBe("comic/49169/910633.html");
   });
 
@@ -78,7 +128,7 @@ describe("Manhuagui metadata", () => {
     expect(snapshot).not.toHaveProperty("title");
     expect(snapshot).not.toHaveProperty("cover");
     expect(snapshot.chapterGroups).toHaveLength(3);
-    expect(snapshot.chapterList).toHaveLength(185);
+    expect(snapshot.chapterList).toHaveLength(13);
   });
 
   it.each([

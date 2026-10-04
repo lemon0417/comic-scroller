@@ -1,13 +1,10 @@
 import { parseManhuaguiChapter } from "@sites/manhuagui/chapter";
-import { readFileSync } from "fs";
 import { compressToBase64 } from "lz-string";
-import { join } from "path";
+
+import { readSiteFixture } from "../../testUtils/siteFixtures";
 
 const fixture = (id: string) =>
-  readFileSync(
-    join(__dirname, "../../sites/manhuagui/fixtures", `${id}.chapter.html`),
-    "utf8",
-  );
+  readSiteFixture("manhuagui", `${id}.chapter.html`);
 
 // Synthetic data uses the site's observed compressed dictionary/packer contract.
 function packJSON(data: unknown) {
@@ -44,7 +41,7 @@ describe("Manhuagui image parser", () => {
     "decodes actual %s packed data and signed image URLs without executing the page",
     (series, chapter, pages, first, last) => {
       const output = parseManhuaguiChapter(
-        fixture(series),
+        fixture(chapter),
         `comic/${series}/${chapter}.html`,
       );
       expect(output.seriesID).toBe(series);
@@ -64,10 +61,10 @@ describe("Manhuagui image parser", () => {
 
   it("validates chapter identity instead of accepting a different series or chapter", () => {
     expect(() =>
-      parseManhuaguiChapter(fixture("49169"), "comic/28004/910633.html"),
+      parseManhuaguiChapter(fixture("910633"), "comic/28004/910633.html"),
     ).toThrow("identity mismatch");
     expect(() =>
-      parseManhuaguiChapter(fixture("49169"), "comic/49169/1.html"),
+      parseManhuaguiChapter(fixture("910633"), "comic/49169/1.html"),
     ).toThrow("identity mismatch");
   });
 
@@ -90,7 +87,7 @@ describe("Manhuagui image parser", () => {
 
   it("does not execute unrelated page scripts or mutate String.prototype", () => {
     const prototype = Object.getOwnPropertyNames(String.prototype);
-    const html = `<script>throw new Error('must never execute'); String.prototype.splice = 1;</script>${fixture("49169")}`;
+    const html = `<script>throw new Error('must never execute'); String.prototype.splice = 1;</script>${fixture("910633")}`;
     expect(
       parseManhuaguiChapter(html, "comic/49169/910633.html").imgList,
     ).toHaveLength(18);
@@ -112,7 +109,7 @@ describe("Manhuagui image parser", () => {
     expect(() =>
       parseManhuaguiChapter("<html>blocked</html>", "comic/49169/910633.html"),
     ).toThrow("packed image data");
-    const broken = fixture("49169").replace("',57,57,", "',57,56,");
+    const broken = fixture("910633").replace("',57,57,", "',57,56,");
     expect(() =>
       parseManhuaguiChapter(broken, "comic/49169/910633.html"),
     ).toThrow("dictionary");

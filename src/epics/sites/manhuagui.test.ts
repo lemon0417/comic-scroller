@@ -6,11 +6,10 @@ import {
 } from "@domain/reducers/comics";
 import { applyReaderSeriesState } from "@infra/services/library/reader";
 import { MANHUAGUI_REQUEST_TIMEOUT_MS } from "@sites/manhuagui/url";
-import { readFileSync } from "fs";
-import { join } from "path";
 import { lastValueFrom, of, Subject } from "rxjs";
 import { toArray } from "rxjs/operators";
 
+import { readSiteFixture } from "../../testUtils/siteFixtures";
 import {
   fetchChapterEpic,
   fetchChapterImages$,
@@ -24,9 +23,9 @@ jest.mock("@infra/services/library/reader", () => ({
 
 const chapterID = "comic/49169/910633.html";
 const fixture = (suffix: string) =>
-  readFileSync(
-    join(__dirname, "../../sites/manhuagui/fixtures", `49169${suffix}.html`),
-    "utf8",
+  readSiteFixture(
+    "manhuagui",
+    suffix === ".chapter" ? "910633.chapter.html" : "49169.series.html",
   );
 
 describe("Manhuagui reader", () => {

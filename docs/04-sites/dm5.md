@@ -114,3 +114,11 @@ resolver 只接受 `pvalue`、`d`、`hd_c` 這三種已知命名陣列，取第�
 CDN 需要 Referer 與成人 Cookie，由 `public/rules.json` 注入：
 - `Referer: https://www.dm5.com/m`
 - `Cookie: isAdult=1`
+
+## 8) 離線回歸樣本
+
+Fixtures 位於 `src/sites/dm5/fixtures/`，來源與精簡方式見該目錄 README。測試共同使用 `readSiteFixture("dm5", filename)`，所有 HTTP 回應 mock，不載入 fixture 圖片或執行 packer。
+
+電鋸人與百煉成神各保留三個 RSS item 與作品 HTML 代表章節，驗證 RSS 順序、封面 hydration、背景 RSS-only、RSS 失敗／空清單後的 HTML fallback，以及 DOM／無 DOM 解析。HTML 保留原站的順序與 VIP lock 標記，不要求與 RSS 順序相同。
+
+免費章節 `m1768478` 保留 30 頁的變數宣告與第一頁完整 chapterfun response，驗證空請求 key 及 response 圖片 key。VIP 章節 `m462489` 保留實際購買按鈕，驗證 placeholder、關閉預載、不請求圖片及 `cs_open_native=1` 連結。兩份舊 packer 常數移入獨立 `.js` fixtures，原有 fallback/schema 測試仍保留。

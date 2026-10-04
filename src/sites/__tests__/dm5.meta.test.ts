@@ -3,6 +3,8 @@ import { getSiteChapterFetcher } from "@sites/registry";
 import { firstValueFrom, lastValueFrom } from "rxjs";
 import { toArray } from "rxjs/operators";
 
+import { readSiteFixture } from "../../testUtils/siteFixtures";
+
 describe("dm5 fetchMeta$", () => {
   afterEach(() => {
     jest.restoreAllMocks();
@@ -501,5 +503,123 @@ describe("dm5 fetchMeta$", () => {
     } finally {
       (globalThis as any).fetch = originalFetch;
     }
+  });
+});
+
+describe("dm5 captured metadata flows", () => {
+  const originalFetch = globalThis.fetch;
+  const originalParser = globalThis.DOMParser;
+  const samples = [
+    {
+      slug: "dianjuren",
+      title: "电锯人",
+      cover:
+        "https://mhfm6tw.cdndm5.com/47/46568/20190708225456_450x600_101.jpg",
+      rssIDs: ["m1768478", "m1764103", "m1300155"],
+      htmlIDs: ["m1768478", "m1764103", "m1300155"],
+    },
+    {
+      slug: "bailianchengshen",
+      title: "百炼成神",
+      cover:
+        "https://mhfm6tw.cdndm5.com/21/20802/20191227112603_450x600_111.jpg",
+      rssIDs: ["m1659652", "m462489", "m225202"],
+      htmlIDs: ["m225202", "m462489", "m1659652"],
+    },
+  ];
+  const response = (body: string) =>
+    ({
+      ok: true,
+      text: async () => body,
+    }) as Response;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    globalThis.DOMParser = originalParser;
+  });
+
+  it.each(samples)(
+    "hydrates $slug RSS before its captured cover",
+    async (sample) => {
+      const url = `https://www.dm5.com/manhua-${sample.slug}/`;
+      const fetchMock = jest.fn((requestURL: unknown) =>
+        Promise.resolve(
+          response(
+            readSiteFixture(
+              "dm5",
+              `${sample.slug}.${String(requestURL).includes("/rss-") ? "rss.xml" : "series.html"}`,
+            ),
+          ),
+        ),
+      );
+      globalThis.fetch = fetchMock;
+      const emissions = await lastValueFrom(
+        fetchMeta$(url, { deferCover: true }).pipe(toArray()),
+      );
+      expect(emissions).toHaveLength(2);
+      expect(emissions[0]).toMatchObject({
+        title: sample.title,
+        cover: "",
+        chapterList: sample.rssIDs,
+      });
+      expect(emissions[1]).toEqual({ ...emissions[0], cover: sample.cover });
+      expect(fetchMock.mock.calls.map(([requestURL]) => requestURL)).toEqual([
+        `https://www.dm5.com/rss-${sample.slug}/`,
+        url,
+      ]);
+    },
+  );
+
+  it.each(samples)(
+    "uses only captured $slug RSS for background",
+    async (sample) => {
+      const fetchMock = jest
+        .fn()
+        .mockResolvedValue(
+          response(readSiteFixture("dm5", `${sample.slug}.rss.xml`)),
+        );
+      globalThis.fetch = fetchMock;
+      const snapshot = await firstValueFrom(
+        getSiteChapterFetcher("dm5")!(
+          `https://www.dm5.com/manhua-${sample.slug}/`,
+        ),
+      );
+      expect(snapshot.chapterList).toEqual(sample.rssIDs);
+      expect(snapshot).not.toHaveProperty("title");
+      expect(snapshot).not.toHaveProperty("cover");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(
+        `https://www.dm5.com/rss-${sample.slug}/`,
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
+    },
+  );
+
+  describe.each(["HTTP failure", "empty RSS"])("%s fallback", (scenario) => {
+    it.each(samples)(
+      "reuses captured $slug HTML without DOM",
+      async (sample) => {
+        (globalThis as any).DOMParser = undefined;
+        const fetchMock = jest
+          .fn()
+          .mockResolvedValueOnce(
+            scenario === "HTTP failure"
+              ? { ok: false, status: 503 }
+              : response("<rss><channel><title>Empty</title></channel></rss>"),
+          )
+          .mockResolvedValueOnce(
+            response(readSiteFixture("dm5", `${sample.slug}.series.html`)),
+          );
+        globalThis.fetch = fetchMock;
+        const meta = await firstValueFrom(
+          fetchMeta$(`https://www.dm5.com/manhua-${sample.slug}/`),
+        );
+        expect(meta).toMatchObject({
+          title: sample.title,
+          cover: sample.cover,
+          chapterList: sample.htmlIDs,
+        });
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+      },
+    );
   });
 });

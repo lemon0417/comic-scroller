@@ -35,6 +35,6 @@ Production/dev manifest 覆蓋主站、`cf.mhgui.com` 封面與 `i.hamreus.com` 
 
 ## 測試
 
-離線 fixtures 擷取自 2026-10-04 的作品 49169、28004，去除廣告與非必要頁面部分，保留原站章節分頁、重複 HTML ID 與圖片 packer。Metadata fixtures 分別有 185、317 個章節；圖片 fixtures 分別有 18、196 頁。簽章是 fixture 資料，不應用來進行持續的線上測試。
+離線 fixtures 擷取自 2026-10-04 的作品 49169、28004，依站點共用規範精簡並使用 `readSiteFixture("manhuagui", filename)` 讀取。每個章節 ul 保留首尾代表章節，保留所有分組、隱藏分頁、重複 HTML ID 與排序案例。Metadata fixtures 分別有 13、23 個章節；圖片 packer 完整保留，分別有 18、196 頁。來源與精簡範圍見 `src/sites/manhuagui/fixtures/README.md`；簽章僅為離線解析資料。
 
 Focused tests：metadata、manhuagui parser/reader epics、background service、library integration 與 sync model。實機驗收重新抓取即時章節頁，確認 DNR、連續閱讀、跳章、追蹤與 popup 繼續閱讀。

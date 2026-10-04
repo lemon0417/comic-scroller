@@ -6,6 +6,7 @@
 
 ## 測試位置與命名
 - 測試與元件/模組同層，例如：`src/ui/components/Loading/Loading.test.tsx`
+- 站點真實回應使用 `src/sites/<provider>/fixtures/` 與 `src/testUtils/siteFixtures.ts` 的共用讀取 helper；來源與精簡規範見 `docs/04-sites/README.md`。
 
 ## 優先測試範圍
 - Epics 的章節/圖片流程

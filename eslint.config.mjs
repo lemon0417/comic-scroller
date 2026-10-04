@@ -16,6 +16,7 @@ const jsxA11yRecommended = jsxA11y.configs?.recommended || {};
 const tsRecommended = tsPlugin.configs?.recommended || {};
 
 export default [
+  { ignores: ['src/sites/*/fixtures/**'] },
   {
     ignores: [
       '**/node_modules/**',

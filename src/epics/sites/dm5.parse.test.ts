@@ -1,10 +1,62 @@
 import { parseDm5ChapterPage, resolveDm5ImageUrl } from "@sites/dm5/chapter";
 
-const PACKER_SAMPLE = String.raw`eval(function(p,a,c,k,e,d){e=function(c){return(c<a?"":e(parseInt(c/a)))+((c=c%a)>35?String.fromCharCode(c+29):c.toString(36))};if(!''.replace(/^/,String)){while(c--)d[e(c)]=k[c]||e(c);k=[function(e){return d[e]}];e=function(){return'\\w+'};c=1;};while(c--)if(k[c])p=p.replace(new RegExp('\\b'+e(c)+'\\b','g'),k[c]);return p;}('b 5(){1 4=3;1 9=\\'8\\';1 7=\"g://f.h.e/a/c/3\";1 2=[\"/j.6\",\"/m.6\"];n(1 i=0;i<2.k;i++){2[i]=7+2[i]+\\'?4=3&9=8\\'}l 2}1 d;d=5();',24,24,'|var|pvalue|1753397|cid|dm5imagefun|jpg|pix|49370fd6fd0f05ca510c4a1a4d389230|key|85|function|84472||com|manhua1040zjcdn123|https|cdndm5||1_4253|length|return|2_8730|for'.split('|'),0,{}))`;
+import { readSiteFixture } from "../../testUtils/siteFixtures";
 
-const EMPTY_CHAPTERFUN_KEY_PACKER_SAMPLE = String.raw`eval(function(p,a,c,k,e,d){e=function(c){return(c<a?"":e(parseInt(c/a)))+((c=c%a)>35?String.fromCharCode(c+29):c.toString(36))};if(!''.replace(/^/,String)){while(c--)d[e(c)]=k[c]||e(c);k=[function(e){return d[e]}];e=function(){return'\\w+'};c=1;};while(c--)if(k[c])p=p.replace(new RegExp('\\b'+e(c)+'\\b','g'),k[c]);return p;}('o 8(){1 4=3;1 a=\\'9\\';1 7="6://g.h.c/j/f/3";1 2=["/b.5","/e.5"];k(1 i=0;i<2.q;i++){p(/^(6?:)?\\/\\//i.l(2[i])){m}2[i]=7+2[i]+\\'?4=3&a=9\\'}n 2}1 d;d=8();',27,27,'|var|pvalue|1794602|cid|jpg|https|pix|dm5imagefun|9513d9f1ca59042e184ba6c2334ea1e0|key|1_7884|com||2_9973|89730|manhua1041zjcdn79|cdndm5||90|for|test|continue|return|function|if|length'.split('|'),0,{}))`;
+const PACKER_SAMPLE = readSiteFixture("dm5", "m1753397.page-1.js");
+
+const EMPTY_CHAPTERFUN_KEY_PACKER_SAMPLE = readSiteFixture(
+  "dm5",
+  "m1794602.page-1.js",
+);
 
 describe("dm5 parser helpers", () => {
+  test("parses captured free chapter and resolves its captured first-page response", () => {
+    const chapter = parseDm5ChapterPage(
+      readSiteFixture("dm5", "m1768478.chapter.html"),
+      "m1768478",
+    );
+    expect(chapter.chapterID).toBe("m1768478");
+    expect(chapter.seriesSlug).toBe("manhua-dianjuren");
+    expect(chapter.imgList).toHaveLength(30);
+    const first = chapter.imgList[0];
+    expect(first.key).toBe("");
+    const request = new URL(first.src);
+    expect(request.pathname).toBe("/m1768478/chapterfun.ashx");
+    expect(request.searchParams.get("key")).toBe("");
+    expect(request.searchParams.get("page")).toBe("1");
+    expect(request.searchParams.get("_mid")).toBe("46568");
+    expect(new URL(chapter.imgList[29].src).searchParams.get("page")).toBe(
+      "30",
+    );
+    expect(
+      resolveDm5ImageUrl(readSiteFixture("dm5", "m1768478.page-1.js"), first),
+    ).toBe(
+      "https://manhua1040zjcdn63.cdndm5.com/47/46568/1768478/1_2322.jpg?cid=1768478&key=228f25b9fb27a9418f4a919e2f010a37",
+    );
+  });
+
+  test("parses captured VIP chapter into a native-reader paywall link", () => {
+    expect(
+      parseDm5ChapterPage(
+        readSiteFixture("dm5", "m462489.chapter.html"),
+        "m462489",
+      ),
+    ).toEqual({
+      chapterID: "m462489",
+      seriesSlug: "manhua-bailianchengshen",
+      imgList: [
+        {
+          chapter: "m462489",
+          cid: "462489",
+          key: "",
+          src: "",
+          href: "https://www.dm5.com/m462489/?cs_open_native=1",
+          type: "paywall",
+        },
+      ],
+    });
+  });
+
   test("parses chapter page metadata and chapterfun entries", () => {
     const html = `
       <html>

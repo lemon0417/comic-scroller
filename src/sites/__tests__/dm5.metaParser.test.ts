@@ -1,9 +1,71 @@
 import {
+  parseDm5CoverMeta,
   parseDm5LegacyMeta,
   parseDm5RssMetaStrict,
 } from "@sites/dm5/metaParser";
 
+import { readSiteFixture } from "../../testUtils/siteFixtures";
+
+const samples = [
+  {
+    slug: "dianjuren",
+    title: "电锯人",
+    cover: "https://mhfm6tw.cdndm5.com/47/46568/20190708225456_450x600_101.jpg",
+    rssChapterIDs: ["m1768478", "m1764103", "m1300155"],
+    htmlChapterIDs: ["m1768478", "m1764103", "m1300155"],
+    titles: ["第232话", "第231话", "第1卷"],
+  },
+  {
+    slug: "bailianchengshen",
+    title: "百炼成神",
+    cover: "https://mhfm6tw.cdndm5.com/21/20802/20191227112603_450x600_111.jpg",
+    rssChapterIDs: ["m1659652", "m462489", "m225202"],
+    htmlChapterIDs: ["m225202", "m462489", "m1659652"],
+    titles: ["第1293回 新生", "第81回 先声夺人", "第1回 炼器功法（上）"],
+  },
+];
+
 describe("dm5 metadata parsers", () => {
+  it.each(samples)("parses captured $slug RSS in source order", (sample) => {
+    const meta = parseDm5RssMetaStrict(
+      readSiteFixture("dm5", `${sample.slug}.rss.xml`),
+    );
+    expect(meta).toEqual({
+      title: sample.title,
+      chapterList: sample.rssChapterIDs,
+      chapters: Object.fromEntries(
+        sample.rssChapterIDs.map((id, index) => [
+          id,
+          { title: sample.titles[index], href: `https://www.dm5.com/${id}/` },
+        ]),
+      ),
+    });
+  });
+
+  describe.each([true, false])("captured HTML with DOMParser=%s", (useDOM) => {
+    it.each(samples)("parses $slug cover and fallback chapters", (sample) => {
+      const originalParser = globalThis.DOMParser;
+      if (!useDOM) (globalThis as any).DOMParser = undefined;
+      try {
+        const html = readSiteFixture("dm5", `${sample.slug}.series.html`);
+        const meta = parseDm5LegacyMeta(html);
+        expect(meta.title).toBe(sample.title);
+        expect(meta.cover).toBe(sample.cover);
+        expect(parseDm5CoverMeta(html)).toBe(sample.cover);
+        expect(meta.chapterList).toEqual(sample.htmlChapterIDs);
+        for (const id of sample.htmlChapterIDs) {
+          expect(meta.chapters[id].href).toBe(`https://www.dm5.com/${id}/`);
+        }
+        if (sample.slug === "bailianchengshen") {
+          expect(html).toContain('class="detail-lock"');
+          expect(meta.chapters.m462489.title).toContain("第81回 先声夺人");
+        }
+      } finally {
+        globalThis.DOMParser = originalParser;
+      }
+    });
+  });
+
   it("keeps only DM5 m-number chapter links from RSS", () => {
     const rssXml = `
       <rss>

@@ -37,3 +37,11 @@ Codex 處理站點 / parser / manifest / DNR / redirect 類任務時，優先使
 - Reader parser / resolver：`src/epics/sites/<site>*.test.ts`
 - 共用 reader orchestration：`src/epics/sites/readerFlow.test.ts`
 - Background redirect 或通知：`src/infra/services/background.test.ts`
+
+## Fixture 共用規範
+- 真實外站回應放在 `src/sites/<provider>/fixtures/`，以作品／章節 ID 與回應類型命名，使用 `.html`、`.xml`、`.js`；測試一律透過 `src/testUtils/siteFixtures.ts` 的 `readSiteFixture(site, filename)` 讀取 UTF-8 字串。
+- 每站 fixtures/README.md 記錄來源 URL、擷取日期、精簡方式與涵蓋情境。歷史樣本缺少來源或日期時明確註記，不補造來源資訊。
+- 採精簡真實片段：保留 parser 所需的標題、封面、章節／分頁結構、付費標記與完整壓縮 payload；移除廣告、推薦內容與無關腳本，不保存登入 cookie 或帳號資料。
+- 預期輸出須明確列出，不能由受測 parser 自行產生。短小的錯誤／邊界模擬資料可留在測試中；人工加工或合成的案例要註記。
+- 測試不得下載圖片、執行 fixture 腳本或依賴簽章有效期限；HTTP 一律 mock。fixture 腳本排除 lint，testUtils 排除 TypeScript emit；正式 runtime 不得 import fixtures 或讀取 helper。
+- DM5 與漫畫櫃已採用本規範；SF／ComicBus 後續新增真實樣本時沿用。
