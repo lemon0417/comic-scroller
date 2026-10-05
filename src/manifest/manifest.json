@@ -1,6 +1,6 @@
 {
   "name": "Comics Scroller",
-  "version": "4.4.0",
+  "version": "4.5.0",
   "manifest_version": 3,
   "description": "支援動漫屋、8comic 無限動漫、漫畫櫃、包子漫畫、MYCOMIC，提供更好的漫畫閱讀體驗的 Chrome extension",
   "icons": {
